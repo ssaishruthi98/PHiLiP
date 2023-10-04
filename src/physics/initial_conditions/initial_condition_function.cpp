@@ -648,6 +648,63 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 }
 
 // ========================================================
+// 2D Daru-Tenaud Problem -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_DaruTenaudShockTube<dim, nstate, real>
+::InitialConditionFunction_DaruTenaudShockTube(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    , gamma_gas(param->euler_param.gamma_gas)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_DaruTenaudShockTube<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        if (x < 0.5) {
+            if (istate == 0) {
+                // density
+                value = 120;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0;
+            }
+            else if (istate == 3) {
+                value = 120.0/gamma_gas;
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = 1.2;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0;
+            }
+            else if (istate == 3) {
+                value = 1.2/gamma_gas;
+            }
+        }
+    }
+    return value;
+}
+
+// ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -736,7 +793,9 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
         if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim, nstate, real> >();
-    }else {
+    } else if (flow_type == FlowCaseEnum::daru_tenaud) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DaruTenaudShockTube<dim, nstate, real> >(param);
+    } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
     }

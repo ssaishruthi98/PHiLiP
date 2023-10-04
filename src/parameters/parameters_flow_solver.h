@@ -34,7 +34,8 @@ public:
         leblanc_shock_tube,
         shu_osher_problem,
         advection_limiter,
-        burgers_limiter
+        burgers_limiter,
+        daru_tenaud
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

@@ -33,7 +33,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
-                          " burgers_limiter "),
+                          " burgers_limiter |"
+                          " daru_tenaud"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -54,7 +55,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
-                          " burgers_limiter >. ");
+                          " burgers_limiter | "
+                          " daru_tenaud>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),

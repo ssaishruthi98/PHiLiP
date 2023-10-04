@@ -40,10 +40,11 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
     flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
 
     if (flow_case_type == flow_case_enum::sod_shock_tube
-        || flow_case_type == flow_case_enum::leblanc_shock_tube) {
+        || flow_case_type == flow_case_enum::leblanc_shock_tube
+        || flow_case_type == flow_case_enum::daru_tenaud) {
         left_boundary_id = 1001;
     } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
-        left_boundary_id = 1004;
+        left_boundary_id = 1003;
     }
 
 
@@ -120,6 +121,7 @@ void NonPeriodicCubeFlow<dim, nstate>::update_maximum_local_wave_speed(DGBase<di
 
 #if PHILIP_DIM==2
     template class NonPeriodicCubeFlow<PHILIP_DIM, 1>;
+    template class NonPeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #else
     template class NonPeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
