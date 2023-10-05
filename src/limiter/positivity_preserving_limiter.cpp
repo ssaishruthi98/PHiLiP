@@ -14,13 +14,13 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
     : BoundPreservingLimiterState<dim,nstate,real>::BoundPreservingLimiterState(parameters_input)
 {
     // Create pointer to Euler Physics to compute pressure if pde_type==euler
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    PDE_enum pde_type = parameters_input->pde_type;
+    //using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    //PDE_enum pde_type = parameters_input->pde_type;
 
     std::shared_ptr< ManufacturedSolutionFunction<dim, real> >  manufactured_solution_function
         = ManufacturedSolutionFactory<dim, real>::create_ManufacturedSolution(parameters_input, nstate);
 
-    if (pde_type == PDE_enum::euler && nstate == dim + 2) {
+    if (nstate == dim + 2) {
         euler_physics = std::make_shared < Physics::Euler<dim, nstate, real> >(
             parameters_input,
             parameters_input->euler_param.ref_length,
@@ -32,7 +32,7 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
             parameters_input->two_point_num_flux_type);
     }
     else {
-        std::cout << "Error: Positivity-Preserving Limiter can only be applied for pde_type==euler" << std::endl;
+        std::cout << "Error: Positivity-Preserving Limiter can only be applied for nstate == dim + 2" << std::endl;
         std::abort();
     }
 

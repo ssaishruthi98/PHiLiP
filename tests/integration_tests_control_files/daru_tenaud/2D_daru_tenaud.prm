@@ -4,7 +4,7 @@
 
 set dimension = 2
 set run_type = flow_simulation
-set pde_type = euler
+set pde_type = navier_stokes
 
 # DG formulation
 set use_weak_form = false
@@ -41,15 +41,21 @@ subsection euler
   set mach_infinity = 1.0
 end
 
+# freestream Reynolds number and Prandtl number
+subsection navier_stokes
+  set prandtl_number = 0.73
+  set reynolds_number_inf = 200.0
+end
+
 subsection flow_solver
   set flow_case_type = daru_tenaud
   set poly_degree = 2
   set final_time = 1
   #set constant_time_step = 0.0024
-  set courant_friedrichs_lewy_number = 0.1
+  set courant_friedrichs_lewy_number = 0.001
   set adaptive_time_step = true
   set unsteady_data_table_filename = daru_tenaud_shock_energy
   subsection grid
-    set number_of_grid_elements_per_dimension = 128
+    set number_of_grid_elements_per_dimension = 16
   end
 end
