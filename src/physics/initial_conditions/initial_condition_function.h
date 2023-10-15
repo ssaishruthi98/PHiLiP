@@ -429,6 +429,28 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+/// Initial Condition Function: 2D Sedov Blast Wave
+/** Insert Reference
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction<dim, nstate, real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+    const real num_elements;
+    const real grid_left;
+    const real grid_right;
+
+public:
+    /// Constructor for InitialConditionFunction_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_SedovBlastWave(
+        Parameters::AllParameters const* const param);
+    /// Value of initial condition
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;
+};
+
 /// Initial condition 0.
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nstate,real>

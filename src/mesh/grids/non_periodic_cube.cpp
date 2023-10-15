@@ -16,12 +16,25 @@ void non_periodic_cube(
 {
     dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
 
-    if (left_boundary_id != 9999) {
+    if (left_boundary_id != 9999 && dim == 1) {
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
             // Set a dummy material ID
             cell->set_material_id(9002);
             if (cell->face(0)->at_boundary()) cell->face(0)->set_boundary_id(left_boundary_id);
             if (cell->face(1)->at_boundary()) cell->face(1)->set_boundary_id(1001);
+        }
+    }
+
+    if (dim == 2){
+        // Set boundary type and design type
+        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+                if (cell->face(face)->at_boundary()) {
+                    unsigned int current_id = cell->face(face)->boundary_id();
+                    if (current_id == 0 || current_id == 2) cell->face(face)->set_boundary_id (1001); // Bottom and left wall
+                    if (current_id == 1 || current_id == 3) cell->face(face)->set_boundary_id (1000); // Outflow with supersonic or back_pressure
+                }
+            }
         }
     }
 }

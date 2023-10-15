@@ -33,7 +33,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
-                          " burgers_limiter "),
+                          " burgers_limiter |"
+                          " sedov_blast_wave "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -54,7 +55,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
-                          " burgers_limiter >. ");
+                          " burgers_limiter | "
+                          " sedov_blast_wave >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -333,6 +335,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
         else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
         else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
+        else if (flow_case_type_string == "sedov_blast_wave")           {flow_case_type = sedov_blast_wave;}
         
         poly_degree = prm.get_integer("poly_degree");
         

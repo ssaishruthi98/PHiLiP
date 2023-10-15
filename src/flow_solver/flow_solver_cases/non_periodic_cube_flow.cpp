@@ -120,6 +120,7 @@ void NonPeriodicCubeFlow<dim, nstate>::update_maximum_local_wave_speed(DGBase<di
 
 #if PHILIP_DIM==2
     template class NonPeriodicCubeFlow<PHILIP_DIM, 1>;
+    template class NonPeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #else
     template class NonPeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #endif

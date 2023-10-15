@@ -650,6 +650,63 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 }
 
 // ========================================================
+// 2D Sedov Problem -- Initial Condition
+// Insert reference
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_SedovBlastWave<dim, nstate, real>
+::InitialConditionFunction_SedovBlastWave(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction<dim, nstate, real>()
+    , num_elements(param->flow_solver_param.number_of_grid_elements_per_dimension)
+    , grid_left(param->flow_solver_param.grid_left_bound)
+    , grid_right(param->flow_solver_param.grid_right_bound)
+{}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_SedovBlastWave<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        const real dxy = (this->grid_right-this->grid_left)/this->num_elements;
+        
+        if (x <= dxy && y <= dxy) {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            } else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            } else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            } else if (istate == 3) {
+                // energy
+                value = 0.244816/(dxy*dxy);
+            }
+        } else {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            } else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            } else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            } else if (istate == 3) {
+                // energy
+                value = 1e-12;
+            }
+        }
+    }
+    return value;
+}
+
+// ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -738,7 +795,9 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
         if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim, nstate, real> >();
-    }else {
+    } else if (flow_type == FlowCaseEnum::sedov_blast_wave) {
+        if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_SedovBlastWave<dim,nstate,real> > (param);
+    } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
     }
@@ -777,6 +836,7 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_EulerBase <PHILIP_DIM, PHILIP_DIM + 2, double>;
 template class InitialConditionFunction_LowDensity2D <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_SedovBlastWave<PHILIP_DIM,PHILIP_DIM+2,double>;
 #endif
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;
