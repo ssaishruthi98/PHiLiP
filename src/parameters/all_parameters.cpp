@@ -118,10 +118,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("flux_reconstruction", "cDG",
                       dealii::Patterns::Selection(
-                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped"),
+                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | cAdaptive"),
                       "Flux Reconstruction. "
                       "Choices are "
-                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped>.");
+                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | cAdaptive>.");
 
     prm.declare_entry("flux_reconstruction_aux", "kDG",
                       dealii::Patterns::Selection(
@@ -474,6 +474,7 @@ const std::string test_string = prm.get("test_type");
     if (flux_reconstruction_string == "cPlus")       { flux_reconstruction_type = cPlus; }
     if (flux_reconstruction_string == "c10Thousand") { flux_reconstruction_type = c10Thousand; }
     if (flux_reconstruction_string == "cHULumped")   { flux_reconstruction_type = cHULumped; }
+    if (flux_reconstruction_string == "cAdaptive")   { flux_reconstruction_type = cAdaptive; }
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }

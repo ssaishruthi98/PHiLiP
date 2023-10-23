@@ -2458,9 +2458,19 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, init_grid_degree, init_grid_degree);
      
-    OPERATOR::FR_mass_inv<dim,2*dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
     OPERATOR::FR_mass_inv_aux<dim,2*dim> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
-     
+    
+    if (FR_Type == FR_enum::cAdaptive) {
+        // Adaptive FR
+        std::array<OPERATOR::FR_mass_inv<dim, 2 * dim>, 2> adaptiveFR_mass_inv;
+        adaptiveFR_mass_inv[0].reinit(OPERATOR::FR_mass_inv<dim, 2 * dim>(1, max_degree, init_grid_degree, FR_enum::cDG));
+        adaptiveFR_mass_inv[1].reinit(OPERATOR::FR_mass_inv<dim, 2 * dim>(1, max_degree, init_grid_degree, FR_enum::cPlus));
+    }
+    else {
+        OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
+    }
+
+
     OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
     OPERATOR::vol_projection_operator_FR_aux<dim,2*dim> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
      
@@ -2479,7 +2489,13 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
             mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
         }
         else{
-            mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            if (FR_Type == FR_enum::cAdaptive) {
+                adaptiveFR_mass_inv[0].build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                adaptiveFR_mass_inv[1].build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            }
+            else {
+                mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            }
         }
     }
     else{//we always use weight-adjusted for curvilinear based off the projection operator
@@ -2506,14 +2522,30 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         soln_cell->get_dof_indices (current_dofs_indices);
 
         const bool Cartesian_element = (soln_cell->manifold_id() == dealii::numbers::flat_manifold_id);
-
+        unsigned int mass_inv_degree = 0;
+        bool shock_sensor = true;
+        if (FR_Type == FR_enum::cAdaptive) {
+            if(shock_sensor)
+                mass_inv_degree = adaptiveFR_mass_inv[0].current_degree;
+            else
+                mass_inv_degree = adaptiveFR_mass_inv[1].current_degree;
+        }
+        else {
+            mass_inv_degree = mass_inv.current_degree;
+        }
         // if poly degree, the element manifold type, or grid degree changed for this cell, reinitialize the reference operator
-        if((poly_degree != mass_inv.current_degree && Cartesian_element && !use_auxiliary_eq) || 
+        if((poly_degree != mass_inv_degree && Cartesian_element && !use_auxiliary_eq) ||
             (poly_degree != projection_oper.current_degree && (grid_degree > 1 || Cartesian_element) && !use_auxiliary_eq))
         {
             mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
             if(Cartesian_element){//then we can factor out det of Jac and rapidly simplify
-                mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+                if (FR_Type == FR_enum::cAdaptive) {
+                    adaptiveFR_mass_inv[0].build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                    adaptiveFR_mass_inv[1].build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                }
+                else {
+                    mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                }
                 if(use_auxiliary_eq){
                     mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
                 }
@@ -2570,6 +2602,23 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                                                        false, 1.0 / metric_oper.det_Jac_vol[0]);
                 }
                 else{
+                    if (FR_Type == FR_enum::cAdaptive) {
+                        if (shock_sensor) {
+                            adaptiveFR_mass_inv[0].matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv.oneD_vol_operator,
+                                false, 1.0 / metric_oper.det_Jac_vol[0]);
+                        }
+                        else {
+                            adaptiveFR_mass_inv[1].matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv.oneD_vol_operator,
+                                false, 1.0 / metric_oper.det_Jac_vol[0]);
+                        }
+                    }
+                    else {
+                        mass_inv.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                            mass_inv.oneD_vol_operator,
+                            false, 1.0 / metric_oper.det_Jac_vol[0]);
+                    }
                     mass_inv.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                                    mass_inv.oneD_vol_operator,
                                                    false, 1.0 / metric_oper.det_Jac_vol[0]);
