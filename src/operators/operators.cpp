@@ -1511,6 +1511,9 @@ void local_Flux_Reconstruction_operator<dim,n_faces>::get_FR_correction_paramete
     else if(FR_param_type == FR_enum::cPlus){ 
         get_c_plus_parameter(curr_cell_degree, c); 
     }
+    else if(FR_param_type == FR_enum::cAdaptive){
+        c = 0.0;
+    }
 }
 template <int dim, int n_faces>  
 void local_Flux_Reconstruction_operator<dim,n_faces>::build_local_Flux_Reconstruction_operator(

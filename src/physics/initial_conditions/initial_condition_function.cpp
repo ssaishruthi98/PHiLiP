@@ -620,29 +620,29 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
         if (x < -4.0) {
             if (istate == 0) {
                 // density
-                value = 3.857143;
+                value = 1.0;
             }
             else if (istate == 1) {
                 // x-velocity
-                value = 2.629369;
+                value = 1.0;
             }
             else if (istate == 2) {
                 // pressure
-                value = 10.33333;
+                value = 1.0 / (this->euler_physics->gam * this->euler_physics->mach_inf_sqr);
             }
         }
         else {
             if (istate == 0) {
                 // density
-                value = 1 + 0.2 * sin(5 * x);
+                value = (1 + 0.2 * sin(5 * x))/3.857143;
             }
             else if (istate == 1) {
                 // x-velocity
-                value = 0.0;
+                value = 0.0/2.629369;
             }
             else if (istate == 2) {
                 // pressure
-                value = 1.0;
+                value = 1.0/10.33333/(this->euler_physics->gam*this->euler_physics->mach_inf_sqr);
             }
         }
     }

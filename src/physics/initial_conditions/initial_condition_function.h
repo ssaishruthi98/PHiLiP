@@ -81,7 +81,7 @@ protected:
     /// Converts value from: primitive to conservative
     real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
 
-private:
+protected:
     // Euler physics pointer. Used to convert primitive to conservative.
     std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 };

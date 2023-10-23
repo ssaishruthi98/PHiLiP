@@ -333,60 +333,266 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
     const std::array<real, nstate> &soln_ext,
     const dealii::Tensor<1,dim,real> &normal_int) const
 {
+    #if 0
+    //CUSP scheme
+    const real pressure_int = euler_physics->compute_pressure(soln_int);
+    const real pressure_ext = euler_physics->compute_pressure(soln_ext);
+    const real specific_total_enthalpy_int = soln_int[nstate - 1] / soln_int[0] + pressure_int / soln_int[0];
+    const real specific_total_enthalpy_ext = soln_ext[nstate - 1] / soln_ext[0] + pressure_ext / soln_ext[0];
+
+    //Compute Roe averages
+    dealii::Tensor<1, dim, real> vel_roe_avg;
+    real vel_roe_avg_sqr = 0.0;
+    real contravariant_vel = 0.0;
+    real vel_R = 0.0;
+    real vel_L = 0.0;
+    for (int idim = 0; idim < dim; idim++) {
+        vel_roe_avg[idim] = (soln_int[idim + 1] / soln_int[0] * sqrt(soln_int[0])
+            + soln_ext[idim + 1] / soln_ext[0] * sqrt(soln_ext[0]))
+            / (sqrt(soln_int[0]) + sqrt(soln_ext[0]));
+        vel_roe_avg_sqr += vel_roe_avg[idim] * vel_roe_avg[idim];
+        contravariant_vel += vel_roe_avg[idim] * normal_int[idim];
+        vel_R += soln_ext[idim + 1] / soln_ext[0] * normal_int[idim];
+        vel_L += soln_int[idim + 1] / soln_int[0] * normal_int[idim];
+    }
+    const real enthalpy_roe_avg = (specific_total_enthalpy_int * sqrt(soln_int[0])
+        + specific_total_enthalpy_ext * sqrt(soln_ext[0]))
+        / (sqrt(soln_int[0]) + sqrt(soln_ext[0]));
+    const real speed_sound = sqrt(euler_physics->gamm1 * (enthalpy_roe_avg - 0.5 * vel_roe_avg_sqr));
+    const real gamma_minus = (euler_physics->gam + 1.0) / (2.0 * euler_physics->gam) * contravariant_vel
+        - sqrt((euler_physics->gamm1 / (2.0 * euler_physics->gam) * contravariant_vel) * (euler_physics->gamm1 / (2.0 * euler_physics->gam) * contravariant_vel) + speed_sound * speed_sound / euler_physics->gam);
+    const real gamma_plus = (euler_physics->gam + 1.0) / (2.0 * euler_physics->gam) * contravariant_vel
+        + sqrt((euler_physics->gamm1 / (2.0 * euler_physics->gam) * contravariant_vel) * (euler_physics->gamm1 / (2.0 * euler_physics->gam) * contravariant_vel) + speed_sound * speed_sound / euler_physics->gam);
+    const real mach_number = contravariant_vel / speed_sound;
+    real beta = 0.0;
+    if (mach_number < 1.0 && mach_number >= 0.0) {
+        real val = (contravariant_vel + gamma_minus) / (contravariant_vel - gamma_minus);
+        if (val > 0.0)
+            beta = val;
+        else
+            beta = 0.0;
+    }
+    else if (mach_number < 0.0 && mach_number >= -1) {
+        real val = (contravariant_vel + gamma_plus) / (contravariant_vel - gamma_plus);
+        if (val > 0.0)
+            beta = -val;
+        else
+            beta = 0.0;
+    }
+    else if (mach_number >= 1.0)
+        beta = 1.0;
+    else if (mach_number <= -1.0)
+        beta = -1.0;
+
+
+    real alpha_c = 0.0;
+    if (abs(beta) <= 1e-14)
+        alpha_c = abs(contravariant_vel);
+    else if (beta > 0.0 && 0.0 < mach_number && mach_number < 1.0)
+        alpha_c = -(1.0 + beta) * gamma_minus;
+    else if (beta < 0.0 && -1.0 < mach_number && mach_number < 0.0)
+        alpha_c = (1.0 - beta) * gamma_plus;
+    else if (abs(mach_number) >= 1.0)
+        alpha_c = 0.0;
+
+
+    std::array<real, nstate> dissipation;
+    for (int istate = 0; istate < nstate; istate++) {
+        const real u_L = (istate == nstate - 1) ? soln_int[0] * specific_total_enthalpy_int
+            : soln_int[istate];
+        const real u_R = (istate == nstate - 1) ? soln_ext[0] * specific_total_enthalpy_ext
+            : soln_ext[istate];
+        dissipation[istate] = -0.5 * alpha_c * (u_R - u_L);
+        dissipation[istate] -= 0.5 * beta * (u_R * vel_R - u_L * vel_L);
+        if (istate > 0 && istate < nstate - 1) {//momentum equations add pressure
+            dissipation[istate] -= 0.5 * beta * (pressure_ext * normal_int[istate - 1]
+                - pressure_int * normal_int[istate - 1]);
+        }
+
+    }
+
+    return dissipation;
+
+
+    #endif
+
+//#if 0
+    //entropy dissipative Roe scheme
+    std::array<std::array<real, nstate>, nstate> eigenvector_matrix;
+    std::array<real, nstate> eigenvalues;
+    std::array<real, nstate> eigenvalue_scale;
+
+    const std::array<real, nstate> primitive_soln_int = euler_physics->convert_conservative_to_primitive(soln_int);
+    const std::array<real, nstate> primitive_soln_ext = euler_physics->convert_conservative_to_primitive(soln_ext);
+    const std::array<real, nstate> roe_var1 = euler_physics->compute_ismail_roe_parameter_vector_from_primitive(primitive_soln_int);
+    const std::array<real, nstate> roe_var2 = euler_physics->compute_ismail_roe_parameter_vector_from_primitive(primitive_soln_ext);
+
+    // Compute mean (average) parameter vector
+    std::array<real, nstate> avg_roe_var;
+    for (int s = 0; s < nstate; ++s) {
+        avg_roe_var[s] = 0.5 * (roe_var1[s] + roe_var2[s]);
+    }
+
+    // Compute logarithmic mean parameter vector
+    std::array<real, nstate> log_mean_roe_var;
+    for (int s = 0; s < nstate; ++s) {
+        log_mean_roe_var[s] = euler_physics->compute_ismail_roe_logarithmic_mean(roe_var1[s], roe_var2[s]);
+    }
+
+    std::array<real, nstate> roe_avg_var;
+    roe_avg_var[0] = avg_roe_var[0] * log_mean_roe_var[nstate - 1];
+    real roe_avg_vel_sqr = 0.0;
+    real roe_avg_vel_dot_n = 0.0;
+    for (int idim = 0; idim < dim; idim++) {
+        roe_avg_var[idim + 1] = avg_roe_var[idim + 1] / avg_roe_var[0];
+        roe_avg_vel_sqr += roe_avg_var[idim + 1] * roe_avg_var[idim + 1];
+        roe_avg_vel_dot_n += roe_avg_var[idim + 1] * normal_int[idim];
+    }
+    real p1 = avg_roe_var[nstate - 1] / avg_roe_var[0];
+    real p2 = (euler_physics->gam + 1.0) / (euler_physics->gam * 2.0) * log_mean_roe_var[nstate - 1] / log_mean_roe_var[0]
+        + (euler_physics->gamm1) / (euler_physics->gam * 2.0) * p1;
+    real a = sqrt(euler_physics->gam * p2 / roe_avg_var[0]);
+    roe_avg_var[nstate - 1] = a * a / euler_physics->gamm1 + 0.5 * roe_avg_vel_sqr;
+
+    //build eigenvector matrices
+    //first column
+    eigenvector_matrix[0][0] = 1.0;
+    for (int jdim = 0; jdim < dim; jdim++) {
+        eigenvector_matrix[jdim + 1][0] = roe_avg_var[jdim + 1] - a * normal_int[jdim];
+    }
+    eigenvector_matrix[nstate - 1][0] = roe_avg_var[nstate - 1] - roe_avg_vel_dot_n * a;
+    //second column
+    eigenvector_matrix[0][1] = 1.0;
+    for (int jdim = 0; jdim < dim; jdim++) {
+        eigenvector_matrix[jdim + 1][1] = roe_avg_var[jdim + 1];
+    }
+    eigenvector_matrix[nstate - 1][1] = 0.5 * roe_avg_vel_sqr;
+    //3-4 columns if 2D or 3D
+    if constexpr (dim >= 2) {
+        eigenvector_matrix[0][2] = 0.0;
+        eigenvector_matrix[1][2] = normal_int[1];
+        eigenvector_matrix[2][2] = -normal_int[0];
+        if constexpr (dim == 3) eigenvector_matrix[3][2] = 0.0;
+        eigenvector_matrix[nstate - 1][2] = roe_avg_var[1] * normal_int[1] - roe_avg_var[2] * normal_int[0];
+    }
+    if constexpr (dim == 3) {
+        eigenvector_matrix[0][3] = 0.0;
+        eigenvector_matrix[1][3] = -normal_int[2];
+        eigenvector_matrix[2][3] = 0.0;
+        eigenvector_matrix[3][3] = -normal_int[0];
+        eigenvector_matrix[nstate - 1][3] = roe_avg_var[2] * normal_int[0] - roe_avg_var[1] * normal_int[2];
+    }
+    //last column
+    eigenvector_matrix[0][nstate - 1] = 1.0;
+    for (int jdim = 0; jdim < dim; jdim++) {
+        eigenvector_matrix[jdim + 1][nstate - 1] = roe_avg_var[jdim + 1] + a * normal_int[jdim];
+    }
+    eigenvector_matrix[nstate - 1][nstate - 1] = roe_avg_var[nstate - 1] + roe_avg_vel_dot_n * a;
+    //build eigenvalue vector
+    for (int idim = 0; idim < dim; idim++) {
+        eigenvalues[0] = abs(roe_avg_vel_dot_n - a);
+        eigenvalues[nstate - 1] = abs(roe_avg_vel_dot_n + a);
+
+        eigenvalues[0] += 1.0 / 6.0 * abs(roe_avg_vel_dot_n - a);
+        eigenvalues[nstate - 1] += 1.0 / 6.0 * abs(roe_avg_vel_dot_n + a);
+
+        for (int jdim = 0; jdim < dim; jdim++) {
+            eigenvalues[jdim + 1] = abs(roe_avg_vel_dot_n);
+        }
+    }
+    //build eigenvalue scale vector
+    eigenvalue_scale[0] = roe_avg_var[0] / (2.0 * euler_physics->gam);
+    eigenvalue_scale[1] = euler_physics->gamm1 * roe_avg_var[0] / euler_physics->gam;
+    eigenvalue_scale[nstate - 1] = roe_avg_var[0] / (2.0 * euler_physics->gam);
+    for (int idim = 1; idim < dim; idim++) {
+        eigenvalue_scale[idim + 1] = p1;
+    }
+
+    std::array<std::array<real, nstate>, nstate> dissipation_matrix;
+    for (int istate = 0; istate < nstate; istate++) {
+        for (int jstate = 0; jstate < nstate; jstate++) {
+            dissipation_matrix[istate][jstate] = 0.0;
+            for (int kstate = 0; kstate < nstate; kstate++) {
+                dissipation_matrix[istate][jstate] += eigenvector_matrix[istate][kstate] //R
+                    * eigenvector_matrix[jstate][kstate] //R^T
+                    * eigenvalues[kstate]
+                    * eigenvalue_scale[kstate];
+            }
+        }
+    }
+
+    std::array<real, nstate> entropy_var_int = euler_physics->compute_entropy_variables(soln_int);
+    std::array<real, nstate> entropy_var_ext = euler_physics->compute_entropy_variables(soln_ext);
+
+    std::array<real, nstate> dissipation;
+    for (int istate = 0; istate < nstate; istate++) {
+        dissipation[istate] = 0.0;
+        for (int jstate = 0; jstate < nstate; jstate++) {
+            dissipation[istate] -= 0.5 * dissipation_matrix[istate][jstate]
+                * (entropy_var_ext[jstate] - entropy_var_int[jstate])
+                * euler_physics->gamm1;
+            //  * (entropy_var_ext[jstate] - entropy_var_int[jstate]);
+        }
+    }
+
+    return dissipation;
+//#endif
+
+#if 0
     // See Blazek 2015, p.103-105
     // -- Note: Modified calculation of alpha_{3,4} to use 
     //          dVt (jump in tangential velocities);
     //          expressions are equivalent
-    
+
     // Blazek 2015
     // p. 103-105
     // Note: This is in fact the Roe-Pike method of Roe & Pike (1984 - Efficient)
-    const std::array<real,nstate> prim_soln_int = euler_physics->convert_conservative_to_primitive(soln_int);
-    const std::array<real,nstate> prim_soln_ext = euler_physics->convert_conservative_to_primitive(soln_ext);
+    const std::array<real, nstate> prim_soln_int = euler_physics->convert_conservative_to_primitive(soln_int);
+    const std::array<real, nstate> prim_soln_ext = euler_physics->convert_conservative_to_primitive(soln_ext);
     // Left cell
     const real density_L = prim_soln_int[0];
-    const dealii::Tensor< 1,dim,real > velocities_L = euler_physics->extract_velocities_from_primitive(prim_soln_int);
-    const real pressure_L = prim_soln_int[nstate-1];
+    const dealii::Tensor< 1, dim, real > velocities_L = euler_physics->extract_velocities_from_primitive(prim_soln_int);
+    const real pressure_L = prim_soln_int[nstate - 1];
 
     //const real normal_vel_L = velocities_L*normal_int;
     real normal_vel_L = 0.0;
-    for (int d=0; d<dim; ++d) {
-        normal_vel_L+= velocities_L[d]*normal_int[d];
+    for (int d = 0; d < dim; ++d) {
+        normal_vel_L += velocities_L[d] * normal_int[d];
     }
     const real specific_enthalpy_L = euler_physics->compute_specific_enthalpy(soln_int, pressure_L);
 
     // Right cell
     const real density_R = prim_soln_ext[0];
-    const dealii::Tensor< 1,dim,real > velocities_R = euler_physics->extract_velocities_from_primitive(prim_soln_ext);
-    const real pressure_R = prim_soln_ext[nstate-1];
+    const dealii::Tensor< 1, dim, real > velocities_R = euler_physics->extract_velocities_from_primitive(prim_soln_ext);
+    const real pressure_R = prim_soln_ext[nstate - 1];
 
     //const real normal_vel_R = velocities_R*normal_int;
     real normal_vel_R = 0.0;
-    for (int d=0; d<dim; ++d) {
-        normal_vel_R+= velocities_R[d]*normal_int[d];
+    for (int d = 0; d < dim; ++d) {
+        normal_vel_R += velocities_R[d] * normal_int[d];
     }
     const real specific_enthalpy_R = euler_physics->compute_specific_enthalpy(soln_ext, pressure_R);
 
     // Roe-averaged states
-    const real r = sqrt(density_R/density_L);
-    const real rp1 = r+1.0;
+    const real r = sqrt(density_R / density_L);
+    const real rp1 = r + 1.0;
 
-    const real density_ravg = r*density_L;
+    const real density_ravg = r * density_L;
     //const dealii::Tensor< 1,dim,real > velocities_ravg = (r*velocities_R + velocities_L) / rp1;
-    dealii::Tensor< 1,dim,real > velocities_ravg;
-    for (int d=0; d<dim; ++d) {
-        velocities_ravg[d] = (r*velocities_R[d] + velocities_L[d]) / rp1;
+    dealii::Tensor< 1, dim, real > velocities_ravg;
+    for (int d = 0; d < dim; ++d) {
+        velocities_ravg[d] = (r * velocities_R[d] + velocities_L[d]) / rp1;
     }
-    const real specific_total_enthalpy_ravg = (r*specific_enthalpy_R + specific_enthalpy_L) / rp1;
+    const real specific_total_enthalpy_ravg = (r * specific_enthalpy_R + specific_enthalpy_L) / rp1;
 
-    const real vel2_ravg = euler_physics->compute_velocity_squared (velocities_ravg);
+    const real vel2_ravg = euler_physics->compute_velocity_squared(velocities_ravg);
     //const real normal_vel_ravg = velocities_ravg*normal_int;
     real normal_vel_ravg = 0.0;
-    for (int d=0; d<dim; ++d) {
-        normal_vel_ravg += velocities_ravg[d]*normal_int[d];
+    for (int d = 0; d < dim; ++d) {
+        normal_vel_ravg += velocities_ravg[d] * normal_int[d];
     }
 
-    const real sound2_ravg = euler_physics->gamm1*(specific_total_enthalpy_ravg-0.5*vel2_ravg);
+    const real sound2_ravg = euler_physics->gamm1 * (specific_total_enthalpy_ravg - 0.5 * vel2_ravg);
     real sound_ravg = 1e10;
     if (sound2_ravg > 0.0) {
         sound_ravg = sqrt(sound2_ravg);
@@ -394,87 +600,88 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
 
     // Compute eigenvalues
     std::array<real, 3> eig_ravg;
-    eig_ravg[0] = abs(normal_vel_ravg-sound_ravg);
+    eig_ravg[0] = abs(normal_vel_ravg - sound_ravg);
     eig_ravg[1] = abs(normal_vel_ravg);
-    eig_ravg[2] = abs(normal_vel_ravg+sound_ravg);
+    eig_ravg[2] = abs(normal_vel_ravg + sound_ravg);
 
     const real sound_L = euler_physics->compute_sound(density_L, pressure_L);
     std::array<real, 3> eig_L;
-    eig_L[0] = abs(normal_vel_L-sound_L);
+    eig_L[0] = abs(normal_vel_L - sound_L);
     eig_L[1] = abs(normal_vel_L);
-    eig_L[2] = abs(normal_vel_L+sound_L);
+    eig_L[2] = abs(normal_vel_L + sound_L);
 
     const real sound_R = euler_physics->compute_sound(density_R, pressure_R);
     std::array<real, 3> eig_R;
-    eig_R[0] = abs(normal_vel_R-sound_R);
+    eig_R[0] = abs(normal_vel_R - sound_R);
     eig_R[1] = abs(normal_vel_R);
-    eig_R[2] = abs(normal_vel_R+sound_R);
+    eig_R[2] = abs(normal_vel_R + sound_R);
 
     // Jumps in pressure and density
     const real dp = pressure_R - pressure_L;
     const real drho = density_R - density_L;
 
     // Jump in normal velocity
-    real dVn = normal_vel_R-normal_vel_L;
+    real dVn = normal_vel_R - normal_vel_L;
 
     // Jumps in tangential velocities
-    dealii::Tensor<1,dim,real> dVt;
-    for (int d=0;d<dim;d++) {
-        dVt[d] = (velocities_R[d] - velocities_L[d]) - dVn*normal_int[d];
+    dealii::Tensor<1, dim, real> dVt;
+    for (int d = 0; d < dim; d++) {
+        dVt[d] = (velocities_R[d] - velocities_L[d]) - dVn * normal_int[d];
     }
 
     // Evaluate entropy fix on wave speeds
-    evaluate_entropy_fix (eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg);
+    evaluate_entropy_fix(eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg);
 
     // Evaluate additional modifications to the Roe-Pike scheme (if applicable)
-    evaluate_additional_modifications (soln_int, soln_ext, eig_L, eig_R, dVn, dVt);
+    evaluate_additional_modifications(soln_int, soln_ext, eig_L, eig_R, dVn, dVt);
 
     // Product of eigenvalues and wave strengths
     real coeff[4];
-    coeff[0] = eig_ravg[0]*(dp-density_ravg*sound_ravg*dVn)/(2.0*sound2_ravg);
-    coeff[1] = eig_ravg[1]*(drho - dp/sound2_ravg);
-    coeff[2] = eig_ravg[1]*density_ravg;
-    coeff[3] = eig_ravg[2]*(dp+density_ravg*sound_ravg*dVn)/(2.0*sound2_ravg);
+    coeff[0] = eig_ravg[0] * (dp - density_ravg * sound_ravg * dVn) / (2.0 * sound2_ravg);
+    coeff[1] = eig_ravg[1] * (drho - dp / sound2_ravg);
+    coeff[2] = eig_ravg[1] * density_ravg;
+    coeff[3] = eig_ravg[2] * (dp + density_ravg * sound_ravg * dVn) / (2.0 * sound2_ravg);
 
     // Evaluate |A_Roe| * (W_R - W_L)
-    std::array<real,nstate> AdW;
+    std::array<real, nstate> AdW;
 
     // Vn-c (i=1)
     AdW[0] = coeff[0] * 1.0;
-    for (int d=0;d<dim;d++) {
-        AdW[1+d] = coeff[0] * (velocities_ravg[d] - sound_ravg * normal_int[d]);
+    for (int d = 0; d < dim; d++) {
+        AdW[1 + d] = coeff[0] * (velocities_ravg[d] - sound_ravg * normal_int[d]);
     }
-    AdW[nstate-1] = coeff[0] * (specific_total_enthalpy_ravg - sound_ravg*normal_vel_ravg);
+    AdW[nstate - 1] = coeff[0] * (specific_total_enthalpy_ravg - sound_ravg * normal_vel_ravg);
 
     // Vn (i=2)
     AdW[0] += coeff[1] * 1.0;
-    for (int d=0;d<dim;d++) {
-        AdW[1+d] += coeff[1] * velocities_ravg[d];
+    for (int d = 0; d < dim; d++) {
+        AdW[1 + d] += coeff[1] * velocities_ravg[d];
     }
-    AdW[nstate-1] += coeff[1] * vel2_ravg * 0.5;
+    AdW[nstate - 1] += coeff[1] * vel2_ravg * 0.5;
 
     // (i=3,4)
     AdW[0] += coeff[2] * 0.0;
     real dVt_dot_vel_ravg = 0.0;
-    for (int d=0;d<dim;d++) {
-        AdW[1+d] += coeff[2]*dVt[d];
-        dVt_dot_vel_ravg += velocities_ravg[d]*dVt[d];
+    for (int d = 0; d < dim; d++) {
+        AdW[1 + d] += coeff[2] * dVt[d];
+        dVt_dot_vel_ravg += velocities_ravg[d] * dVt[d];
     }
-    AdW[nstate-1] += coeff[2]*dVt_dot_vel_ravg;
+    AdW[nstate - 1] += coeff[2] * dVt_dot_vel_ravg;
 
     // Vn+c (i=5)
     AdW[0] += coeff[3] * 1.0;
-    for (int d=0;d<dim;d++) {
-        AdW[1+d] += coeff[3] * (velocities_ravg[d] + sound_ravg * normal_int[d]);
+    for (int d = 0; d < dim; d++) {
+        AdW[1 + d] += coeff[3] * (velocities_ravg[d] + sound_ravg * normal_int[d]);
     }
-    AdW[nstate-1] += coeff[3] * (specific_total_enthalpy_ravg + sound_ravg*normal_vel_ravg);
+    AdW[nstate - 1] += coeff[3] * (specific_total_enthalpy_ravg + sound_ravg * normal_vel_ravg);
 
     std::array<real, nstate> numerical_flux_dot_n;
-    for (int s=0; s<nstate; s++) {
-        numerical_flux_dot_n[s] = - 0.5 * AdW[s];
+    for (int s = 0; s < nstate; s++) {
+        numerical_flux_dot_n[s] = -0.5 * AdW[s];
     }
 
     return numerical_flux_dot_n;
+#endif
 }
 
 // Instantiation

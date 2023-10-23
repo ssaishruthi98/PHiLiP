@@ -1283,7 +1283,7 @@ void Euler<dim,nstate,real>
       const real radicant = 1.0+0.5*gamm1*mach_inf_sqr;
       const real static_inlet_pressure    = total_inlet_pressure * pow(radicant, -gam/gamm1);
       const real static_inlet_temperature = total_inlet_temperature * pow(radicant, -1.0);
-
+    
       const real pressure_bc = static_inlet_pressure;
       const real temperature_bc = static_inlet_temperature;
       const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
