@@ -617,7 +617,7 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
     real value = 0.0;
     if constexpr (dim == 1 && nstate == (dim + 2)) {
         const real x = point[0];
-        if (x < -4.0) {
+        if (x < 0.1) {
             if (istate == 0) {
                 // density
                 value = 1.0;
@@ -634,7 +634,7 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
         else {
             if (istate == 0) {
                 // density
-                value = (1 + 0.2 * sin(5 * x))/3.857143;
+                value = (1 + 0.2 * sin(50.0*x))/3.857143;
             }
             else if (istate == 1) {
                 // x-velocity
