@@ -1782,7 +1782,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
-
+    data_out.add_data_vector(jameson_sensor_cell, "jameson_sensor", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
     data_out.add_data_vector (solution, *post_processor);
@@ -1895,6 +1895,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
     
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
+    jameson_sensor_cell.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
@@ -2501,7 +2502,8 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     }
 
     bool shock_sensor = false;
-    for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
+    unsigned int cell_index = 0;
+    for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell,++cell_index) {
         if (!soln_cell->is_locally_owned()) continue;
 
         const unsigned int poly_degree = soln_cell->active_fe_index();
@@ -2586,9 +2588,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }*/
 
         // JAMESON SENSOR - will be moved into separate function in the future
+        real jameson_sensor = 0.0;
         for(int istate = 0; istate < nstate; istate++) {
             const unsigned int n_shape_fns = n_dofs_cell / nstate;
-            real jameson_sensor = 0.0;
             real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
 
             for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
@@ -2599,15 +2601,19 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                     f_jm1 = output_vector[current_dofs_indices[istate*n_shape_fns + (ishape-1)]];
                     f_jp1 = output_vector[current_dofs_indices[istate*n_shape_fns + (ishape+1)]];
 
-                    jameson_sensor = abs(f_jm1 - (2*f_j) + f_jp1)/(abs(f_jm1+(2*f_j)+f_jp1)+ 1e-13);
+                    real new_jameson_sensor = abs(f_jm1 - (2*f_j) + f_jp1)/(abs(f_jm1)+abs(2*f_j)+abs(f_jp1)+ 1e-13);
                     
-                    if(jameson_sensor > 0.1){
+                    if(new_jameson_sensor > 0.1){
                         shock_sensor = true;
-                        //std::cout << "jameson:  " << jameson_sensor << std::endl;
+                        //std::cout << "jameson:  " << new_jameson_sensor << std::endl;
+                    }
+                    if(new_jameson_sensor > jameson_sensor) {
+                        jameson_sensor = new_jameson_sensor;
                     }
                 }
             }
         }
+        this->jameson_sensor_cell[cell_index] = jameson_sensor;
 
         //std::cout << std::endl;
         //solve mass inverse times input vector for each state independently
