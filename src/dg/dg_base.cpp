@@ -2463,6 +2463,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
     OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
     OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cPlus(1, max_degree, init_grid_degree, FR_enum::cPlus);
+    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_c10Thousand(1, max_degree, init_grid_degree, FR_enum::c10Thousand);
     
     OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
     OPERATOR::vol_projection_operator_FR_aux<dim,2*dim> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
@@ -2485,6 +2486,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
             mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
             mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
             mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            mass_inv_c10Thousand.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
         }
     }
     else{//we always use weight-adjusted for curvilinear based off the projection operator
@@ -2501,7 +2503,6 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         timer.start();
     }
 
-    bool shock_sensor = false;
     unsigned int cell_index = 0;
     for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell,++cell_index) {
         if (!soln_cell->is_locally_owned()) continue;
@@ -2524,6 +2525,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                 mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
                 mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
                 mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                mass_inv_c10Thousand.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
 
                 if(use_auxiliary_eq){
                     mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
@@ -2595,7 +2597,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
 
             for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
                 const unsigned int idof = istate * n_shape_fns + ishape;
-                if(shock_sensor == false && ishape < n_shape_fns-1 && ishape > 0) {
+                if(ishape < n_shape_fns-1 && ishape > 0) {
 
                     f_j = output_vector[current_dofs_indices[idof]];
                     f_jm1 = output_vector[current_dofs_indices[istate*n_shape_fns + (ishape-1)]];
@@ -2603,10 +2605,6 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
 
                     real new_jameson_sensor = abs(f_jm1 - (2*f_j) + f_jp1)/(abs(f_jm1)+abs(2*f_j)+abs(f_jp1)+ 1e-13);
                     
-                    if(new_jameson_sensor > 0.1){
-                        shock_sensor = true;
-                        //std::cout << "jameson:  " << new_jameson_sensor << std::endl;
-                    }
                     if(new_jameson_sensor > jameson_sensor) {
                         jameson_sensor = new_jameson_sensor;
                     }
@@ -2635,14 +2633,17 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                 }
                 else{
                     if (FR_Type == FR_enum::cAdaptive) {
-                        if (shock_sensor == false) {
-                            mass_inv_cDG.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                                mass_inv_cDG.oneD_vol_operator,
+                        if (jameson_sensor > 0.5) {
+                            mass_inv_c10Thousand.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv_c10Thousand.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
-                        }
-                        else {
+                        } else if (jameson_sensor > 0.3){
                             mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                 mass_inv_cPlus.oneD_vol_operator,
+                                false, 1.0 / metric_oper.det_Jac_vol[0]);
+                        } else {
+                            mass_inv_cDG.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv_cDG.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
                         }
                     }
@@ -2687,9 +2688,6 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                 output_vector[current_dofs_indices[idof]] = local_output_vector[ishape];
             }
         }//end of state loop
-        if (shock_sensor) {
-            shock_sensor = false;
-        }
     }//end of cell loop
 
     if(all_parameters->store_residual_cpu_time){
