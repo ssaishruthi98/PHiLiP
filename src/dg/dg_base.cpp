@@ -2634,14 +2634,24 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                 else{
                     if (FR_Type == FR_enum::cAdaptive) {
                         if (jameson_sensor > 0.5) {
-                            mass_inv_c10Thousand.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                                mass_inv_c10Thousand.oneD_vol_operator,
+                            OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_adaptive(1, max_degree, init_grid_degree, FR_Type, jameson_sensor);
+                            mass_inv_adaptive.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                            mass_inv_adaptive.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv_adaptive.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
-                        } else if (jameson_sensor > 0.3){
-                            mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                                mass_inv_cPlus.oneD_vol_operator,
-                                false, 1.0 / metric_oper.det_Jac_vol[0]);
-                        } else {
+                        }
+
+                        //if (jameson_sensor > 0.5) {
+                        //    mass_inv_c10Thousand.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                        //        mass_inv_c10Thousand.oneD_vol_operator,
+                        //        false, 1.0 / metric_oper.det_Jac_vol[0]);
+                        //} else if (jameson_sensor > 0.3){
+                        //    mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                        //        mass_inv_cPlus.oneD_vol_operator,
+                        //        false, 1.0 / metric_oper.det_Jac_vol[0]);
+                        //} 
+                        
+                        else {
                             mass_inv_cDG.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                 mass_inv_cDG.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
