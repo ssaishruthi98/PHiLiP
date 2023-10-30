@@ -118,6 +118,64 @@ void NonPeriodicCubeFlow<dim, nstate>::update_maximum_local_wave_speed(DGBase<di
     this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
 }
 
+template<int dim, int nstate>
+double NonPeriodicCubeFlow<dim, nstate>::compute_max_density(DGBase<dim, double> &dg)
+{   
+    double max_density = 0.0; 
+    for (auto soln_cell : dg.dof_handler.active_cell_iterators()) {
+        if (!soln_cell->is_locally_owned()) continue;
+
+        std::vector<dealii::types::global_dof_index> current_dofs_indices;
+        // Current reference element related to this physical cell
+        const int i_fele = soln_cell->active_fe_index();
+        const int poly_degree = i_fele;
+
+        const dealii::FESystem<dim, dim>& current_fe_ref = dg.fe_collection[poly_degree];
+        const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
+        // Obtain the mapping from local dof indices to global dof indices
+        current_dofs_indices.resize(n_dofs_curr_cell);
+        soln_cell->get_dof_indices(current_dofs_indices);
+
+        // Allocate solution dofs and set global max and min
+        for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
+            const unsigned int istate = dg.fe_collection[poly_degree].system_to_component_index(idof).first;
+            if (istate == 0) {
+                if(dg.solution[current_dofs_indices[idof]] > max_density)
+                    max_density = dg.solution[current_dofs_indices[idof]];
+            }
+
+        }
+    }
+    return max_density;
+}
+
+template <int dim, int nstate>
+void NonPeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
+        const unsigned int current_iteration,
+        const double current_time,
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+{
+    const double max_density = this->compute_max_density(*dg);
+
+
+    if(this->mpi_rank==0) {
+        // Add values to data table
+        this->add_value_to_data_table(current_time,"time",unsteady_data_table);
+        this->add_value_to_data_table(max_density,"max_density",unsteady_data_table);
+
+        // Write to file
+        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+        unsteady_data_table->write_text(unsteady_data_table_file);
+    }
+    // Print to console
+    this->pcout << "    Iter: " << current_iteration
+                << "    Time: " << current_time
+                << "    Max Density: " << max_density;
+
+    this->pcout << std::endl;
+}
+
 #if PHILIP_DIM==2
     template class NonPeriodicCubeFlow<PHILIP_DIM, 1>;
     template class NonPeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
