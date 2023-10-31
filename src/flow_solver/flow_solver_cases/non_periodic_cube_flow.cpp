@@ -160,6 +160,8 @@ void NonPeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
 
     if(this->mpi_rank==0) {
+
+        unsteady_data_table->add_value("iteration", current_iteration);
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
         this->add_value_to_data_table(max_density,"max_density",unsteady_data_table);

@@ -43,6 +43,7 @@ subsection flow_solver
   #set constant_time_step = 0.0024
   set courant_friedrichs_lewy_number = 0.94
   set adaptive_time_step = true
+  set steady_state = false
   set unsteady_data_table_filename = sedov_shock_energy
   subsection grid
     set grid_left_bound = 0.0
