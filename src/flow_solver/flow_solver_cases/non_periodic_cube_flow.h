@@ -36,7 +36,7 @@ class NonPeriodicCubeFlow : public FlowSolverCaseBase<dim, nstate>
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
 
     /// Updates the maximum local wave speed
-    double compute_max_density(DGBase<dim, double> &dg);
+    std::array<double,2> compute_max_density(DGBase<dim, double> &dg);
 
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
