@@ -155,6 +155,9 @@ public:
     /// Energy file.
     std::string energy_file;
 
+    /// Shock Sensor Threshold value
+    double shock_sensor_threshold;
+
     /// Number of state variables. Will depend on PDE
     int nstate;
 

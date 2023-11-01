@@ -172,6 +172,11 @@ void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
                 std::cout << "Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
+            // Verify that positivity of density is preserved after application of theta2 limiter
+            if (istate == 0 && isnan(solution[current_dofs_indices[idof]])) {
+                std::cout << "Error: Density is a NaN after limiting - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::abort();
+            }
         }
     }
 }

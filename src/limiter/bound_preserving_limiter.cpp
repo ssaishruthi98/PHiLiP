@@ -31,6 +31,11 @@ std::array<real, nstate> BoundPreservingLimiterState<dim, nstate, real>::get_sol
     // Apply integral for solution cell average (dealii quadrature operates from [0,1])
     for (unsigned int istate = 0; istate < nstate; ++istate) {
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            if (isnan(soln_at_q[0][iquad])) {
+                std::cout << "Error: soln_at_q is NaN - Aborting... " << std::endl << std::flush;
+                std::abort();
+            }
+
             soln_cell_avg[istate] += quad_weights[iquad]
                 * soln_at_q[istate][iquad];
         }

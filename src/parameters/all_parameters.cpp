@@ -133,6 +133,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
 
+    prm.declare_entry("shock_sensor_threshold", "0.99",
+                      dealii::Patterns::Double(-1.00,1.00),
+                      "Value of shock_sensor for which it turns on (ie. higher c value is used instead of cDG).");
+
     prm.declare_entry("use_invariant_curl_form", "false",
                       dealii::Patterns::Bool(),
                       "Use conservative curl form for metric cofactor by default. If true, then use invariant curl form.");

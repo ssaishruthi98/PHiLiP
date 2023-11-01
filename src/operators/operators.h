@@ -802,7 +802,7 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
-        double FR_param);
+        double FR_param_val);
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -817,6 +817,12 @@ public:
     void build_1D_volume_operator(
             const dealii::FESystem<1,1> &finite_element,
             const dealii::Quadrature<1> &quadrature);
+
+    ///Assembles the one dimensional operator.
+    void build_1D_volume_operator(
+            const dealii::FESystem<1,1> &finite_element,
+            const dealii::Quadrature<1> &quadrature,
+            double FR_param_val);
 };
 ///The metric independent inverse of the FR mass matrix for auxiliary equation \f$(M+K)^{-1}\f$.
 template<int dim, int n_faces>

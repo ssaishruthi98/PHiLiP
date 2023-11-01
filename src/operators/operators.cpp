@@ -1858,10 +1858,10 @@ FR_mass_inv<dim, n_faces>::FR_mass_inv(
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
-    double FR_param)
+    double FR_param_val)
     : SumFactorizedOperators<dim, n_faces>::SumFactorizedOperators(nstate_input, max_degree_input, grid_degree_input)
     , FR_param_type(FR_param_input)
-    , FR_param(FR_param)
+    , FR_param(FR_param_val)
 {
     //Initialize to the max degrees
     current_degree = max_degree_input;
@@ -1875,7 +1875,26 @@ void FR_mass_inv<dim,n_faces>::build_1D_volume_operator(
     const unsigned int n_dofs     = finite_element.dofs_per_cell;
     local_mass<dim,n_faces> local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
     local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
-    local_Flux_Reconstruction_operator<dim,n_faces> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type, FR_param);
+    local_Flux_Reconstruction_operator<dim,n_faces> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
+    local_FR_oper.build_1D_volume_operator(finite_element, quadrature);
+    dealii::FullMatrix<double> FR_mass_matrix(n_dofs);
+    FR_mass_matrix.add(1.0, local_Mass_Matrix.oneD_vol_operator, 1.0, local_FR_oper.oneD_vol_operator);
+    //allocate the volume operator
+    this->oneD_vol_operator.reinit(n_dofs, n_dofs);
+    //solves
+    this->oneD_vol_operator.invert(FR_mass_matrix);
+}
+
+template <int dim, int n_faces>  
+void FR_mass_inv<dim,n_faces>::build_1D_volume_operator(
+    const dealii::FESystem<1,1> &finite_element,
+    const dealii::Quadrature<1> &quadrature,
+    double FR_param_val)
+{
+    const unsigned int n_dofs     = finite_element.dofs_per_cell;
+    local_mass<dim,n_faces> local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
+    local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
+    local_Flux_Reconstruction_operator<dim,n_faces> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type, FR_param_val);
     local_FR_oper.build_1D_volume_operator(finite_element, quadrature);
     dealii::FullMatrix<double> FR_mass_matrix(n_dofs);
     FR_mass_matrix.add(1.0, local_Mass_Matrix.oneD_vol_operator, 1.0, local_FR_oper.oneD_vol_operator);
