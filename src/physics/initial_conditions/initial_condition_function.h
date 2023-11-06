@@ -83,7 +83,6 @@ protected:
     /// Converts value from: primitive to conservative
     real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
 
-private:
     // Euler physics pointer. Used to convert primitive to conservative.
     std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 };
@@ -433,22 +432,22 @@ public:
 /** Insert Reference
 */
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction<dim, nstate, real>
+class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction_EulerBase<dim, nstate, real>
 {
 protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
 
     const real num_elements;
     const real grid_left;
     const real grid_right;
+    const real gamma;
 
 public:
-    /// Constructor for InitialConditionFunction_SodShockTube
+    /// Constructor for InitialConditionFunction_SedovBlastWave
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_SedovBlastWave(
         Parameters::AllParameters const* const param);
-    /// Value of initial condition
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;
 };
 
 /// Initial condition 0.

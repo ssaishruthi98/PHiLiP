@@ -651,55 +651,66 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 
 // ========================================================
 // 2D Sedov Problem -- Initial Condition
-// Insert reference
+// See Yimin Lin, Jesse Chan, Ignacio Tomas, 
+// A positivity preserving strategy for entropy stable... (2023)
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_SedovBlastWave<dim, nstate, real>
 ::InitialConditionFunction_SedovBlastWave(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction<dim, nstate, real>()
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
     , num_elements(param->flow_solver_param.number_of_grid_elements_per_dimension)
     , grid_left(param->flow_solver_param.grid_left_bound)
     , grid_right(param->flow_solver_param.grid_right_bound)
+    , gamma(param->euler_param.gamma_gas)
 {}
 
 template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_SedovBlastWave<dim,nstate,real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
     if constexpr (dim == 2 && nstate == (dim + 2)) {
         const real x = point[0];
         const real y = point[1];
-        const real dxy = (this->grid_right-this->grid_left)/this->num_elements;
-        
-        if (x <= dxy && y <= dxy) {
+        const double pi = atan(1)*4.0;
+        //const real dxy = (this->grid_right-this->grid_left)/this->num_elements;
+        const real r_0 = 4.0*((this->grid_right-this->grid_left)/this->num_elements);
+        const real r_p = sqrt(pow(x,2) + pow(y,2));
+        if (r_p < r_0) {
             if (istate == 0) {
                 // density
                 value = 1.0;
-            } else if (istate == 1) {
-                // x-velocity
-                value = 0.0;
-            } else if (istate == 2) {
-                // y-velocity
-                value = 0.0;
-            } else if (istate == 3) {
-                // energy
-                value = 0.244816/(dxy*dxy);
             }
-        } else {
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = (gamma-1)/(pi*pow(r_0,2));
+            }
+        }
+        else {
             if (istate == 0) {
                 // density
                 value = 1.0;
-            } else if (istate == 1) {
+            }
+            else if (istate == 1) {
                 // x-velocity
                 value = 0.0;
-            } else if (istate == 2) {
+            }
+            else if (istate == 2) {
                 // y-velocity
                 value = 0.0;
-            } else if (istate == 3) {
-                // energy
-                value = 1e-12;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1e-5;
             }
         }
     }

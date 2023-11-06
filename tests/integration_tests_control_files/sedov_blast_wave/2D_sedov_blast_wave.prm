@@ -16,14 +16,15 @@ set flux_nodes_type = GLL
 #set conv_num_flux = lax_friedrichs
 
 # NSFR - Ra
-#set use_split_form = true
-#set two_point_num_flux_type = KG
-#set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
-#set flux_reconstruction = c10Thousand
+set use_split_form = true
+set two_point_num_flux_type = KG
+set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+set flux_reconstruction = cPlus
+set use_inverse_mass_on_the_fly = true
 
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
-  set min_density = 1e-15
+  set min_density = 7.5e-16
 end
 
 # ODE solver
@@ -31,23 +32,23 @@ subsection ODE solver
   set ode_output = verbose
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.00000001
-  set output_solution_every_x_steps = 100
+  set output_solution_every_x_steps = 10
   set runge_kutta_method = ssprk3_ex
   set print_iteration_modulo = 1
 end
 
 subsection flow_solver
   set flow_case_type = sedov_blast_wave
-  set poly_degree = 2
+  set poly_degree = 3
   set final_time = 1
   #set constant_time_step = 0.0024
-  set courant_friedrichs_lewy_number = 0.94
+  set courant_friedrichs_lewy_number = 0.13
   set adaptive_time_step = true
   set steady_state = false
-  set unsteady_data_table_filename = 
+  set unsteady_data_table_filename = sedov_shock_energy
   subsection grid
-    set grid_left_bound = 0.0
-    set grid_right_bound = 1.1
+    set grid_left_bound = -1.5
+    set grid_right_bound = 1.5
     set number_of_grid_elements_per_dimension = 128
   end
 end
