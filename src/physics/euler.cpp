@@ -1282,6 +1282,7 @@ void Euler<dim,nstate,real>
       //this->pcout << "Supersonic inflow, mach=" << mach_i << std::endl;
 
       // Assign primitive boundary values
+    if(dim == 1) {
       std::array<real,nstate> primitive_boundary_values;
       primitive_boundary_values[0] = 3.857143;
       primitive_boundary_values[1] = 2.629369;
@@ -1290,6 +1291,9 @@ void Euler<dim,nstate,real>
       for (int istate=0; istate<nstate; ++istate) {
          soln_bc[istate] = conservative_bc[istate];
       }
+    } else {
+        soln_bc = soln_int;
+    }
    }
 }
 
