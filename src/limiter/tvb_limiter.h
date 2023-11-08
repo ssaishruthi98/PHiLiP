@@ -4,6 +4,7 @@
 #include "bound_preserving_limiter.h"
 
 namespace PHiLiP {
+/// Class for implementation of a TVD/TVB limiter derived from BoundPreservingLimiterState class
 /**********************************
 * Chen, Tianheng, and Chi-Wang Shu. 
 * "Entropy stable high order discontinuous Galerkin methods with  
@@ -48,6 +49,7 @@ private:
         const unsigned int n_quad_pts,
         const std::vector<real>& quad_weights);
 
+    /// Function to apply modified_minmod using Thm3.7 in Chen, Shu 2017
     real apply_modified_minmod(
         const double        a_state,
         const double        M_state,
@@ -61,8 +63,7 @@ public:
     using BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg;
 
     /// Applies total variation bounded limiter to the solution.
-    /** Using Chen,Shu September 2017 Thm3.7 we apply a limiter on the solution
-    */
+    /// Using Chen,Shu September 2017 Thm3.7 we apply a limiter on the solution
     void limit(
         dealii::LinearAlgebra::distributed::Vector<double>&     solution,
         const dealii::DoFHandler<dim>&                          dof_handler,

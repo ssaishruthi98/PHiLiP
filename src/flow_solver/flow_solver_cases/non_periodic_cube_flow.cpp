@@ -44,7 +44,7 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
         || flow_case_type == flow_case_enum::leblanc_shock_tube) {
         left_boundary_id = 1001;
     } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
-        left_boundary_id = 1004;
+        left_boundary_id = 1003;
     }
 
 
@@ -58,6 +58,7 @@ template <int dim, int nstate>
 void NonPeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
     this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
+    this->pcout << "- - Flux Reconstruction Parameter : " << this->all_param.flux_reconstruction_type << std::endl;
 }
 
 template <int dim, int nstate>

@@ -4,6 +4,10 @@
 
 #include "parameters/all_parameters.h"
 
+//for checking output directories
+#include <sys/types.h>
+#include <sys/stat.h>
+
 namespace PHiLiP {
 namespace Parameters {
 
@@ -114,10 +118,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("flux_reconstruction", "cDG",
                       dealii::Patterns::Selection(
-                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped"),
+                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | cAdaptive"),
                       "Flux Reconstruction. "
                       "Choices are "
-                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped>.");
+                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | cAdaptive>.");
 
     prm.declare_entry("flux_reconstruction_aux", "kDG",
                       dealii::Patterns::Selection(
@@ -128,6 +132,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("sipg_penalty_factor", "1.0",
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
+
+    prm.declare_entry("shock_sensor_threshold", "0.99",
+                      dealii::Patterns::Double(-1.00,1.00),
+                      "Value of shock_sensor for which it turns on (ie. higher c value is used instead of cDG).");
 
     prm.declare_entry("use_invariant_curl_form", "false",
                       dealii::Patterns::Bool(),
@@ -470,6 +478,7 @@ const std::string test_string = prm.get("test_type");
     if (flux_reconstruction_string == "cPlus")       { flux_reconstruction_type = cPlus; }
     if (flux_reconstruction_string == "c10Thousand") { flux_reconstruction_type = c10Thousand; }
     if (flux_reconstruction_string == "cHULumped")   { flux_reconstruction_type = cHULumped; }
+    if (flux_reconstruction_string == "cAdaptive")   { flux_reconstruction_type = cAdaptive; }
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }
@@ -486,6 +495,13 @@ const std::string test_string = prm.get("test_type");
     if (non_physical_behavior_string == "print_warning")     { non_physical_behavior_type = NonPhysicalBehaviorEnum::print_warning;}
 
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
+    // Check if directory exists - see https://stackoverflow.com/a/18101042
+    struct stat info_vtk;
+    if( stat( solution_vtk_files_directory_name.c_str(), &info_vtk ) != 0 ){
+        pcout << "Error: No solution vtk files directory named " << solution_vtk_files_directory_name << " exists." << std::endl
+                  << "Please create the directory and restart. Aborting..." << std::endl;
+        std::abort();
+    }
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
     output_face_results_vtk = prm.get_bool("output_face_results_vtk");

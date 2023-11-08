@@ -19,8 +19,6 @@ protected:
 public:
     /// Constructor
     InitialConditionFunction();
-    /// Destructor
-    ~InitialConditionFunction() {};
 
     /// Value of the initial condition
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
@@ -41,7 +39,7 @@ public:
     /// Constructor.
     /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
      */
-    FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
+    explicit FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
             : InitialConditionFunction<dim,nstate,real>()
     {
         //const double density_bc = 2.33333*euler_physics.density_inf;
@@ -103,7 +101,7 @@ public:
      *             (2) de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
-    InitialConditionFunction_TaylorGreenVortex (
+    explicit InitialConditionFunction_TaylorGreenVortex (
             Parameters::AllParameters const *const param);
 
     const double gamma_gas; ///< Constant heat capacity ratio of fluid.
@@ -134,7 +132,7 @@ public:
      *                (2) Brian Vermeire 2014 Thesis  
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
-    InitialConditionFunction_TaylorGreenVortex_Isothermal (
+    explicit InitialConditionFunction_TaylorGreenVortex_Isothermal (
             Parameters::AllParameters const *const param);
 
 protected:
@@ -307,7 +305,7 @@ public:
      *  Non-dimensional initialization, i.e. directly using Table 1
      *  Increased domain from L=5 -> L=10 per recommendation of Spiegel et al
      */
-    InitialConditionFunction_IsentropicVortex (
+    explicit InitialConditionFunction_IsentropicVortex (
             Parameters::AllParameters const *const param);
 
     /// Value of initial condition
@@ -336,7 +334,7 @@ protected:
     
 public:
     /// Constructor
-    InitialConditionFunction_KHI(
+    explicit InitialConditionFunction_KHI(
             Parameters::AllParameters const *const param);
 
     /// Value of initial condition
@@ -432,22 +430,22 @@ public:
 /** Insert Reference
 */
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction_EulerBase<dim, nstate, real>
+class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction<dim, nstate, real>
 {
 protected:
-    /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
     const real num_elements;
     const real grid_left;
     const real grid_right;
-    const real gamma;
 
 public:
-    /// Constructor for InitialConditionFunction_SedovBlastWave
+    /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_SedovBlastWave(
         Parameters::AllParameters const* const param);
+    /// Value of initial condition
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;
 };
 
 /// Initial condition 0.

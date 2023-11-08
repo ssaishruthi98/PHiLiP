@@ -101,10 +101,6 @@ public:
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
-    /// Destructor
-    // virtual ~Euler() =0;
-    ~Euler() {};
-
     const double ref_length; ///< Reference length.
     const double gam; ///< Constant heat capacity ratio of fluid.
     const double gamm1; ///< Constant heat capacity ratio (Gamma-1.0) used often.
@@ -444,14 +440,14 @@ protected:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_kennedy_gruber (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
-
+public:
     /// Compute Ismail-Roe parameter vector from primitive solution
     std::array<real,nstate> compute_ismail_roe_parameter_vector_from_primitive(
         const std::array<real,nstate> &primitive_soln) const;
 
     /// Compute Ismail-Roe logarithmic mean
     real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
-
+protected:
     /** Entropy conserving split form flux of Ismail & Roe.
      *  Refer to Gassner's paper (2016) Eq. 3.17  */
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ismail_roe (

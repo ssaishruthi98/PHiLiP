@@ -1782,7 +1782,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
-
+    data_out.add_data_vector(jameson_sensor_cell, "jameson_sensor", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
     data_out.add_data_vector (solution, *post_processor);
@@ -1895,6 +1895,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
     
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
+    jameson_sensor_cell.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
@@ -2458,9 +2459,12 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, init_grid_degree, init_grid_degree);
      
-    OPERATOR::FR_mass_inv<dim,2*dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
     OPERATOR::FR_mass_inv_aux<dim,2*dim> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
-     
+    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
+    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
+    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cPlus(1, max_degree, init_grid_degree, FR_enum::cPlus);
+    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_c10Thousand(1, max_degree, init_grid_degree, FR_enum::c10Thousand);
+    
     OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
     OPERATOR::vol_projection_operator_FR_aux<dim,2*dim> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
      
@@ -2480,6 +2484,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }
         else{
             mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            mass_inv_c10Thousand.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
         }
     }
     else{//we always use weight-adjusted for curvilinear based off the projection operator
@@ -2496,7 +2503,8 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         timer.start();
     }
 
-    for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
+    unsigned int cell_index = 0;
+    for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell,++cell_index) {
         if (!soln_cell->is_locally_owned()) continue;
 
         const unsigned int poly_degree = soln_cell->active_fe_index();
@@ -2506,14 +2514,19 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         soln_cell->get_dof_indices (current_dofs_indices);
 
         const bool Cartesian_element = (soln_cell->manifold_id() == dealii::numbers::flat_manifold_id);
+        unsigned int mass_inv_degree = mass_inv.current_degree;
 
         // if poly degree, the element manifold type, or grid degree changed for this cell, reinitialize the reference operator
-        if((poly_degree != mass_inv.current_degree && Cartesian_element && !use_auxiliary_eq) || 
+        if((poly_degree != mass_inv_degree && Cartesian_element && !use_auxiliary_eq) ||
             (poly_degree != projection_oper.current_degree && (grid_degree > 1 || Cartesian_element) && !use_auxiliary_eq))
         {
             mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
             if(Cartesian_element){//then we can factor out det of Jac and rapidly simplify
-                mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+                mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                mass_inv_c10Thousand.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+
                 if(use_auxiliary_eq){
                     mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
                 }
@@ -2552,6 +2565,55 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                         n_quad_pts, n_grid_nodes, 
                         mapping_support_points,
                         mapping_basis);
+        // HARTEN SWITCH - will be moved into separate function in the future
+/*        for(int istate = 0; istate < nstate; istate++) {
+            const unsigned int n_shape_fns = n_dofs_cell / nstate;
+            real harten_switch = 0.0;
+            real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
+
+            for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                const unsigned int idof = istate * n_shape_fns + ishape;
+                //std::cout << n_shape_fns << std::endl;
+                if(shock_sensor == false && ishape < n_shape_fns-1 && ishape > 0) {
+
+                    f_j = output_vector[current_dofs_indices[idof]];
+                    f_jm1 = output_vector[current_dofs_indices[istate*n_shape_fns + (ishape-1)]];
+                    f_jp1 = output_vector[current_dofs_indices[istate*n_shape_fns + (ishape+1)]];
+
+                    harten_switch = abs(f_jm1 - (2*f_j) + f_jp1)/(abs(f_jm1-f_j)+abs(f_j-f_jp1)+ 1e-13);
+                    //std::cout << "harten:  " << harten_switch << "   ";
+                    if(harten_switch > 1-1e-6){
+                        shock_sensor = true;
+                    }
+                }
+            }
+        }*/
+
+        // JAMESON SENSOR - will be moved into separate function in the future
+        real jameson_sensor = 0.0;
+        for(int istate = 0; istate < nstate; istate++) {
+            const unsigned int n_shape_fns = n_dofs_cell / nstate;
+            real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
+
+            for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                const unsigned int idof = istate * n_shape_fns + ishape;
+                if(ishape < n_shape_fns-1 && ishape > 0) {
+
+                    f_j = output_vector[current_dofs_indices[idof]];
+                    f_jm1 = output_vector[current_dofs_indices[istate*n_shape_fns + (ishape-1)]];
+                    f_jp1 = output_vector[current_dofs_indices[istate*n_shape_fns + (ishape+1)]];
+
+                    real new_jameson_sensor = abs(f_jm1 - (2*f_j) + f_jp1)/(abs(f_jm1)+abs(2*f_j)+abs(f_jp1)+ 1e-13);
+                    
+                    if(new_jameson_sensor > jameson_sensor) {
+                        jameson_sensor = new_jameson_sensor;
+                    }
+                }
+            }
+        }
+        this->jameson_sensor_cell[cell_index] = jameson_sensor;
+
+        //std::cout << std::endl;
         //solve mass inverse times input vector for each state independently
         for(int istate=0; istate<nstate; istate++){
             const unsigned int n_shape_fns = n_dofs_cell / nstate;
@@ -2570,9 +2632,37 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                                                        false, 1.0 / metric_oper.det_Jac_vol[0]);
                 }
                 else{
-                    mass_inv.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                                                   mass_inv.oneD_vol_operator,
-                                                   false, 1.0 / metric_oper.det_Jac_vol[0]);
+                    if (FR_Type == FR_enum::cAdaptive) {
+                        if (jameson_sensor > this->all_parameters->shock_sensor_threshold) {
+                            real c_value = (3.67e-3)*jameson_sensor;
+                            OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_adaptive(1, max_degree, init_grid_degree, FR_Type, c_value);
+                            mass_inv_adaptive.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree],c_value);
+                            mass_inv_adaptive.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv_adaptive.oneD_vol_operator,
+                                false, 1.0 / metric_oper.det_Jac_vol[0]);
+                        }
+
+                        //if (jameson_sensor > 0.5) {
+                        //    mass_inv_c10Thousand.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                        //        mass_inv_c10Thousand.oneD_vol_operator,
+                        //        false, 1.0 / metric_oper.det_Jac_vol[0]);
+                        //} else if (jameson_sensor > 0.3){
+                        //    mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                        //        mass_inv_cPlus.oneD_vol_operator,
+                        //        false, 1.0 / metric_oper.det_Jac_vol[0]);
+                        //} 
+                        
+                        else {
+                            mass_inv_cDG.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv_cDG.oneD_vol_operator,
+                                false, 1.0 / metric_oper.det_Jac_vol[0]);
+                        }
+                    }
+                    else {
+                        mass_inv.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                            mass_inv.oneD_vol_operator,
+                            false, 1.0 / metric_oper.det_Jac_vol[0]);
+                    }
                 }
             }
             else{
