@@ -14,15 +14,15 @@ void non_periodic_cube(
     bool                colorize,
     const int           left_boundary_id) 
 {
-    dealii::Point<2> p1(0.0, 0.0), p2(1.0, 0.25);
-    //std::vector<unsigned int> n_subdivisions(2);
-    //n_subdivisions[0] = 128;
-    //n_subdivisions[1] = 32;
+    dealii::Point<2> p1(0.0, 0.0), p2(1.0, 0.5);
+    std::vector<unsigned int> n_subdivisions(2);
+    n_subdivisions[0] = 600;//log2(128);
+    n_subdivisions[1] = 300;//log2(64);
 
     if(dim==1)
         dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
     else if (dim==2)
-        dealii::GridGenerator::hyper_rectangle(grid, p1, p2, colorize);
+        dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
 
     if (left_boundary_id != 9999 && dim == 1) {
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
@@ -33,12 +33,15 @@ void non_periodic_cube(
         }
     }
     else {
-        for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            cell->set_material_id(9002);
-            for (unsigned int face = 0; face < dealii::GeometryInfo<dim>::faces_per_cell; ++face)
+// Set boundary type and design type
+        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
-                    cell->face(face)->set_boundary_id(1001);
+                    unsigned int current_id = cell->face(face)->boundary_id();
+                    if (current_id == 0 || current_id == 1 || current_id == 2) cell->face(face)->set_boundary_id (1001); // adiabatic no-slip wall
+                    if (current_id == 3) cell->face(face)->set_boundary_id (1006); // slip wall (reflective wall)
                 }
+            }
         }
     }
 }
