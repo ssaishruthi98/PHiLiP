@@ -1319,16 +1319,22 @@ void Euler<dim, nstate, real>
 ::boundary_postshock(
     std::array<real, nstate>& soln_bc) const
 {
-    //std::cout << "post shock condition" << std::endl;
-    std::array<real, nstate> primitive_boundary_values;
-    primitive_boundary_values[0] = 8.0;
-    primitive_boundary_values[1] = 33.0*sqrt(3.0)/8.0;
-    primitive_boundary_values[2] = -33.0/8.0;
-    primitive_boundary_values[3] = 116.5;
+    if(dim==2) {
+        //std::cout << "post shock condition" << std::endl;
+        std::array<real, nstate> primitive_boundary_values;
+        primitive_boundary_values[0] = 8.0;
+        primitive_boundary_values[1] = 33.0*sqrt(3.0)/8.0;
+        primitive_boundary_values[2] = -33.0/8.0;
+        primitive_boundary_values[3] = 116.5;
 
-    const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
-    for (int istate = 0; istate < nstate; ++istate) {
-        soln_bc[istate] = conservative_bc[istate];
+        const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+        for (int istate = 0; istate < nstate; ++istate) {
+            soln_bc[istate] = conservative_bc[istate];
+        }
+    } else {
+        for (int istate = 0; istate < nstate; ++istate) {
+            soln_bc[istate] = 0;
+        }
     }
 }
 
