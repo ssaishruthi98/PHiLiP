@@ -17,48 +17,50 @@ NonPeriodicCubeFlow<dim, nstate>::NonPeriodicCubeFlow(const PHiLiP::Parameters::
 }
 
 template <int dim, int nstate>
-std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() const
+std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim, nstate>::generate_grid() const
 {
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
-    #if PHILIP_DIM!=1
-                this->mpi_communicator
-    #endif
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+#if PHILIP_DIM!=1
+        this->mpi_communicator
+#endif
         );
 
     bool use_number_mesh_refinements = false;
-    if(this->all_param.flow_solver_param.number_of_mesh_refinements>0)
+    if (this->all_param.flow_solver_param.number_of_mesh_refinements > 0)
         use_number_mesh_refinements = true;
-    
-    const unsigned int number_of_refinements = use_number_mesh_refinements ? this->all_param.flow_solver_param.number_of_mesh_refinements 
-                                                                           : log2(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension);
+
+    const unsigned int number_of_refinements = use_number_mesh_refinements ? this->all_param.flow_solver_param.number_of_mesh_refinements
+        : log2(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension);
 
     const double domain_left = this->all_param.flow_solver_param.grid_left_bound;
     const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
     const bool colorize = true;
-    
+
     int left_boundary_id = 9999;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
 
     if (flow_case_type == flow_case_enum::sod_shock_tube
-        || flow_case_type == flow_case_enum::leblanc_shock_tube) {
+        || flow_case_type == flow_case_enum::leblanc_shock_tube
+        || flow_case_type == flow_case_enum::double_mach_reflection) {
         left_boundary_id = 1001;
-    } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
-        left_boundary_id = 1003;
+    }
+    else if (flow_case_type == flow_case_enum::shu_osher_problem) {
+        left_boundary_id = 1004;
     }
 
 
     Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id);
-    grid->refine_global(number_of_refinements);
+    if (dim == 1)
+        grid->refine_global(number_of_refinements);
 
     return grid;
 }
 
 template <int dim, int nstate>
-void NonPeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
+void NonPeriodicCubeFlow<dim, nstate>::display_additional_flow_case_specific_parameters() const
 {
     this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
-    this->pcout << "- - Flux Reconstruction Parameter : " << this->all_param.flux_reconstruction_type << std::endl;
 }
 
 template<int dim, int nstate>
@@ -138,7 +140,6 @@ void NonPeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 {
     this->check_positivity_density(*dg);
     if (this->mpi_rank == 0) {
-
         unsteady_data_table->add_value("iteration", current_iteration);
         // Add values to data table
         this->add_value_to_data_table(current_time, "time", unsteady_data_table);
@@ -161,6 +162,7 @@ void NonPeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
 #if PHILIP_DIM==2
     template class NonPeriodicCubeFlow<PHILIP_DIM, 1>;
+    template class NonPeriodicCubeFlow<PHILIP_DIM, PHILIP_DIM+2>;
 #else
     template class NonPeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
