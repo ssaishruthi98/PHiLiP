@@ -1133,8 +1133,8 @@ void Euler<dim,nstate,real>
             //}
             const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
             (void) modified_conservative_boundary_values;
-            //conservative_boundary_values[nstate-1] = soln_int[nstate-1];
-            soln_bc[istate] = conservative_boundary_values[istate];
+            conservative_boundary_values[nstate-1] = soln_int[nstate-1];
+            //soln_bc[istate] = conservative_boundary_values[istate];
 
         } else { // Neumann boundary condition
             // soln_bc[istate] = -soln_int[istate]+2*conservative_boundary_values[istate];
@@ -1151,7 +1151,7 @@ void Euler<dim,nstate,real>
         }
 
         // HARDCODE DIRICHLET BC
-        soln_bc[istate] = conservative_boundary_values[istate];
+        //soln_bc[istate] = conservative_boundary_values[istate];
     }
 }
 
@@ -1343,6 +1343,7 @@ void Euler<dim, nstate, real>
     for (int istate = 0; istate < nstate; ++istate) {
             soln_bc[istate] = soln_int[istate];
             soln_grad_bc[istate] = soln_grad_int[istate];
+            soln_grad_bc[istate] = 0;
     }
     
 }
