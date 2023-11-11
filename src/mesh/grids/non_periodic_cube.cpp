@@ -14,14 +14,25 @@ void non_periodic_cube(
     bool                colorize,
     const int           left_boundary_id) 
 {
-    dealii::Point<2> p1(0.0, 0.0), p2(4.0, 4.0);
+    // dealii::Point<2> p1(0.0, 0.0), p2(4.0, 3.0);
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    if (dim >= 1) {
+        p1[0] = 0.0;
+        p2[0] = 4.0;
+    } 
+
+    if(dim == 2) {
+        p1[1] = 0.0;
+        p2[1] = 3.0;
+    }
     std::vector<unsigned int> n_subdivisions(2);
-    n_subdivisions[0] = 240;//log2(128);
-    n_subdivisions[1] = 240;//log2(64);
+    n_subdivisions[0] = 480;//log2(128);
+    n_subdivisions[1] = 360;//log2(64);
     
     if (dim == 1)
         dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
-    else if (dim == 2)
+    else if (PHILIP_DIM == 2)
         dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
 
     if (left_boundary_id != 9999 && dim == 1) {
