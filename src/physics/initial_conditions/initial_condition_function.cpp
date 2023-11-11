@@ -669,7 +669,7 @@ real InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
     if constexpr (dim == 2 && nstate == (dim + 2)) {
         const real x = point[0];
         const real y = point[1];
-        if (y < sqrt(3)*(x - (1.0/6.0))) {
+        if (y > sqrt(3)*(x - (1.0/6.0))) {
             if (istate == 0) {
                 // density
                 value = 8.0;

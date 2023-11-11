@@ -46,7 +46,7 @@ subsection flow_solver
   set poly_degree = 1
   set final_time = 0.2
   #set constant_time_step = 0.0001
-  set courant_friedrichs_lewy_number = 0.99
+  set courant_friedrichs_lewy_number = 0.75
   set adaptive_time_step = true
   set unsteady_data_table_filename = double_mach_shock_energy
   subsection grid
