@@ -31,7 +31,7 @@ subsection ODE solver
   set ode_output = verbose
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.00000001
-  set output_solution_every_x_steps = 1
+  set output_solution_every_x_steps = 5
   set runge_kutta_method = ssprk3_ex
   set print_iteration_modulo = 1
 end
@@ -43,10 +43,10 @@ end
 
 subsection flow_solver
   set flow_case_type = double_mach_reflection
-  set poly_degree = 1
+  set poly_degree = 2
   set final_time = 0.2
   #set constant_time_step = 0.0001
-  set courant_friedrichs_lewy_number = 0.75
+  set courant_friedrichs_lewy_number = 0.99
   set adaptive_time_step = true
   set unsteady_data_table_filename = double_mach_shock_energy
   subsection grid
