@@ -5,44 +5,59 @@
 #include "dg/dg_base.hpp"
 
 namespace PHiLiP {
-namespace FlowSolver {
+    namespace FlowSolver {
 
-template <int dim, int nstate>
-class NonPeriodicCubeFlow : public FlowSolverCaseBase<dim, nstate>
-{
+        template <int dim, int nstate>
+        class NonPeriodicCubeFlow : public FlowSolverCaseBase<dim, nstate>
+        {
 #if PHILIP_DIM==1
-     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
- #else
-     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
- #endif
+            using Triangulation = dealii::Triangulation<PHILIP_DIM>;
+#else
+            using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
+#endif
 
- public:
-     explicit NonPeriodicCubeFlow(const Parameters::AllParameters *const parameters_input);
-     
-     std::shared_ptr<Triangulation> generate_grid() const override;
+        public:
+            NonPeriodicCubeFlow(const Parameters::AllParameters* const parameters_input);
 
-     void display_additional_flow_case_specific_parameters() const override;
+            ~NonPeriodicCubeFlow() {};
 
- protected:
-    /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+            std::shared_ptr<Triangulation> generate_grid() const override;
 
-    /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+            void display_additional_flow_case_specific_parameters() const override;
 
-    /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
- 
- private:
-    /// Maximum local wave speed (i.e. convective eigenvalue)
-    double maximum_local_wave_speed;
+        protected:
+            /// Function to compute the adaptive time step
+            double get_adaptive_time_step(std::shared_ptr<DGBase<dim, double>> dg) const override;
 
-    /// Pointer to Physics object for computing things on the fly
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > pde_physics;
+            /// Function to compute the initial adaptive time step
+            double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim, double>> dg) override;
 
-};
+            /// Updates the maximum local wave speed
+            void update_maximum_local_wave_speed(DGBase<dim, double>& dg);
 
-} // FlowSolver namespace
+            /// Updates the maximum local wave speed
+            std::array<double, 2> compute_max_density(DGBase<dim, double>& dg);
+
+            /// Filename (with extension) for the unsteady data table
+            const std::string unsteady_data_table_filename_with_extension;
+
+            /// Compute the desired unsteady data and write it to a table
+            void compute_unsteady_data_and_write_to_table(
+                const unsigned int current_iteration,
+                const double current_time,
+                const std::shared_ptr <DGBase<dim, double>> dg,
+                const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
+
+        private:
+            /// Maximum local wave speed (i.e. convective eigenvalue)
+            double maximum_local_wave_speed;
+
+            /// Pointer to Physics object for computing things on the fly
+            std::shared_ptr< Physics::PhysicsBase<dim, nstate, double> > pde_physics;
+
+        };
+
+    } // FlowSolver namespace
 } // PHiLiP namespace
 
 #endif

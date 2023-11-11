@@ -14,16 +14,44 @@ void non_periodic_cube(
     bool                colorize,
     const int           left_boundary_id) 
 {
-    dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
-    std::cout << left_boundary_id << std::endl;
-    // Other tests cases set boundary outside of the flow_solver case so 
-    // if left_boundary_id is not set, it is skipped so it can be set elsewhere.
-    if (left_boundary_id != 9999) {
+    dealii::Point<2> p1(0.0, 0.0), p2(4.0, 1.0);
+    std::vector<unsigned int> n_subdivisions(2);
+    n_subdivisions[0] = 200;//log2(128);
+    n_subdivisions[1] = 50;//log2(64);
+
+    if (dim == 1)
+        dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
+    else if (dim == 2)
+        dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
+
+    if (left_boundary_id != 9999 && dim == 1) {
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            // Set a dummy material ID - Fails without this for some reason
+            // Set a dummy material ID
             cell->set_material_id(9002);
             if (cell->face(0)->at_boundary()) cell->face(0)->set_boundary_id(left_boundary_id);
             if (cell->face(1)->at_boundary()) cell->face(1)->set_boundary_id(1001);
+        }
+    }
+    else {
+        // Set boundary type and design type
+        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+                if (cell->face(face)->at_boundary()) {
+                    unsigned int current_id = cell->face(face)->boundary_id();
+                    if (current_id == 0) {
+                        cell->face(face)->set_boundary_id(1004); // x_left, Farfield
+                    }
+                    else if (current_id == 1) {
+                        cell->face(face)->set_boundary_id(1002); // x_right, Symmetry/Wall
+                    }
+                    else if (current_id == 2) {
+                        cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                    }
+                    else if (current_id == 3) {
+                        cell->face(face)->set_boundary_id(1004); // y_top, Wall
+                    }
+                }
+            }
         }
     }
 }

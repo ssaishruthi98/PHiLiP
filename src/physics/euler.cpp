@@ -1151,7 +1151,7 @@ void Euler<dim,nstate,real>
         }
 
         // HARDCODE DIRICHLET BC
-        soln_bc[istate] = conservative_boundary_values[istate];
+        //soln_bc[istate] = conservative_boundary_values[istate];
     }
 }
 
