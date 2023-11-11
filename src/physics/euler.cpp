@@ -1151,7 +1151,7 @@ void Euler<dim,nstate,real>
         }
 
         // HARDCODE DIRICHLET BC
-        //soln_bc[istate] = conservative_boundary_values[istate];
+        soln_bc[istate] = conservative_boundary_values[istate];
     }
 }
 
@@ -1282,14 +1282,18 @@ void Euler<dim,nstate,real>
       //this->pcout << "Supersonic inflow, mach=" << mach_i << std::endl;
 
       // Assign primitive boundary values
-      std::array<real,nstate> primitive_boundary_values;
-      primitive_boundary_values[0] = 3.857143;
-      primitive_boundary_values[1] = 2.629369;
-      primitive_boundary_values[2] = 10.33333;
-      const std::array<real,nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
-      for (int istate=0; istate<nstate; ++istate) {
-         soln_bc[istate] = conservative_bc[istate];
-      }
+       if (dim == 1) {
+           std::array<real, nstate> primitive_boundary_values;
+           primitive_boundary_values[0] = 3.857143;
+           primitive_boundary_values[1] = 2.629369;
+           primitive_boundary_values[2] = 10.33333;
+           const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+           for (int istate = 0; istate < nstate; ++istate) {
+               soln_bc[istate] = conservative_bc[istate];
+           }
+       } else {
+           soln_bc = soln_int;
+       }
    }
 }
 
@@ -1311,6 +1315,39 @@ void Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+void Euler<dim, nstate, real>
+::boundary_postshock(
+    std::array<real, nstate>& soln_bc) const
+{
+    //std::cout << "post shock condition" << std::endl;
+    std::array<real, nstate> primitive_boundary_values;
+    primitive_boundary_values[0] = 8.0;
+    primitive_boundary_values[1] = 33.0*sqrt(3.0)/8.0;
+    primitive_boundary_values[2] = -33.0/8.0;
+    primitive_boundary_values[3] = 116.5;
+
+    const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate = 0; istate < nstate; ++istate) {
+        soln_bc[istate] = conservative_bc[istate];
+    }
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim, nstate, real>
+::boundary_neumann(
+    const std::array<real, nstate>& soln_int,
+    const std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_int,
+    std::array<real, nstate>& soln_bc,
+    std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_bc) const
+{
+    for (int istate = 0; istate < nstate; ++istate) {
+            soln_bc[istate] = soln_int[istate];
+            soln_grad_bc[istate] = soln_grad_int[istate];
+    }
+    
+}
+
+template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
@@ -1324,7 +1361,7 @@ void Euler<dim,nstate,real>
     // NEED TO PROVIDE AS INPUT ************************************** (ask Doug where this should be moved to, protected member?)
     const real total_inlet_pressure = pressure_inf*pow(1.0+0.5*gamm1*mach_inf_sqr, gam/gamm1);
     const real total_inlet_temperature = temperature_inf*pow(total_inlet_pressure/pressure_inf, gamm1/gam);
-
+    //std::cout << boundary_type << std::endl;
     if (boundary_type == 1000) {
         // Manufactured solution boundary condition
         boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
@@ -1353,7 +1390,16 @@ void Euler<dim,nstate,real>
     else if (boundary_type == 1006) {
         // Slip wall boundary condition
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } 
+    }
+    else if (boundary_type == 1007) {
+        //std::cout << "applying post shock" << std::endl;
+        // Slip wall boundary condition
+        boundary_postshock(soln_bc);
+    }
+    else if (boundary_type == 1008) {
+        // Slip wall boundary condition
+        boundary_neumann(soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    }
     else {
         this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();

@@ -16,9 +16,9 @@ void non_periodic_cube(
 {
     dealii::Point<2> p1(0.0, 0.0), p2(4.0, 1.0);
     std::vector<unsigned int> n_subdivisions(2);
-    n_subdivisions[0] = 200;//log2(128);
-    n_subdivisions[1] = 50;//log2(64);
-
+    n_subdivisions[0] = 240;//log2(128);
+    n_subdivisions[1] = 60;//log2(64);
+    
     if (dim == 1)
         dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
     else if (dim == 2)
@@ -33,19 +33,27 @@ void non_periodic_cube(
         }
     }
     else {
+        double bottom_x = 0.0;
         // Set boundary type and design type
         for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
             for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
                     unsigned int current_id = cell->face(face)->boundary_id();
                     if (current_id == 0) {
-                        cell->face(face)->set_boundary_id(1004); // x_left, Farfield
+                        cell->face(face)->set_boundary_id(1008); // x_left, Farfield
                     }
                     else if (current_id == 1) {
-                        cell->face(face)->set_boundary_id(1002); // x_right, Symmetry/Wall
+                        cell->face(face)->set_boundary_id(1008); // x_right, Symmetry/Wall
                     }
                     else if (current_id == 2) {
-                        cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                        if (bottom_x < (1.0 / 6.0)) {
+                            //std::cout << "assigning post shock " << bottom_x << std::endl;
+                            bottom_x += cell->extent_in_direction(0);
+                            cell->face(face)->set_boundary_id(1007); // y_bottom, Symmetry/Wall
+                        }
+                        else {
+                            cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                        }
                     }
                     else if (current_id == 3) {
                         cell->face(face)->set_boundary_id(1004); // y_top, Wall
