@@ -39,7 +39,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shu_osher_problem | "
                           " advection_limiter | "
                           " burgers_limiter | "
-                          " double_mach_reflection "),
+                          " mach_3_wind_tunnel "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -61,7 +61,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shu_osher_problem | "
                           " advection_limiter | "
                           " burgers_limiter | "
-                          " double_mach_reflection >. ");
+                          " mach_3_wind_tunnel >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -342,7 +342,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
         else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
         else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
-        else if (flow_case_type_string == "double_mach_reflection")     {flow_case_type = double_mach_reflection;}
+        else if (flow_case_type_string == "mach_3_wind_tunnel")         {flow_case_type = mach_3_wind_tunnel;}
         
         poly_degree = prm.get_integer("poly_degree");
         

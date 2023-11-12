@@ -19,21 +19,25 @@ void non_periodic_cube(
     dealii::Point<dim> p2;
     if (dim >= 1) {
         p1[0] = 0.0;
-        p2[0] = 4.0;
+        p2[0] = 3.0;
     } 
 
     if(dim == 2) {
         p1[1] = 0.0;
-        p2[1] = 3.0;
+        p2[1] = 1.0;
     }
     std::vector<unsigned int> n_subdivisions(2);
-    n_subdivisions[0] = 480;//log2(128);
-    n_subdivisions[1] = 360;//log2(64);
+    n_subdivisions[0] = 10;//log2(128);
+    n_subdivisions[1] = 5;//log2(64);
     
+    std::vector<int> n_cells_remove(2);
+    n_cells_remove[0] = (-2.4/3.0)*n_subdivisions[0];
+    n_cells_remove[1] = (0.2/1.0)*n_subdivisions[1];
+
     if (dim == 1)
         dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
     else if (PHILIP_DIM == 2)
-        dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
+        dealii::GridGenerator::subdivided_hyper_L(grid, n_subdivisions, p1, p2, n_cells_remove);
 
     if (left_boundary_id != 9999 && dim == 1) {
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
@@ -44,35 +48,32 @@ void non_periodic_cube(
         }
     }
     else {
-        double bottom_x = 0.0;
-
         // Set boundary type and design type
+        double right_y = 0.0;
         for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
             for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
                     unsigned int current_id = cell->face(face)->boundary_id();
+                    std::cout << current_id << "   ";
                     if (current_id == 0) {
                         cell->face(face)->set_boundary_id(1007); // x_left, Farfield
                     }
                     else if (current_id == 1) {
-                        cell->face(face)->set_boundary_id(1008); // x_right, Symmetry/Wall
-                    }
-                    else if (current_id == 2) {
-                        if (bottom_x < (1.0 / 6.0)) {
-                            //std::cout << "assigning post shock " << bottom_x << std::endl;
-                            bottom_x += cell->extent_in_direction(0);
-                            cell->face(face)->set_boundary_id(1007); // y_bottom, Symmetry/Wall
-                        }
-                        else {
+                        if (right_y < 0.2) {
+                            right_y += cell->extent_in_direction(1);
                             cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
                         }
+                        else {
+                            cell->face(face)->set_boundary_id(1008); // x_right, Symmetry/Wall
+                        }
                     }
-                    else if (current_id == 3) {
-                        cell->face(face)->set_boundary_id(1007);
+                    else if (current_id == 2 || current_id == 3) {
+                            cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
                     }
                 }
             }
         }
+        sleep(5);
     }
 }
 

@@ -428,11 +428,11 @@ public:
 };
 
 
-/// Initial Condition Function: 2D Double Mach Reflection Problem
+/// Initial Condition Function: 2D Mach 3 Wind Tunnel Problem
 /** INCLUDE REFERENCE LATER
 */
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_DoubleMachReflection : public InitialConditionFunction_EulerBase<dim, nstate, real>
+class InitialConditionFunction_Mach3WindTunnel : public InitialConditionFunction_EulerBase<dim, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -441,7 +441,7 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    explicit InitialConditionFunction_DoubleMachReflection(
+    explicit InitialConditionFunction_Mach3WindTunnel(
         Parameters::AllParameters const* const param);
 };
 

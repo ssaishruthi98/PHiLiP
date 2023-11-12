@@ -1275,24 +1275,29 @@ void Euler<dim,nstate,real>
 
    } 
    else {
-      // Supersonic inflow, sec 2.9
+       // Supersonic inflow, sec 2.9
 
-      // Specify all quantities through
-      // total_inlet_pressure, total_inlet_temperature, mach_inf & angle_of_attack
-      //this->pcout << "Supersonic inflow, mach=" << mach_i << std::endl;
+       // Specify all quantities through
+       // total_inlet_pressure, total_inlet_temperature, mach_inf & angle_of_attack
+       //this->pcout << "Supersonic inflow, mach=" << mach_i << std::endl;
+       const real radicant = 1.0 + 0.5 * gamm1 * mach_inf_sqr;
+       const real static_inlet_pressure = total_inlet_pressure * pow(radicant, -gam / gamm1);
+       const real static_inlet_temperature = total_inlet_temperature * pow(radicant, -1.0);
 
-      // Assign primitive boundary values
-       if (dim == 1) {
-           std::array<real, nstate> primitive_boundary_values;
-           primitive_boundary_values[0] = 3.857143;
-           primitive_boundary_values[1] = 2.629369;
-           primitive_boundary_values[2] = 10.33333;
-           const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
-           for (int istate = 0; istate < nstate; ++istate) {
-               soln_bc[istate] = conservative_bc[istate];
-           }
-       } else {
-           soln_bc = soln_int;
+       const real pressure_bc = static_inlet_pressure;
+       const real temperature_bc = static_inlet_temperature;
+       const real density_bc = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
+       const real sound_bc = sqrt(gam * pressure_bc / density_bc);
+       const real velocity_magnitude_bc = mach_inf * sound_bc;
+
+       // Assign primitive boundary values
+       std::array<real, nstate> primitive_boundary_values;
+       primitive_boundary_values[0] = density_bc;
+       for (int d = 0; d < dim; d++) { primitive_boundary_values[1 + d] = -velocity_magnitude_bc * normal_int[d]; } // minus since it's inflow
+       primitive_boundary_values[nstate - 1] = pressure_bc;
+       const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+       for (int istate = 0; istate < nstate; ++istate) {
+           soln_bc[istate] = conservative_bc[istate];
        }
    }
 }
@@ -1322,10 +1327,10 @@ void Euler<dim, nstate, real>
     if(dim==2) {
         //std::cout << "post shock condition" << std::endl;
         std::array<real, nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = 8.0;
-        primitive_boundary_values[1] = 33.0*sqrt(3.0)/8.0;
-        primitive_boundary_values[2] = -33.0/8.0;
-        primitive_boundary_values[3] = 116.5;
+        primitive_boundary_values[0] = 1.4;
+        primitive_boundary_values[1] = 3.0;
+        primitive_boundary_values[2] = 0.0;
+        primitive_boundary_values[3] = 1.0;
 
         const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
         for (int istate = 0; istate < nstate; ++istate) {
