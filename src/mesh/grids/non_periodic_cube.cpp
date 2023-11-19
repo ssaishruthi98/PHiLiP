@@ -19,11 +19,11 @@ void non_periodic_cube(
     dealii::Point<dim> p2;
     if (dim >= 1) {
         p1[0] = 0.0;
-        p2[0] = 0.5;
+        p2[0] = 1.0;
     } 
 
     if(dim == 2) {
-        p1[1] = 0.0;
+        p1[1] = -0.25;
         p2[1] = 0.25;
     }
     std::vector<unsigned int> n_subdivisions(2);
@@ -53,23 +53,17 @@ void non_periodic_cube(
                     unsigned int current_id = cell->face(face)->boundary_id();
                     if (current_id == 0) {
                         //cell->face(face)->set_boundary_id(1007); // x_left, Farfield
-                        if (left_y <= 0.05) {
+                        if (left_y >= 0.2 && left_y <0.3) {
                             //std::cout << "assigning post shock " << left_y << std::endl;
-                            left_y += cell->extent_in_direction(1);
                             cell->face(face)->set_boundary_id(1003); // y_bottom, Symmetry/Wall
                         }
                         else {
                             cell->face(face)->set_boundary_id(1007);
                         }
+                        left_y += cell->extent_in_direction(1);
                     }
-                    else if (current_id == 1) {
+                    else {
                         cell->face(face)->set_boundary_id(1008); // x_right, Symmetry/Wall
-                    }
-                    else if (current_id == 2) {
-                        cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
-                    }
-                    else if (current_id == 3) {
-                        cell->face(face)->set_boundary_id(1008);
                     }
                 }
             }
