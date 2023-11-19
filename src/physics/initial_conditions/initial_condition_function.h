@@ -432,7 +432,7 @@ public:
 /** INCLUDE REFERENCE LATER
 */
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_DoubleMachReflection : public InitialConditionFunction_EulerBase<dim, nstate, real>
+class InitialConditionFunction_AstrophysicalJet : public InitialConditionFunction_EulerBase<dim, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -441,7 +441,7 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    explicit InitialConditionFunction_DoubleMachReflection(
+    explicit InitialConditionFunction_AstrophysicalJet(
         Parameters::AllParameters const* const param);
 };
 

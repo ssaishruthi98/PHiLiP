@@ -1168,6 +1168,7 @@ void Euler<dim,nstate,real>
 
     const real mach_int = compute_mach_number(soln_int);
     if (mach_int > 1.0) {
+        std::cout << "is it supersonic?" << std::endl;
         // Supersonic, simply extrapolate
         for (int istate=0; istate<nstate; ++istate) {
             soln_bc[istate] = soln_int[istate];
@@ -1291,7 +1292,18 @@ void Euler<dim,nstate,real>
            for (int istate = 0; istate < nstate; ++istate) {
                soln_bc[istate] = conservative_bc[istate];
            }
-       } else {
+       } else if (dim == 2) {
+           std::array<real, nstate> primitive_boundary_values;
+           primitive_boundary_values[0] = 5.0;
+           primitive_boundary_values[1] = 800.0;
+           primitive_boundary_values[2] = 0.0;
+           primitive_boundary_values[3] = 0.4127;
+           const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+           for (int istate = 0; istate < nstate; ++istate) {
+               soln_bc[istate] = conservative_bc[istate];
+           }
+       }
+       else {
            soln_bc = soln_int;
        }
    }
@@ -1322,10 +1334,10 @@ void Euler<dim, nstate, real>
     if(dim==2) {
         //std::cout << "post shock condition" << std::endl;
         std::array<real, nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = 8.0;
-        primitive_boundary_values[1] = 33.0*sqrt(3.0)/8.0;
-        primitive_boundary_values[2] = -33.0/8.0;
-        primitive_boundary_values[3] = 116.5;
+        primitive_boundary_values[0] = 0.5;
+        primitive_boundary_values[1] = 0.0;
+        primitive_boundary_values[2] = 0.0;
+        primitive_boundary_values[3] = 0.4127;
 
         const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
         for (int istate = 0; istate < nstate; ++istate) {
@@ -1349,7 +1361,6 @@ void Euler<dim, nstate, real>
     for (int istate = 0; istate < nstate; ++istate) {
             soln_bc[istate] = soln_int[istate];
             soln_grad_bc[istate] = soln_grad_int[istate];
-            soln_grad_bc[istate] = 0;
     }
     
 }

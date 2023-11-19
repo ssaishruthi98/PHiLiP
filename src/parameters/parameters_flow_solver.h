@@ -34,7 +34,7 @@ public:
         shu_osher_problem,
         advection_limiter,
         burgers_limiter,
-        double_mach_reflection
+        astrophysical_jet
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
