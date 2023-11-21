@@ -20,59 +20,42 @@ namespace PHiLiP {
         template <int dim, int nstate>
         std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim, nstate>::generate_grid() const
         {
-            if (this->all_param.flow_solver_param.use_gmsh_mesh) {
-                if constexpr (dim == 2) {
-                    const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename + std::string(".msh");
-                    this->pcout << "- Generating grid using input mesh: " << mesh_filename << std::endl;
-
-                    std::shared_ptr <HighOrderGrid<dim, double>> doubleMachMesh = read_gmsh<dim, dim>(
-                        mesh_filename,
-                        true, 0, true);
-
-                    return doubleMachMesh->triangulation;
-                }
-                else {
-                    std::cout << "ERROR: read_gmsh() does not work for NonPeriodicCubeFlow in 1D or 3D. Aborting..." << std::endl;
-                    std::abort();
-                }
-
-            }
-            else {
-                std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+            std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
 #if PHILIP_DIM!=1
-                    this->mpi_communicator
+                this->mpi_communicator
 #endif
-                    );
+                );
 
-                bool use_number_mesh_refinements = false;
-                if (this->all_param.flow_solver_param.number_of_mesh_refinements > 0)
-                    use_number_mesh_refinements = true;
+            bool use_number_mesh_refinements = false;
+            if (this->all_param.flow_solver_param.number_of_mesh_refinements > 0)
+                use_number_mesh_refinements = true;
 
-                const unsigned int number_of_refinements = use_number_mesh_refinements ? this->all_param.flow_solver_param.number_of_mesh_refinements
-                    : log2(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension);
+            const unsigned int number_of_refinements = use_number_mesh_refinements ? this->all_param.flow_solver_param.number_of_mesh_refinements
+                : log2(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension);
 
-                const double domain_left = this->all_param.flow_solver_param.grid_left_bound;
-                const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
-                const bool colorize = true;
+            const double domain_left = this->all_param.flow_solver_param.grid_left_bound;
+            const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
+            const bool colorize = true;
 
-                int left_boundary_id = 9999;
-                using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
-                flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
+            int left_boundary_id = 9999;
+            using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
+            flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
 
-                if (flow_case_type == flow_case_enum::sod_shock_tube
-                    || flow_case_type == flow_case_enum::leblanc_shock_tube) {
-                    left_boundary_id = 1001;
-                }
-                else if (flow_case_type == flow_case_enum::shu_osher_problem) {
-                    left_boundary_id = 1004;
-                }
-
-
-                Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id);
-                if (dim == 1)
-                    grid->refine_global(number_of_refinements);
-                return grid;
+            if (flow_case_type == flow_case_enum::sod_shock_tube
+                || flow_case_type == flow_case_enum::leblanc_shock_tube
+                || flow_case_type == flow_case_enum::mach_3_wind_tunnel) {
+                left_boundary_id = 1001;
             }
+            else if (flow_case_type == flow_case_enum::shu_osher_problem) {
+                left_boundary_id = 1004;
+            }
+
+
+            Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id);
+            if (dim == 1)
+                grid->refine_global(number_of_refinements);
+
+            return grid;
         }
 
         template <int dim, int nstate>
