@@ -5,11 +5,6 @@
 #include <deal.II/distributed/tria.h>
 
 namespace PHiLiP::Grids {
-#if PHILIP_DIM==1
-    using Triangulation = dealii::Triangulation<PHILIP_DIM>;
-#else
-    using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
-#endif
 /// Create a nonperiodic cube mesh
 /// Boundary IDs are assigned for limiter_convergence_tests
 /// Unassigned otherwise

@@ -1,5 +1,6 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/fe/mapping_q.h>
 
 #include <Sacado.hpp>
 #include "non_periodic_cube.h"
@@ -14,6 +15,11 @@ void non_periodic_cube(
     bool                colorize,
     const int           left_boundary_id) 
 {
+
+    //make triangulation in 2D and extrude if needed
+    using Tria2D = dealii::parallel::distributed::Triangulation<2>;
+    using Triangulation = dealii::parallel::distributed::Triangulation<2>;
+
     // dealii::Point<2> p1(0.0, 0.0), p2(4.0, 3.0);
     dealii::Point<dim> p1, p2, p3, p4;
     if (dim >= 1) {
@@ -38,16 +44,18 @@ void non_periodic_cube(
     n_subdivisions1[1] = 24;
 
     if (dim == 2) {
-        std::shared_ptr<Triangulation> grid1 = std::make_shared<Triangulation>();
-        std::shared_ptr<Triangulation> grid2 = std::make_shared<Triangulation>();
 
-        dealii::GridGenerator::subdivided_hyper_rectangle(*grid1, n_subdivisions1, p1, p2, true);
-        dealii::GridGenerator::subdivided_hyper_rectangle(*grid2, n_subdivisions2, p3, p4, true);
+        Tria2D upper_rectangle(MPI_COMM_WORLD);
+        dealii::GridGenerator::subdivided_hyper_rectangle(upper_rectangle, {2,1}, p1, p2, true);
+
+        Tria2D lower_rectangle(MPI_COMM_WORLD);
+        dealii::GridGenerator::subdivided_hyper_rectangle(lower_rectangle, {1,1}, p3, p4, true);
 
         double bottom_x = 0.0;
 
         // Set boundary type and design type
-        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid1->begin_active(); cell != grid1->end(); ++cell) {
+        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = upper_rectangle.begin_active(); cell != upper_rectangle.end(); ++cell) {
+            cell->set_material_id(9002);
             for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
                     unsigned int current_id = cell->face(face)->boundary_id();
@@ -73,7 +81,8 @@ void non_periodic_cube(
             }
         }
 
-        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid2->begin_active(); cell != grid2->end(); ++cell) {
+        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = lower_rectangle.begin_active(); cell != lower_rectangle.end(); ++cell) {
+            cell->set_material_id(9002);
             for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
                     unsigned int current_id = cell->face(face)->boundary_id();
@@ -92,11 +101,23 @@ void non_periodic_cube(
                 }
             }
         }
-        const Triangulation& topGrid= dealii::Triangulation<2>::copy_triangulation(grid1);
-        const Triangulation& bottomGrid = dealii::Triangulation<2>::copy_triangulation(grid2);
-        dealii::GridGenerator::merge_triangulations(topGrid, bottomGrid, grid, 1e-12, true);
-    }
+        std::cout << "MADE THE TWO RECTANGLES" << std::endl;
+        dealii::GridGenerator::merge_triangulations(upper_rectangle, lower_rectangle, grid, 1e-12, true);
 
+        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            cell->set_material_id(9002);
+            for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+                if (cell->face(face)->at_boundary()) {
+                    unsigned int current_id = cell->face(face)->boundary_id();
+                    if (current_id == 0) {
+                        std::cout << " current_id 0  ";
+                        cell->face(face)->set_boundary_id(1008); // x_left, Farfield
+                    }
+                }
+            }
+        }
+    }
+    std::cout << std::endl;
     if (dim == 1)
         dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
 
