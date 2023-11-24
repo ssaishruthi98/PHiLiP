@@ -27,8 +27,8 @@ void non_periodic_cube(
         p2[1] = 3.0;
     }
     std::vector<unsigned int> n_subdivisions(2);
-    n_subdivisions[0] = 480;//log2(128);
-    n_subdivisions[1] = 360;//log2(64);
+    n_subdivisions[0] = 720;//log2(128);
+    n_subdivisions[1] = 540;//log2(64);
     
     if (dim == 1)
         dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
