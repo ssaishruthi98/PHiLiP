@@ -151,6 +151,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                               "Number of grid elements per dimension for hyper_cube mesh based cases.");
 
+            prm.declare_entry("n_subdivisions_0", "4",
+                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                              "Number of grid elements per dimension for hyper_cube mesh based cases.");
+            prm.declare_entry("n_subdivisions_1", "4",
+                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                              "Number of grid elements per dimension for hyper_cube mesh based cases.");
+
             prm.declare_entry("number_of_mesh_refinements", "0",
                               dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                               "Number of mesh refinements for Gaussian bump and naca0012 based cases.");
@@ -379,6 +386,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             grid_degree = prm.get_integer("grid_degree");
             grid_left_bound = prm.get_double("grid_left_bound");
             grid_right_bound = prm.get_double("grid_right_bound");
+            n_subdivisions_0 = prm.get_integer("n_subdivisions_0");
+            n_subdivisions_1 = prm.get_integer("n_subdivisions_1");
             number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
             number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
             use_gmsh_mesh = prm.get_bool("use_gmsh_mesh");

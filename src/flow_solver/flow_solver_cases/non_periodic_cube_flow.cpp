@@ -35,6 +35,10 @@ namespace PHiLiP {
 
             const double domain_left = this->all_param.flow_solver_param.grid_left_bound;
             const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
+
+            const double n_subdivisions_0 = this->all_param.flow_solver_param.n_subdivisions_0;
+            const double n_subdivisions_1 = this->all_param.flow_solver_param.n_subdivisions_1;
+
             const bool colorize = true;
 
             int left_boundary_id = 9999;
@@ -51,7 +55,7 @@ namespace PHiLiP {
             }
 
 
-            Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id);
+            Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id, n_subdivisions_0, n_subdivisions_1);
             if (dim == 1)
                 grid->refine_global(number_of_refinements);
 
