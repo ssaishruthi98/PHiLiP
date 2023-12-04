@@ -5,6 +5,7 @@
 #include <deal.II/distributed/tria.h>
 
 namespace PHiLiP::Grids {
+
 /// Create a nonperiodic cube mesh
 /// Boundary IDs are assigned for limiter_convergence_tests
 /// Unassigned otherwise
