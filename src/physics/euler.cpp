@@ -1327,10 +1327,10 @@ void Euler<dim, nstate, real>
     if(dim==2) {
         //std::cout << "post shock condition" << std::endl;
         std::array<real, nstate> primitive_boundary_values;
-        primitive_boundary_values[0] = 1.4;
-        primitive_boundary_values[1] = 3.0;
+        primitive_boundary_values[0] = 7.041132906907898;
+        primitive_boundary_values[1] = 4.07794695481336;
         primitive_boundary_values[2] = 0.0;
-        primitive_boundary_values[3] = 1.0;
+        primitive_boundary_values[3] = 30.05945;
 
         const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
         for (int istate = 0; istate < nstate; ++istate) {

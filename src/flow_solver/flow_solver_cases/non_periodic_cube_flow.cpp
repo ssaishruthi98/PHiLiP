@@ -47,7 +47,7 @@ namespace PHiLiP {
 
             if (flow_case_type == flow_case_enum::sod_shock_tube
                 || flow_case_type == flow_case_enum::leblanc_shock_tube
-                || flow_case_type == flow_case_enum::mach_3_wind_tunnel) {
+                || flow_case_type == flow_case_enum::shock_diffraction) {
                 left_boundary_id = 1001;
             }
             else if (flow_case_type == flow_case_enum::shu_osher_problem) {

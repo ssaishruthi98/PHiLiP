@@ -651,31 +651,32 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 
 
 // ========================================================
-// Mach 3 Wind Tunnel with a Step Problem (2D) -- Initial Condition
+// Shock Diffraction (backwards facing step) (2D) -- Initial Condition
 // INCLUDE REFERENCE LATER
 // ========================================================
 template <int dim, int nstate, typename real>
-InitialConditionFunction_Mach3WindTunnel<dim, nstate, real>
-::InitialConditionFunction_Mach3WindTunnel(
+InitialConditionFunction_ShockDiffraction<dim, nstate, real>
+::InitialConditionFunction_ShockDiffraction(
     Parameters::AllParameters const* const param)
     : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
 {}
 
 template <int dim, int nstate, typename real>
-real InitialConditionFunction_Mach3WindTunnel<dim, nstate, real>
+real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
     real x = point[0];
+    real y = point[1];
     if constexpr (dim == 2 && nstate == (dim + 2)) {
-        if (x > -0.3) {
+        if (x <= 0.5 && y >= 6.0) {
             if (istate == 0) {
                 // density
-                value = 1.4;
+                value = 7.041132906907898;
             }
             else if (istate == 1) {
                 // x-velocity
-                value = 0.0;
+                value = 4.07794695481336;
             }
             else if (istate == 2) {
                 // y-velocity
@@ -683,27 +684,27 @@ real InitialConditionFunction_Mach3WindTunnel<dim, nstate, real>
             }
             else if (istate == 3) {
                 // pressure
-                value = 1.0;
+                value = 30.05945;
             }
         }
-        //else {
-        //    if (istate == 0) {
-        //        // density
-        //        value = 1.4;
-        //    }
-        //    else if (istate == 1) {
-        //        // x-velocity
-        //        value = 0.0;
-        //    }
-        //    else if (istate == 2) {
-        //        // y-velocity
-        //        value = 0.0;
-        //    }
-        //    else if (istate == 3) {
-        //        // pressure
-        //        value = 1.0;
-        //    }
-        //}
+        else {
+           if (istate == 0) {
+               // density
+               value = 1.4;
+           }
+           else if (istate == 1) {
+               // x-velocity
+               value = 0.0;
+           }
+           else if (istate == 2) {
+               // y-velocity
+               value = 0.0;
+           }
+           else if (istate == 3) {
+               // pressure
+               value = 1.0;
+           }
+        }
     }
     return value;
 }
@@ -793,8 +794,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::shu_osher_problem) {
         if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >(param);
-    } else if (flow_type == FlowCaseEnum::mach_3_wind_tunnel) {
-        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_Mach3WindTunnel<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::shock_diffraction) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
@@ -838,7 +839,7 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_EulerBase <PHILIP_DIM, PHILIP_DIM + 2, double>;
 template class InitialConditionFunction_LowDensity2D <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_Mach3WindTunnel <PHILIP_DIM, PHILIP_DIM + 2, double>;
+template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_DIM + 2, double>;
 #endif
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;
