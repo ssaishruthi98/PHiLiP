@@ -12,7 +12,9 @@ void non_periodic_cube(
     double              domain_left,
     double              domain_right,
     bool                colorize,
-    const int           left_boundary_id) 
+    const int           left_boundary_id,
+    const int           n_subdivisions_0,
+    const int           n_subdivisions_1) 
 {
     // dealii::Point<2> p1(0.0, 0.0), p2(4.0, 3.0);
     dealii::Point<dim> p1;
@@ -27,9 +29,8 @@ void non_periodic_cube(
         p2[1] = 1.0;
     }
     std::vector<unsigned int> n_subdivisions(2);
-    n_subdivisions[0] = 720;//log2(128);
-    n_subdivisions[1] = 540;//log2(64);
-
+    n_subdivisions[0] = n_subdivisions_0;//log2(128);
+    n_subdivisions[1] = n_subdivisions_1;//log2(64);
     
     if (dim == 1)
         dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
@@ -83,13 +84,17 @@ template void non_periodic_cube<1, dealii::Triangulation<1>>(
     double                      domain_left,
     double                      domain_right,
     bool                        colorize,
-    const int                   left_boundary_id);
+    const int                   left_boundary_id,
+    const int                   n_subdivisions_0,
+    const int                   n_subdivisions_1);
 #else
 template void non_periodic_cube<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     double                                              domain_left,
     double                                              domain_right,
     bool                                                colorize,
-    const int                                           left_boundary_id);
+    const int                                           left_boundary_id,
+    const int                                           n_subdivisions_0,
+    const int                                           n_subdivisions_1);
 #endif
 } // namespace PHiLiP::Grids
