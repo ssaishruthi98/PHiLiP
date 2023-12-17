@@ -36,6 +36,9 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim, nstate>::generate_grid()
     const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
     const bool colorize = true;
 
+    const int n_subdivisions_0 = this->all_param.flow_solver_param.n_subdivisions_0;
+    const int n_subdivisions_1 = this->all_param.flow_solver_param.n_subdivisions_1;
+
     int left_boundary_id = 9999;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
@@ -50,7 +53,7 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim, nstate>::generate_grid()
     }
 
 
-    Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id);
+    Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id, n_subdivisions_0, n_subdivisions_1);
     if (dim == 1)
         grid->refine_global(number_of_refinements);
 

@@ -15,6 +15,8 @@ void non_periodic_cube(
     double              domain_left,
     double              domain_right,
     bool                colorize,
-    const int           left_boundary_id);
+    const int           left_boundary_id,
+    const int           n_subdivisions_0,
+    const int           n_subdivisions_1);
 } // namespace PHiLiP::Grids
 #endif
