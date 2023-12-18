@@ -33,7 +33,7 @@ void non_periodic_cube(
     n_subdivisions[1] = n_subdivisions_1;//log2(64);
     
     std::vector<int> n_cells_remove(2);
-    n_cells_remove[0] = (-2.4/3.0)*n_subdivisions[0];
+    n_cells_remove[0] = (-2.4/3.0)*n_subdivisions[0] - 1;
     n_cells_remove[1] = (0.2/1.0)*n_subdivisions[1];
 
     if (dim == 1)
@@ -56,19 +56,19 @@ void non_periodic_cube(
             for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
                     if (face == 0) {
-                        cell->face(face)->set_boundary_id(1007); // x_left, Farfield
+                        cell->face(face)->set_boundary_id(1007); // x_left, Inflow
                     }
                     else if (face == 1) {
                         if (right_y < 0.2) {
                             right_y += cell->extent_in_direction(1);
-                            cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                            cell->face(face)->set_boundary_id(1001); // x_right, Symmetry/Wall 
                         }
                         else {
-                            cell->face(face)->set_boundary_id(1008); // x_right, Symmetry/Wall
+                            cell->face(face)->set_boundary_id(1002); // x_right, Outflow
                         }
                     }
                     else if (face == 2 || face == 3) {
-                            cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                            cell->face(face)->set_boundary_id(1001); // y_top, y_bottom, Symmetry/Wall
                     }
                 }
             }

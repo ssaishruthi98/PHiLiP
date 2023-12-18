@@ -675,7 +675,7 @@ real InitialConditionFunction_Mach3WindTunnel<dim, nstate, real>
             }
             else if (istate == 1) {
                 // x-velocity
-                value = 0.0;
+                value = 3.0;
             }
             else if (istate == 2) {
                 // y-velocity

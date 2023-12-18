@@ -11,15 +11,15 @@ set use_weak_form = false
 set flux_nodes_type = GLL
 
 # Strong DG - LaxF
-set use_split_form = false
-set conv_num_flux = lax_friedrichs
+#set use_split_form = false
+#set conv_num_flux = lax_friedrichs
 
 # NSFR - Ra
-#set use_split_form = true
-#set two_point_num_flux_type = KG
-#set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
-#set flux_reconstruction = cPlus
-#set use_inverse_mass_on_the_fly = true
+set use_split_form = true
+set two_point_num_flux_type = Ra
+set conv_num_flux = two_point_flux_with_roe_dissipation
+set flux_reconstruction = cPlus
+set use_inverse_mass_on_the_fly = true
 
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
@@ -31,26 +31,28 @@ subsection ODE solver
   set ode_output = verbose
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.00000001
-  set output_solution_every_x_steps = 1
+  #set output_solution_every_x_steps = 25
   set runge_kutta_method = ssprk3_ex
   set print_iteration_modulo = 1
+  set output_solution_every_dt_time_intervals = 0.1
 end
 
 # freestream Mach number
 subsection euler
   set mach_infinity = 3.0
+  set gamma_gas = 1.4
 end
 
 subsection flow_solver
   set flow_case_type = mach_3_wind_tunnel
-  set poly_degree = 2
+  set poly_degree = 3
   set final_time = 4.0
   #set constant_time_step = 0.0001
-  set courant_friedrichs_lewy_number = 0.3
+  set courant_friedrichs_lewy_number = 0.75
   set adaptive_time_step = true
   set unsteady_data_table_filename = wind_tunnel_shock_energy
   subsection grid
-   set n_subdivisions_0 = 240
-   set n_subdivisions_1 = 80
+   set n_subdivisions_0 = 300
+   set n_subdivisions_1 = 100
   end
 end
