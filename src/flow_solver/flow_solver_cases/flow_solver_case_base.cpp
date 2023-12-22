@@ -93,6 +93,7 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<D
     
     pcout << "- Polynomial degree: " << this->all_param.flow_solver_param.poly_degree << std::endl;
     pcout << "- Maximum polynomial degree for adaptation: " << this->all_param.flow_solver_param.max_poly_degree_for_adaptation << std::endl;
+    pcout << "- Flux Reconstruction: " << dg->all_parameters->flux_reconstruction_type << std::endl;
 
     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
     const double number_of_degrees_of_freedom_per_dim = pow(number_of_degrees_of_freedom_per_state,(1.0/dim));

@@ -2461,9 +2461,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
      
     OPERATOR::FR_mass_inv_aux<dim,2*dim> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
     OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
-   /* OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
+    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
     OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cPlus(1, max_degree, init_grid_degree, FR_enum::cPlus);
-    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_c10Thousand(1, max_degree, init_grid_degree, FR_enum::c10Thousand);*/
+    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_c10Thousand(1, max_degree, init_grid_degree, FR_enum::c10Thousand);
     
     OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
     OPERATOR::vol_projection_operator_FR_aux<dim,2*dim> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
@@ -2484,9 +2484,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }
         else{
             mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-            /*mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
             mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-            mass_inv_c10Thousand.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);*/
+            mass_inv_c10Thousand.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
         }
     }
     else{//we always use weight-adjusted for curvilinear based off the projection operator
@@ -2523,9 +2523,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
             mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
             if(Cartesian_element){//then we can factor out det of Jac and rapidly simplify
                 mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-                /*mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
                 mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-                mass_inv_c10Thousand.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);*/
+                mass_inv_c10Thousand.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
 
                 if(use_auxiliary_eq){
                     mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
@@ -2591,7 +2591,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
 
         // JAMESON SENSOR - will be moved into separate function in the future
         real jameson_sensor = 0.0;
-/*        for(int istate = 0; istate < nstate; istate++) {
+        for(int istate = 0; istate < nstate; istate++) {
             const unsigned int n_shape_fns = n_dofs_cell / nstate;
             real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
 
@@ -2610,7 +2610,8 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                     }
                 }
             }
-        }*/
+        }
+
         this->jameson_sensor_cell[cell_index] = jameson_sensor;
 
         //std::cout << std::endl;
@@ -2632,30 +2633,32 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                                                        false, 1.0 / metric_oper.det_Jac_vol[0]);
                 }
                 else{
-/*                    if (FR_Type == FR_enum::cAdaptive) {
-                        if (jameson_sensor > 0.5) {
+                    if (FR_Type == FR_enum::cAdaptive) {
+/*                        if (jameson_sensor > 0.5) {
                             OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_adaptive(1, max_degree, init_grid_degree, FR_Type, jameson_sensor);
                             mass_inv_adaptive.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
                             mass_inv_adaptive.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                 mass_inv_adaptive.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
-                        }
+                        }*/
 
-                        if (jameson_sensor > 0.5) {
+                        if (jameson_sensor > 0.2) {
+                            //std::cout << "c10thousand" << std::endl;
                            mass_inv_c10Thousand.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                mass_inv_c10Thousand.oneD_vol_operator,
                                false, 1.0 / metric_oper.det_Jac_vol[0]);
                         } else {
-                           mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                               mass_inv_cPlus.oneD_vol_operator,
+                            //std::cout << "... ";
+                           mass_inv_cDG.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                               mass_inv_cDG.oneD_vol_operator,
                                false, 1.0 / metric_oper.det_Jac_vol[0]);
                         }
                     }
-                    else {*/
+                    else {
                         mass_inv.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                             mass_inv.oneD_vol_operator,
                             false, 1.0 / metric_oper.det_Jac_vol[0]);
-                    //}
+                    }
                 }
             }
             else{
