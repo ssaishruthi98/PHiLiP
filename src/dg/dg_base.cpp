@@ -2460,6 +2460,8 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, init_grid_degree, init_grid_degree);
      
     OPERATOR::FR_mass_inv_aux<dim,2*dim> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
+
+    //std::cout << "FR_Type: " << FR_Type << std::endl;
     OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
     OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
     OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cPlus(1, max_degree, init_grid_degree, FR_enum::cPlus);
