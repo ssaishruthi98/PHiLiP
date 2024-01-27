@@ -188,8 +188,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " burgers_energy_conservation_rrk | "
                       " euler_entropy_conserving_split_forms_check | "
                       " h_refinement_study_isentropic_vortex | "
-                      " khi_robustness | "
-                      " low_density "),
+                      " low_density | "
+                      " naca0012_unsteady_check_quick | "
+                      " khi_robustness"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -229,8 +230,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  burgers_energy_conservation_rrk | "
                       "  euler_entropy_conserving_split_forms_check | "
                       "  h_refinement_study_isentropic_vortex | "
-                      "  khi_robustness | "
-                      "  low_density>.");
+                      "  low_density>."
+                      "  naca0012_unsteady_check_quick | "
+                      "  khi_robustness>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -410,7 +412,8 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
     else if (test_string == "low_density")                              { test_type = low_density; }
-    
+    else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
+
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");

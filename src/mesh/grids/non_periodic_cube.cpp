@@ -27,8 +27,8 @@ void non_periodic_cube(
         p2[1] = 0.25;
     }
     std::vector<unsigned int> n_subdivisions(2);
-    n_subdivisions[0] = 320;//log2(128);
-    n_subdivisions[1] = 160;//log2(64);
+    n_subdivisions[0] = 200;//log2(128);
+    n_subdivisions[1] = 100;//log2(64);
     
     if (dim == 1)
         dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
@@ -58,12 +58,12 @@ void non_periodic_cube(
                             cell->face(face)->set_boundary_id(1003); // y_bottom, Symmetry/Wall
                         }
                         else {
-                            cell->face(face)->set_boundary_id(1007);
+                            cell->face(face)->set_boundary_id(1001);
                         }
                         left_y += cell->extent_in_direction(1);
                     }
                     else {
-                        cell->face(face)->set_boundary_id(1008); // x_right, Symmetry/Wall
+                        cell->face(face)->set_boundary_id(1002); // x_right, Symmetry/Wall
                     }
                 }
             }

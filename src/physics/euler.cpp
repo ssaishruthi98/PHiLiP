@@ -1168,7 +1168,7 @@ void Euler<dim,nstate,real>
 
     const real mach_int = compute_mach_number(soln_int);
     if (mach_int > 1.0) {
-        std::cout << "is it supersonic?" << std::endl;
+        //std::cout << "is it supersonic?" << std::endl;
         // Supersonic, simply extrapolate
         for (int istate=0; istate<nstate; ++istate) {
             soln_bc[istate] = soln_int[istate];
