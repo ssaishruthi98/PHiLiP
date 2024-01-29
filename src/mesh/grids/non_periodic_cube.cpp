@@ -12,16 +12,31 @@ void non_periodic_cube(
     double              domain_left,
     double              domain_right,
     bool                colorize,
-    const int           left_boundary_id) 
+    const int           left_boundary_id,
+    const int           n_subdivisions_0,
+    const int           n_subdivisions_1) 
 {
-    dealii::Point<2> p1(0.0, 0.0), p2(1.0, 0.5);
-    std::vector<unsigned int> n_subdivisions(2);
-    n_subdivisions[0] = 600;//log2(128);
-    n_subdivisions[1] = 300;//log2(64);
+    // dealii::Point<2> p1(0.0, 0.0), p2(4.0, 3.0);
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    if (dim >= 1) {
+        p1[0] = 0.0;
+        p2[0] = 1.0;
+    } 
 
-    if(dim==1)
+    if(dim == 2) {
+        p1[1] = 0.0;
+        p2[1] = 0.5;
+    }
+    std::vector<unsigned int> n_subdivisions(2);
+
+    n_subdivisions[0] = n_subdivisions_0;//log2(128);
+    n_subdivisions[1] = n_subdivisions_1;//log2(64);
+
+    
+    if (dim == 1)
         dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);
-    else if (dim==2)
+    else if (PHILIP_DIM == 2)
         dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
 
     if (left_boundary_id != 9999 && dim == 1) {
@@ -33,13 +48,23 @@ void non_periodic_cube(
         }
     }
     else {
-// Set boundary type and design type
+        // Set boundary type and design type
         for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-            for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) {
                     unsigned int current_id = cell->face(face)->boundary_id();
-                    if (current_id == 0 || current_id == 1 || current_id == 2) cell->face(face)->set_boundary_id (1001); // adiabatic no-slip wall
-                    if (current_id == 3) cell->face(face)->set_boundary_id (1006); // slip wall (reflective wall)
+                    if (current_id == 0) {
+                        cell->face(face)->set_boundary_id(1001); // x_left, Farfield
+                    }
+                    else if (current_id == 1) {
+                        cell->face(face)->set_boundary_id(1001); // x_right, Symmetry/Wall
+                    }
+                    else if (current_id == 2) {
+                        cell->face(face)->set_boundary_id(1001);
+                    }
+                    else if (current_id == 3) {
+                        cell->face(face)->set_boundary_id(1006);
+                    }
                 }
             }
         }
@@ -52,13 +77,17 @@ template void non_periodic_cube<1, dealii::Triangulation<1>>(
     double                      domain_left,
     double                      domain_right,
     bool                        colorize,
-    const int                   left_boundary_id);
+    const int                   left_boundary_id,
+    const int                   n_subdivisions_0,
+    const int                   n_subdivisions_1);
 #else
 template void non_periodic_cube<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     double                                              domain_left,
     double                                              domain_right,
     bool                                                colorize,
-    const int                                           left_boundary_id);
+    const int                                           left_boundary_id,
+    const int                                           n_subdivisions_0,
+    const int                                           n_subdivisions_1);
 #endif
 } // namespace PHiLiP::Grids
