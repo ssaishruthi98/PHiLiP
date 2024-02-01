@@ -23,7 +23,7 @@ set use_inverse_mass_on_the_fly = true
 
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
-  set min_density = 1e-10
+  set min_density = 1e-15
 end
 
 # ODE solver
@@ -31,7 +31,8 @@ subsection ODE solver
   set ode_output = verbose
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.00000001
-  set output_solution_every_x_steps = 10
+  #set output_solution_every_x_steps = 10
+  set output_solution_every_dt_time_intervals = 0.01
   set runge_kutta_method = ssprk3_ex
   set print_iteration_modulo = 1
 end
@@ -60,6 +61,6 @@ subsection flow_solver
   set unsteady_data_table_filename = daru_tenaud_shock_energy
   subsection grid
    set n_subdivisions_0 = 150
-   set n_subdivisions_1 = 75
+   set n_subdivisions_1 = 150
   end
 end

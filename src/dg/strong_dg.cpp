@@ -1744,7 +1744,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             0.0, 0.0,
             soln_interp_to_face_int, soln_boundary,
             aux_soln_state_int, grad_soln_boundary,
-            unit_phys_normal_int, penalty, true);
+            unit_phys_normal_int, penalty, true, boundary_id);
 
         for(int istate=0; istate<nstate; istate++){
             // allocate

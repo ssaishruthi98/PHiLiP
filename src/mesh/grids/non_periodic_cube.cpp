@@ -26,7 +26,7 @@ void non_periodic_cube(
 
     if(dim == 2) {
         p1[1] = 0.0;
-        p2[1] = 0.5;
+        p2[1] = 1.0;
     }
     std::vector<unsigned int> n_subdivisions(2);
 
@@ -63,7 +63,7 @@ void non_periodic_cube(
                         cell->face(face)->set_boundary_id(1001);
                     }
                     else if (current_id == 3) {
-                        cell->face(face)->set_boundary_id(1006);
+                        cell->face(face)->set_boundary_id(1001);
                     }
                 }
             }
