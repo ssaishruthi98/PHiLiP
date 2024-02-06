@@ -18,12 +18,12 @@ set flux_nodes_type = GLL
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cPlus
+set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
-  set min_density = 1e-15
+  set min_density = 1e-13
 end
 
 # ODE solver
@@ -53,14 +53,14 @@ end
 
 subsection flow_solver
   set flow_case_type = daru_tenaud
-  set poly_degree = 3
+  set poly_degree = 2
   set final_time = 1
   #set constant_time_step = 0.0001
   set courant_friedrichs_lewy_number = 0.01
   set adaptive_time_step = true
   set unsteady_data_table_filename = daru_tenaud_shock_energy
   subsection grid
-   set n_subdivisions_0 = 150
-   set n_subdivisions_1 = 150
+   set n_subdivisions_0 = 100
+   set n_subdivisions_1 = 100
   end
 end
