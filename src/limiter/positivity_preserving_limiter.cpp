@@ -223,9 +223,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         std::array<std::vector<real>, nstate> soln_dofs;
 
         const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
-        std::array<real, nstate> local_min;
+        real local_min_density = 1e9;
         for (unsigned int istate = 0; istate < nstate; ++istate) {
-            local_min[istate] = 1e9;
             soln_dofs[istate].resize(n_shape_fns);
         }
 
@@ -235,8 +234,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
             soln_dofs[istate][ishape] = solution[current_dofs_indices[idof]]; //
 
-            if (soln_dofs[istate][ishape] < local_min[istate])
-                local_min[istate] = soln_dofs[istate][ishape];
+            // if (soln_dofs[istate][ishape] < local_min_density)
+            //     local_min_density = soln_dofs[istate][ishape];
         }
 
         const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
@@ -248,6 +247,11 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             soln_at_q[istate].resize(n_quad_pts);
             soln_basis.matrix_vector_mult_1D(soln_dofs[istate], soln_at_q[istate],
                 soln_basis.oneD_vol_operator);
+        }
+
+        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            if (soln_at_q[0][iquad] < local_min_density)
+                local_min_density = soln_at_q[0][iquad];
         }
 
         // Obtain solution cell average
@@ -262,7 +266,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         }
         
         // Obtain value used to linearly scale density
-        real theta = get_density_scaling_value(soln_cell_avg[0], local_min[0], pos_eps, p_avg);
+        real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, pos_eps, p_avg);
 
         // Apply limiter on density values at quadrature points
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
