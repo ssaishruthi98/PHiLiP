@@ -546,12 +546,12 @@ public:
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
 
-    local_Flux_Reconstruction_operator(
-        const int nstate_input,
-        const unsigned int max_degree_input,
-        const unsigned int grid_degree_input,
-        const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
-        double FR_param);
+    // local_Flux_Reconstruction_operator(
+    //     const int nstate_input,
+    //     const unsigned int max_degree_input,
+    //     const unsigned int grid_degree_input,
+    //     const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+    //     double FR_param);
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -797,12 +797,12 @@ public:
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
 
     ///Constructor.
-    FR_mass_inv(
-        const int nstate_input,
-        const unsigned int max_degree_input,
-        const unsigned int grid_degree_input,
-        const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
-        double FR_param);
+    // FR_mass_inv(
+    //     const int nstate_input,
+    //     const unsigned int max_degree_input,
+    //     const unsigned int grid_degree_input,
+    //     const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+    //     double FR_param);
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -810,8 +810,8 @@ public:
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
 
-    ///Flux reconstruction paramater value.
-    double FR_param;
+    // ///Flux reconstruction paramater value.
+    // double FR_param;
 
     ///Assembles the one dimensional operator.
     void build_1D_volume_operator(
