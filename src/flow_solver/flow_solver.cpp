@@ -548,7 +548,8 @@ int FlowSolver<dim,nstate>::run() const
                                              ((ode_solver->current_time + next_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
                 if (is_output_time) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
-                    const int file_number = ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
+                    const double file_number = round(ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals);
+                    std::cout << ode_solver->current_time << "   " << ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals << "  " << is_output_time << "  " << file_number << std::endl;
                     dg->output_results_vtk(file_number,ode_solver->current_time);
                     ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
                 }
