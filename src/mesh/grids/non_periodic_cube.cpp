@@ -26,11 +26,13 @@ void non_periodic_cube(
 
     if(dim == 2) {
         p1[1] = 0.0;
-        p2[1] = 1.0;
+        p2[1] = 3.0;
     }
     std::vector<unsigned int> n_subdivisions(2);
+
     n_subdivisions[0] = n_subdivisions_0;//log2(128);
     n_subdivisions[1] = n_subdivisions_1;//log2(64);
+
     
     if (dim == 1)
         dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, colorize);

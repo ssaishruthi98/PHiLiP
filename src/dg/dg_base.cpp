@@ -2457,6 +2457,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
+
     OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, init_grid_degree, init_grid_degree);
      
     OPERATOR::FR_mass_inv_aux<dim,2*dim, real> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
