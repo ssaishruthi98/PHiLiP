@@ -1419,7 +1419,6 @@ local_Flux_Reconstruction_operator<dim,n_faces,real>::local_Flux_Reconstruction_
     get_FR_correction_parameter(this->max_degree, FR_param);
 }
 
-
 template <int dim, int n_faces, typename real>  
 void local_Flux_Reconstruction_operator<dim,n_faces,real>::get_Huynh_g2_parameter (
     const unsigned int curr_cell_degree,
@@ -1510,7 +1509,7 @@ void local_Flux_Reconstruction_operator<dim,n_faces,real>::get_FR_correction_par
         c = 10000.0;
     }
     else if(FR_param_type == FR_enum::cPlus){ 
-        get_c_plus_parameter(curr_cell_degree, c);
+        get_c_plus_parameter(curr_cell_degree, c); 
     }
 }
 template <int dim, int n_faces, typename real>  
@@ -1836,8 +1835,8 @@ FR_mass_inv<dim,n_faces,real>::FR_mass_inv(
     current_degree      = max_degree_input;
 }
 
-template <int dim, int n_faces>  
-void FR_mass_inv<dim,n_faces>::build_1D_volume_operator(
+template <int dim, int n_faces, typename real>  
+void FR_mass_inv<dim,n_faces,real>::build_1D_volume_operator(
     const dealii::FESystem<1,1> &finite_element,
     const dealii::Quadrature<1> &quadrature)
 {
@@ -1845,7 +1844,6 @@ void FR_mass_inv<dim,n_faces>::build_1D_volume_operator(
     local_mass<dim,n_faces,real> local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
     local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
     local_Flux_Reconstruction_operator<dim,n_faces,real> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
-
     local_FR_oper.build_1D_volume_operator(finite_element, quadrature);
     dealii::FullMatrix<double> FR_mass_matrix(n_dofs);
     FR_mass_matrix.add(1.0, local_Mass_Matrix.oneD_vol_operator, 1.0, local_FR_oper.oneD_vol_operator);

@@ -17,12 +17,12 @@ NonPeriodicCubeFlow<dim, nstate>::NonPeriodicCubeFlow(const PHiLiP::Parameters::
 }
 
 template <int dim, int nstate>
-std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim, nstate>::generate_grid() const
+std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() const
 {
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-#if PHILIP_DIM!=1
-        this->mpi_communicator
-#endif
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
+    #if PHILIP_DIM!=1
+                this->mpi_communicator
+    #endif
         );
 
     bool use_number_mesh_refinements = false;
@@ -61,7 +61,7 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim, nstate>::generate_grid()
 }
 
 template <int dim, int nstate>
-void NonPeriodicCubeFlow<dim, nstate>::display_additional_flow_case_specific_parameters() const
+void NonPeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
     this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
 }
@@ -143,6 +143,7 @@ void NonPeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 {
     this->check_positivity_density(*dg);
     if (this->mpi_rank == 0) {
+
         unsteady_data_table->add_value("iteration", current_iteration);
         // Add values to data table
         this->add_value_to_data_table(current_time, "time", unsteady_data_table);

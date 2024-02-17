@@ -2459,14 +2459,14 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, init_grid_degree, init_grid_degree);
      
-    OPERATOR::FR_mass_inv_aux<dim,2*dim> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
-    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
-    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
-    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_cPlus(1, max_degree, init_grid_degree, FR_enum::cPlus);
-    OPERATOR::FR_mass_inv<dim, 2 * dim> mass_inv_c10Thousand(1, max_degree, init_grid_degree, FR_enum::c10Thousand);
+    OPERATOR::FR_mass_inv_aux<dim,2*dim, real> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
+    OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv(1, max_degree, init_grid_degree, FR_Type);
+    OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
+    OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cPlus(1, max_degree, init_grid_degree, FR_enum::cPlus);
+    OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_c10Thousand(1, max_degree, init_grid_degree, FR_enum::c10Thousand);
     
-    OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
-    OPERATOR::vol_projection_operator_FR_aux<dim,2*dim> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
+    OPERATOR::vol_projection_operator_FR<dim,2*dim, real> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
+    OPERATOR::vol_projection_operator_FR_aux<dim,2*dim, real> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
      
     mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[max_degree]);
      
