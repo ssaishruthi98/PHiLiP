@@ -64,6 +64,13 @@ protected:
         const unsigned int                              n_quad_pts,
         const double                                    p_avg);
 
+    /// Obtain the theta value used to scale all the states using 37b in Zhang 2016
+    real get_theta2_Zhang2016(
+        const std::array<std::vector<real>, nstate>& soln_at_q,
+        const unsigned int                              n_quad_pts,
+        const double                                    p_avg,
+        const double                                    lower_bound);
+
     /// Obtain the value used to scale density and enforce positivity of density
     /// Using 3.15 from Zhang, Shu 2010
     real get_density_scaling_value(

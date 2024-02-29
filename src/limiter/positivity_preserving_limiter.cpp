@@ -134,6 +134,39 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
 }
 
 template <int dim, int nstate, typename real>
+real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Zhang2016(
+    const std::array<std::vector<real>, nstate>& soln_at_q,
+    const unsigned int                              n_quad_pts,
+    const double                                    p_avg,
+    const double                                    lower_bound)
+{
+    real theta2 = 1.0; // Value used to linearly scale state variables
+    real gamm1 = euler_physics->gamm1;
+    std::array<real, nstate> soln_at_iquad;
+    double internalEnergy_avg = p_avg / gamm1;
+    double internalEnergy_min = 1.0e6;
+
+    // Obtain theta2 value
+    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        for (unsigned int istate = 0; istate < nstate; ++istate) {
+            soln_at_iquad[istate] = soln_at_q[istate][iquad];
+        }
+        real p_lim = 0;
+
+        if (nstate == dim + 2)
+            p_lim = euler_physics->compute_pressure(soln_at_iquad);
+        
+        double internalEnergy_lim = p_lim / gamm1;
+
+        if (internalEnergy_lim < internalEnergy_min)
+            internalEnergy_min = internalEnergy_lim;
+    }
+
+    theta2 = std::min(1.0,(internalEnergy_avg - lower_bound) / (internalEnergy_avg - internalEnergy_min));
+    return theta2;
+}
+
+template <int dim, int nstate, typename real>
 real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
     const double    density_avg,
     const double    density_min,
@@ -307,6 +340,18 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         else if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + 2) {
             real theta2 = get_theta2_Wang2012(soln_at_q, n_quad_pts, p_avg); // Value used to linearly scale state variables 
+
+            // Limit values at quadrature points
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                    soln_at_q[istate][iquad] = theta2 * (soln_at_q[istate][iquad] - soln_cell_avg[istate])
+                        + soln_cell_avg[istate];
+                }
+            }
+        }
+
+        else if (limiter_type == limiter_enum::positivity_preservingZhang2016 && nstate == dim + 2) {
+            real theta2 = get_theta2_Zhang2016(soln_at_q, n_quad_pts, p_avg, lower_bound); // Value used to linearly scale state variables 
 
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {
