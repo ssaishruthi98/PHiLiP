@@ -224,6 +224,9 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
         this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
 
+    if (dim == 2) {
+        limit_2D(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
+    }
     //create 1D solution polynomial basis functions and corresponding projection operator
     //to interpolate the solution to the quadrature nodes, and to project it back to the
     //modal coefficients.
@@ -369,6 +372,111 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
+    }
+}
+
+template <int dim, int nstate, typename real>
+void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
+    dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+    const dealii::DoFHandler<dim>&                          dof_handler,
+    const dealii::hp::FECollection<dim>&                    fe_collection,
+    const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+    const unsigned int                                      grid_degree,
+    const unsigned int                                      max_degree,
+    const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+    const dealii::hp::QCollection<1>                        oneD_quadrature_collection)
+{
+    // If use_tvb_limiter is true, apply TVB limiter before applying positivity-preserving limiter
+    if (this->all_parameters->limiter_param.use_tvb_limiter == true)
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
+
+    //create 1D solution polynomial basis functions and corresponding projection operator
+    //to interpolate the solution to the quadrature nodes, and to project it back to the
+    //modal coefficients.
+    const unsigned int init_grid_degree = grid_degree;
+
+    // Constructor for the operators
+    OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis(1, max_degree, init_grid_degree);
+    OPERATOR::vol_projection_operator<dim, 2 * dim, real> soln_basis_projection_oper(1, max_degree, init_grid_degree);
+
+    // Build the oneD operator to perform interpolation/projection
+    soln_basis.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+    soln_basis_projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+
+    dealii::QGauss<1> quad_GL(max_degree+1);
+    dealii::QGaussLobatto<1> quad_GLL(max_degree+1);
+
+    std::vector< dealii::Point< 1 > > quad_GL_pts = quad_GL.get_points();
+    std::vector< dealii::Point< 1 > > quad_GLL_pts = quad_GLL.get_points();
+    std::vector< double > quad_GL_weights = quad_GL.get_weights();
+    std::vector< double > quad_GLL_weights = quad_GLL.get_weights();
+
+    for(unsigned int i = 0; i < max_degree+1; i++) {
+        std::cout << quad_GL_pts[i] << "   " << quad_GLL_pts[i] << "   ";
+    }
+    std::cout << std::endl;
+
+    for(unsigned int i = 0; i < max_degree+1; i++) {
+        std::cout << quad_GL_weights[i] << "   " << quad_GLL_weights[i] << "   ";
+    }
+    std::cout << std::endl;
+
+    for (auto soln_cell : dof_handler.active_cell_iterators()) {
+        if (!soln_cell->is_locally_owned()) continue;
+
+        std::vector<dealii::types::global_dof_index> current_dofs_indices;
+        // Current reference element related to this physical cell
+        const int i_fele = soln_cell->active_fe_index();
+        const dealii::FESystem<dim, dim>& current_fe_ref = fe_collection[i_fele];
+        const int poly_degree = current_fe_ref.tensor_degree();
+
+        const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
+
+        // Obtain the mapping from local dof indices to global dof indices
+        current_dofs_indices.resize(n_dofs_curr_cell);
+        soln_cell->get_dof_indices(current_dofs_indices);
+
+        // Extract the local solution dofs in the cell from the global solution dofs
+        std::array<std::vector<real>, nstate> soln_coeff;
+
+        const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
+        real local_min_density = 1e6;
+
+        for (unsigned int istate = 0; istate < nstate; ++istate) {
+            soln_coeff[istate].resize(n_shape_fns);
+        }
+
+        // Allocate solution dofs and set local min
+        for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
+            const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
+            soln_coeff[istate][ishape] = solution[current_dofs_indices[idof]]; //
+
+            // if (istate == 0 && soln_coeff[istate][ishape] < local_min_density)
+            //     local_min_density = soln_coeff[istate][ishape];
+        }
+
+        const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
+        const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
+        std::array<std::vector<real>, nstate> soln_at_q;
+
+        // Interpolate solution dofs to quadrature pts.
+        for (int istate = 0; istate < nstate; istate++) {
+            soln_at_q[istate].resize(n_quad_pts);
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                soln_basis.oneD_vol_operator);
+        }
+
+        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            if (soln_at_q[0][iquad] < local_min_density)
+                local_min_density = soln_at_q[0][iquad];
+        }
+        // Obtain solution cell average
+        std::array<real, nstate> soln_cell_avg = get_soln_cell_avg(soln_at_q, n_quad_pts, quad_weights);
+
+        real lower_bound = this->all_parameters->limiter_param.min_density;
+
+        std::cout << soln_cell_avg[0] << "   " << lower_bound << std::endl;
     }
 }
 
