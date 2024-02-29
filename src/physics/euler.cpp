@@ -156,7 +156,8 @@ bool Euler<dim,nstate,real>::check_positive_quantity(real2 &qty, const std::stri
     bool qty_is_positive;
 
     if (this->all_parameters->limiter_param.bound_preserving_limiter != limiter_enum::positivity_preservingZhang2010
-        && this->all_parameters->limiter_param.bound_preserving_limiter != limiter_enum::positivity_preservingWang2012) {
+        && this->all_parameters->limiter_param.bound_preserving_limiter != limiter_enum::positivity_preservingWang2012
+        && this->all_parameters->limiter_param.bound_preserving_limiter != limiter_enum::positivity_preservingZhang2016) {
         if (qty < 0.0) {
             // Refer to base class for non-physical results handling
             qty = this->template handle_non_physical_result<real2>(qty_name + " is negative.");

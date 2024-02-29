@@ -129,7 +129,6 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
             }
         }
     }
-
     return theta2;
 }
 
@@ -162,7 +161,8 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Zhang2016(
             internalEnergy_min = internalEnergy_lim;
     }
 
-    theta2 = std::min(1.0,(internalEnergy_avg - lower_bound) / (internalEnergy_avg - internalEnergy_min));
+    theta2 = (internalEnergy_avg - internalEnergy_min < 0 + lower_bound) ? 1.0 : std::min(1.0,(internalEnergy_avg - lower_bound) / (internalEnergy_avg - internalEnergy_min));
+    //std::cout << internalEnergy_avg << "   " << lower_bound << "   " << internalEnergy_min << "   " << theta2 << "   " << std::endl;
     return theta2;
 }
 
