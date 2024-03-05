@@ -360,16 +360,28 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
     roe_avg_var[0] = avg_roe_var[0] * log_mean_roe_var[nstate-1];
     real roe_avg_vel_sqr = 0.0;
     real roe_avg_vel_dot_n = 0.0;
+    real vel_dot_n_L = 0.0;
+    real vel_dot_n_R = 0.0;
+    real vel_sqr_L = 0.0;
+    real vel_sqr_R = 0.0;
     for(int idim=0; idim<dim; idim++){
         roe_avg_var[idim+1] = avg_roe_var[idim+1] / avg_roe_var[0];
         roe_avg_vel_sqr += roe_avg_var[idim+1] * roe_avg_var[idim+1];
         roe_avg_vel_dot_n += roe_avg_var[idim+1] * normal_int[idim];
+        vel_dot_n_L += primitive_soln_int[idim+1] * normal_int[idim];
+        vel_dot_n_R += primitive_soln_ext[idim+1] * normal_int[idim];
+        vel_sqr_L += primitive_soln_int[idim+1] * primitive_soln_int[idim+1];
+        vel_sqr_R += primitive_soln_ext[idim+1] * primitive_soln_ext[idim+1];
     }
     real p1 = avg_roe_var[nstate-1] / avg_roe_var[0];
     real p2 = (euler_physics->gam +1.0)/(euler_physics->gam*2.0) * log_mean_roe_var[nstate-1] / log_mean_roe_var[0] 
             + (euler_physics->gamm1)/(euler_physics->gam * 2.0) * p1;
     real a = sqrt(euler_physics->gam * p2 / roe_avg_var[0]);
     roe_avg_var[nstate-1] = a * a / euler_physics->gamm1 + 0.5 * roe_avg_vel_sqr;
+    const real specific_enthalpy_L = euler_physics->compute_specific_enthalpy(soln_int, primitive_soln_int[nstate-1]);
+    const real specific_enthalpy_R = euler_physics->compute_specific_enthalpy(soln_ext, primitive_soln_ext[nstate-1]);
+    const real a_L = sqrt(euler_physics->gamm1 * (specific_enthalpy_L - 0.5 * vel_sqr_L));
+    const real a_R = sqrt(euler_physics->gamm1 * (specific_enthalpy_R - 0.5 * vel_sqr_R));
 
     //build eigenvector matrices
     //first column
@@ -410,8 +422,8 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
         eigenvalues[0] = abs(roe_avg_vel_dot_n - a);
         eigenvalues[nstate-1] = abs(roe_avg_vel_dot_n + a);
 
-        eigenvalues[0] += 1.0/6.0 * abs(roe_avg_vel_dot_n - a);
-        eigenvalues[nstate-1] += 1.0/6.0 * abs(roe_avg_vel_dot_n + a);
+        eigenvalues[0] += 1.0/6.0 * abs((vel_dot_n_R - a_R) - (vel_dot_n_L - a_L));
+        eigenvalues[nstate-1] += 1.0/6.0 * abs((vel_dot_n_R + a_R) - (vel_dot_n_L + a_L));
 
         for(int jdim=0; jdim<dim; jdim++){
             eigenvalues[jdim+1] = abs(roe_avg_vel_dot_n);
@@ -421,7 +433,7 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
     eigenvalue_scale[0] = roe_avg_var[0] / (2.0*euler_physics->gam);
     eigenvalue_scale[1] = euler_physics->gamm1 * roe_avg_var[0] / euler_physics->gam;
     eigenvalue_scale[nstate-1] = roe_avg_var[0] / (2.0*euler_physics->gam);
-    for(int idim=1; idim<dim; idim++){
+    for(int idim=1; idim<dim; idim++){//only makes difference 2D and 3D
         eigenvalue_scale[idim+1] = p1;
     }
 
@@ -446,9 +458,9 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
         dissipation[istate] = 0.0;
         for(int jstate=0; jstate<nstate; jstate++){
             dissipation[istate] -= 0.5 * dissipation_matrix[istate][jstate]
-                                 * (entropy_var_ext[jstate] - entropy_var_int[jstate])
-                                 * euler_physics->gamm1;
-                               //  * (entropy_var_ext[jstate] - entropy_var_int[jstate]);
+                              //   * (entropy_var_ext[jstate] - entropy_var_int[jstate])
+                              //   * euler_physics->gamm1;
+                                 * (entropy_var_ext[jstate] - entropy_var_int[jstate]);
         }                       
     }
 
