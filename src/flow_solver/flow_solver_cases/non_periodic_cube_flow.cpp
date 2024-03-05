@@ -26,30 +26,36 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
         );
 
     bool use_number_mesh_refinements = false;
-    if(this->all_param.flow_solver_param.number_of_mesh_refinements>0)
+    if (this->all_param.flow_solver_param.number_of_mesh_refinements > 0)
         use_number_mesh_refinements = true;
-    
-    const unsigned int number_of_refinements = use_number_mesh_refinements ? this->all_param.flow_solver_param.number_of_mesh_refinements 
-                                                                           : log2(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension);
+
+    const unsigned int number_of_refinements = use_number_mesh_refinements ? this->all_param.flow_solver_param.number_of_mesh_refinements
+        : log2(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension);
 
     const double domain_left = this->all_param.flow_solver_param.grid_left_bound;
     const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
     const bool colorize = true;
-    
+
+    const int n_subdivisions_0 = this->all_param.flow_solver_param.number_of_grid_elements_x;
+    const int n_subdivisions_1 = this->all_param.flow_solver_param.number_of_grid_elements_y;
+
     int left_boundary_id = 9999;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
 
     if (flow_case_type == flow_case_enum::sod_shock_tube
-        || flow_case_type == flow_case_enum::leblanc_shock_tube) {
+        || flow_case_type == flow_case_enum::leblanc_shock_tube
+        || flow_case_type == flow_case_enum::double_mach_reflection) {
         left_boundary_id = 1001;
-    } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
+    }
+    else if (flow_case_type == flow_case_enum::shu_osher_problem) {
         left_boundary_id = 1004;
     }
 
 
-    Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id);
-    grid->refine_global(number_of_refinements);
+    Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id, n_subdivisions_0, n_subdivisions_1);
+    if (dim == 1)
+        grid->refine_global(number_of_refinements);
 
     return grid;
 }
@@ -120,7 +126,7 @@ void NonPeriodicCubeFlow<dim, nstate>::check_positivity_density(DGBase<dim, doub
 
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
             // Verify that positivity of density is preserved
-            if (soln_at_q[0][iquad] < 0 || (isnan(soln_at_q[0][iquad])) ) {
+            if (soln_at_q[0][iquad] < -1e-13 || (isnan(soln_at_q[0][iquad])) ) {
                 std::cout << "Error: Density is negative or NaN - Aborting... " << std::endl << std::flush;
                 std::abort();
             }
@@ -160,6 +166,7 @@ void NonPeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
 #if PHILIP_DIM==2
     template class NonPeriodicCubeFlow<PHILIP_DIM, 1>;
+    template class NonPeriodicCubeFlow<PHILIP_DIM, PHILIP_DIM+2>;
 #else
     template class NonPeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #endif

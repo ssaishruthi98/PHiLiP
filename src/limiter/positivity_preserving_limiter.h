@@ -47,7 +47,8 @@ public:
         const unsigned int                                      grid_degree,
         const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection);
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
+        double                                                  dt);
 
     void limit_2D(
         dealii::LinearAlgebra::distributed::Vector<double>&     solution,
@@ -57,7 +58,8 @@ public:
         const unsigned int                                      grid_degree,
         const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection);
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
+        double                                                  dt);
 protected:
     /// Obtain the theta value used to scale all the states using 3.16-3.18 in Zhang, Shu 2010
     std::vector<real> get_theta2_Zhang2010(
@@ -97,6 +99,16 @@ protected:
         const unsigned int                                      n_shape_fns,
         const std::vector<dealii::types::global_dof_index>&     current_dofs_indices);
 
+    std::array<real, nstate> get_soln_cell_avg_2D(
+        const std::array<std::vector<real>, nstate>&        soln_at_q_1,
+        const std::array<std::vector<real>, nstate>&        soln_at_q_2,
+        const unsigned int                                  n_quad_pts,
+        const std::vector<real>&                            quad_weights_1,
+        const std::vector<real>&                            quad_weights_2,
+        double                                              dt);
+
+    real dx;
+    real dy;
 }; // End of PositivityPreservingLimiter Class
 } // PHiLiP namespace
 

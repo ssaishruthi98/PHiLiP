@@ -38,7 +38,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
-                          " burgers_limiter "),
+                          " burgers_limiter | "
+                          " double_mach_reflection "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -59,7 +60,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
-                          " burgers_limiter >. ");
+                          " burgers_limiter | "
+                          " double_mach_reflection >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -145,9 +147,25 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Right bound of domain for hyper_cube mesh based cases.");
 
+            prm.declare_entry("grid_top_bound", "0.0",
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                              "Left bound of domain for hyper_cube mesh based cases.");
+
+            prm.declare_entry("grid_bottom_bound", "1.0",
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                              "Right bound of domain for hyper_cube mesh based cases.");
+
             prm.declare_entry("number_of_grid_elements_per_dimension", "4",
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                               "Number of grid elements per dimension for hyper_cube mesh based cases.");
+
+            prm.declare_entry("number_of_grid_elements_x", "4",
+                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                              "Number of grid elements in the x-direction for 2D positivity-preserving limiter cases.");
+
+            prm.declare_entry("number_of_grid_elements_y", "4",
+                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                              "Number of grid elements in the y-direction for 2D positivity-preserving limiter cases.");
 
             prm.declare_entry("number_of_mesh_refinements", "0",
                               dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -340,6 +358,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
         else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
         else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
+        else if (flow_case_type_string == "double_mach_reflection")     {flow_case_type = double_mach_reflection;}
         
         poly_degree = prm.get_integer("poly_degree");
         
@@ -376,7 +395,11 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             grid_degree = prm.get_integer("grid_degree");
             grid_left_bound = prm.get_double("grid_left_bound");
             grid_right_bound = prm.get_double("grid_right_bound");
+            grid_top_bound = prm.get_double("grid_top_bound");
+            grid_bottom_bound = prm.get_double("grid_bottom_bound");
             number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
+            number_of_grid_elements_x = prm.get_integer("number_of_grid_elements_x");
+            number_of_grid_elements_y = prm.get_integer("number_of_grid_elements_y");
             number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
             use_gmsh_mesh = prm.get_bool("use_gmsh_mesh");
             mesh_reader_verbose_output = prm.get_bool("mesh_reader_verbose_output");

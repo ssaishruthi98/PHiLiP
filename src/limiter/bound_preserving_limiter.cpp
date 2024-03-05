@@ -31,14 +31,11 @@ std::array<real, nstate> BoundPreservingLimiterState<dim, nstate, real>::get_sol
     // Apply integral for solution cell average (dealii quadrature operates from [0,1])
     for (unsigned int istate = 0; istate < nstate; ++istate) {
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-            std::cout << quad_weights[iquad] << "   ";
             soln_cell_avg[istate] += quad_weights[iquad]
                 * soln_at_q[istate][iquad];
         }
-        std::cout << std::endl;
     }
-    std::abort();
-
+    
     return soln_cell_avg;
 }
 
