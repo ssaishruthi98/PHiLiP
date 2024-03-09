@@ -34,6 +34,8 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
 
     const double domain_left = this->all_param.flow_solver_param.grid_left_bound;
     const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
+    const double domain_bottom = this->all_param.flow_solver_param.grid_bottom_bound;
+    const double domain_top = this->all_param.flow_solver_param.grid_top_bound;
     const bool colorize = true;
 
     const int n_subdivisions_0 = this->all_param.flow_solver_param.number_of_grid_elements_x;
@@ -48,12 +50,13 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
         || flow_case_type == flow_case_enum::double_mach_reflection) {
         left_boundary_id = 1001;
     }
-    else if (flow_case_type == flow_case_enum::shu_osher_problem) {
+    else if (flow_case_type == flow_case_enum::shu_osher_problem
+        || flow_case_type == flow_case_enum::sedov_blast_wave) {
         left_boundary_id = 1004;
     }
 
 
-    Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id, n_subdivisions_0, n_subdivisions_1);
+    Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, domain_bottom, domain_top, colorize, left_boundary_id, n_subdivisions_0, n_subdivisions_1);
     if (dim == 1)
         grid->refine_global(number_of_refinements);
 

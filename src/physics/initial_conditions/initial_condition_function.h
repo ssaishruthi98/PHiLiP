@@ -438,10 +438,31 @@ protected:
     real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
 
 public:
-    /// Constructor for InitialConditionFunction_SodShockTube
+    /// Constructor for InitialConditionFunction_DoubleMachReflection
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_DoubleMachReflection(
         Parameters::AllParameters const* const param);
+};
+
+/// Initial Condition Function: 2D Sedov Blast Wave
+/** INCLUDE REFERENCE LATER
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_SedovBlastWave
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_SedovBlastWave(
+        Parameters::AllParameters const* const param);
+
+    int n_subdivisions;
+    double h, r_0;
+
 };
 
 /// Initial condition 0.

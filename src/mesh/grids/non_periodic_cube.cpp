@@ -11,6 +11,8 @@ void non_periodic_cube(
     TriangulationType&  grid,
     double              domain_left,
     double              domain_right,
+    double              domain_bottom,
+    double              domain_top,
     bool                colorize,
     const int           left_boundary_id,
     const int           n_subdivisions_0,
@@ -20,13 +22,13 @@ void non_periodic_cube(
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
     if (dim >= 1) {
-        p1[0] = 0.0;
-        p2[0] = 4.0;
+        p1[0] = domain_left;
+        p2[0] = domain_right;
     } 
 
     if(dim == 2) {
-        p1[1] = 0.0;
-        p2[1] = 3.0;
+        p1[1] = domain_bottom;
+        p2[1] = domain_top;
     }
     std::vector<unsigned int> n_subdivisions(2);
 
@@ -45,6 +47,16 @@ void non_periodic_cube(
             cell->set_material_id(9002);
             if (cell->face(0)->at_boundary()) cell->face(0)->set_boundary_id(left_boundary_id);
             if (cell->face(1)->at_boundary()) cell->face(1)->set_boundary_id(1001);
+        }
+    }
+    else if (left_boundary_id == 1004) {
+        // Set boundary type and design type
+        for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+            for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+                if (cell->face(face)->at_boundary()) {
+                    cell->face(face)->set_boundary_id(1001);
+                }
+            }
         }
     }
     else {
@@ -85,6 +97,8 @@ template void non_periodic_cube<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
     double                      domain_left,
     double                      domain_right,
+    double                      domain_bottom,
+    double                      domain_top,
     bool                        colorize,
     const int                   left_boundary_id,
     const int                   n_subdivisions_0,
@@ -92,11 +106,13 @@ template void non_periodic_cube<1, dealii::Triangulation<1>>(
 #else
 template void non_periodic_cube<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
-    double                                              domain_left,
-    double                                              domain_right,
-    bool                                                colorize,
-    const int                                           left_boundary_id,
-    const int                                           n_subdivisions_0,
-    const int                                           n_subdivisions_1);
+    double                      domain_left,
+    double                      domain_right,
+    double                      domain_bottom,
+    double                      domain_top,
+    bool                        colorize,
+    const int                   left_boundary_id,
+    const int                   n_subdivisions_0,
+    const int                   n_subdivisions_1);
 #endif
 } // namespace PHiLiP::Grids

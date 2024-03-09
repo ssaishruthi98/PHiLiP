@@ -14,6 +14,8 @@ void non_periodic_cube(
     TriangulationType&  grid,
     double              domain_left,
     double              domain_right,
+    double              domain_bottom,
+    double              domain_top,
     bool                colorize,
     const int           left_boundary_id,
     const int           n_subdivisions_0,

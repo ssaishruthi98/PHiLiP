@@ -607,6 +607,72 @@ real InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
     }
     return value;
 }
+
+// ========================================================
+// Sedov Blast Wave (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_SedovBlastWave<dim, nstate, real>
+::InitialConditionFunction_SedovBlastWave(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    , n_subdivisions(param->flow_solver_param.number_of_grid_elements_x)
+{
+    this->h = 3.0/n_subdivisions;
+    this->r_0 = 4.0*this->h;
+}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        real r = sqrt(pow(x,2.0)+pow(y,2.0));
+
+        if (r < this->r_0) {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = (0.4*1.0)/(dealii::numbers::PI*pow(this->r_0,2.0));
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1e-5;
+            }
+        }
+    }
+    return value;
+}
+
 // ========================================================
 // 1D Leblanc Shock tube -- Initial Condition
 // See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
@@ -794,6 +860,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DoubleMachReflection<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::sedov_blast_wave) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SedovBlastWave<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
