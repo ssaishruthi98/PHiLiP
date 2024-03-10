@@ -448,11 +448,10 @@ public:
 /** INCLUDE REFERENCE LATER
 */
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction_EulerBase<dim, nstate, real>
+class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction<dim, nstate, real>
 {
 protected:
-    /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
 
 public:
     /// Constructor for InitialConditionFunction_SedovBlastWave
@@ -460,8 +459,12 @@ public:
     explicit InitialConditionFunction_SedovBlastWave(
         Parameters::AllParameters const* const param);
 
+
+    /// Value of initial condition
+    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
     int n_subdivisions;
-    double h, r_0;
+    double h;
 
 };
 

@@ -3,6 +3,13 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 # =======================================
 # 1D Sod Shock Tube test
 # =======================================
+configure_file(1D_sedov_blast_wave.prm 1D_sedov_blast_wave.prm COPYONLY)
+add_test(
+  NAME 1D_SEDOV_BLAST_WAVE
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1D_sedov_blast_wave.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 configure_file(2D_sedov_blast_wave.prm 2D_sedov_blast_wave.prm COPYONLY)
 add_test(
   NAME 2D_SEDOV_BLAST_WAVE
