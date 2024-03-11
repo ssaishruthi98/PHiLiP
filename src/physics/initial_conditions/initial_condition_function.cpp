@@ -619,7 +619,7 @@ InitialConditionFunction_SedovBlastWave<dim, nstate, real>
     : n_subdivisions(param->flow_solver_param.number_of_grid_elements_x)
 {
     if(dim==1)
-        this->h = 4/n_subdivisions;
+        this->h = 4.0/n_subdivisions;
     else
         this->h = 1.1/n_subdivisions;
 }
@@ -630,26 +630,6 @@ real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
 ::value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim == 1 && nstate == (dim + 2)) {
-        const real x = point[0];
-
-        if (istate == 0) {
-            // density
-            value = 1.0;
-        }
-        else if (istate == 1) {
-            // x-velocity
-            value = 0.0;
-        }
-        else if (istate == 2) {
-            // energy
-            if(abs(x) < this->h/2.0)
-                value = 3200000.0/this->h;
-            else
-                value = 1e-12;
-        }
-
-    }
     if constexpr (dim == 2 && nstate == (dim + 2)) {
         const real x = point[0];
         const real y = point[1];
@@ -866,7 +846,6 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DoubleMachReflection<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::sedov_blast_wave) {
-        if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SedovBlastWave<dim, nstate, real> >(param);
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SedovBlastWave<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();

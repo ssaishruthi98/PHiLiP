@@ -49,7 +49,7 @@ void non_periodic_cube(
             if (cell->face(1)->at_boundary()) cell->face(1)->set_boundary_id(1001);
         }
     }
-    else if (left_boundary_id == 1004) {
+    else if (left_boundary_id == 1001) {
         // Set boundary type and design type
         for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
             for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
