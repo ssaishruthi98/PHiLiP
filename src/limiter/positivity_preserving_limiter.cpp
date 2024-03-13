@@ -399,9 +399,6 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
     std::array<real, nstate> soln_cell_avg_xGL = get_soln_cell_avg(soln_at_q_1, n_quad_pts, quad_weights_1);
     std::array<real, nstate> soln_cell_avg_yGL = get_soln_cell_avg(soln_at_q_2, n_quad_pts, quad_weights_2);
 
-    // if(soln_cell_avg_xGL[0] != soln_cell_avg_yGL[0]) {
-    //     std::cout << "xGL avg:   " << soln_cell_avg_xGL[0] << "   yGL avg:   " << soln_cell_avg_yGL[0] << std::endl << std::endl;
-    // }
     for (unsigned int istate = 0; istate < nstate; ++istate) {
         soln_cell_avg[istate] = 0;
     }
@@ -429,11 +426,8 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
     real avg_weight_2 = (max_local_wave_speed_2*lambda_2)/mu;
 
     for (unsigned int istate = 0; istate < nstate; istate++) {
-        //std::cout << "xGL avg:   " << soln_cell_avg_xGL[istate] << "   yGL avg:   " << soln_cell_avg_yGL[istate] << std::endl;
         soln_cell_avg[istate] = avg_weight_1*soln_cell_avg_xGL[istate] + avg_weight_2*soln_cell_avg_yGL[istate];
-        //std::cout << soln_cell_avg[istate] << "   ";
     }
-    //std::cout << std::endl;
 
     return soln_cell_avg;
 }
@@ -543,12 +537,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
                 local_min_density = soln_at_q_xGL[0][iquad];
             if (soln_at_q_yGL[0][iquad] < local_min_density)
                 local_min_density = soln_at_q_yGL[0][iquad];
-            // std::cout << soln_at_q_xGL[0][iquad] << "   " << soln_at_q_xGL[1][iquad] << "   "
-            //           << soln_at_q_xGL[2][iquad] << "   " << soln_at_q_xGL[3][iquad] << std::endl;
-            // std::cout << soln_at_q_yGL[0][iquad] << "   " << soln_at_q_yGL[1][iquad] << "   "
-            //           << soln_at_q_yGL[2][iquad] << "   " << soln_at_q_yGL[3][iquad] << std::endl << std::endl;
         }
-        //std::cout << std::endl;
 
         std::array<real, nstate> soln_cell_avg = get_soln_cell_avg_2D(soln_at_q_xGL, soln_at_q_yGL, n_quad_pts, quad_weights_xGL, quad_weights_yGL, dt);
 
@@ -589,9 +578,59 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
         real theta2 = 0.0;
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
+
+        if (limiter_type == limiter_enum::positivity_preservingZhang2010 && nstate == dim + 2) {
+            std::vector< real > p_lim_1(n_quad_pts);
+            std::vector< real > p_lim_2(n_quad_pts);
+            std::array<real, nstate> soln_at_iquad_1;
+            std::array<real, nstate> soln_at_iquad_2;
+
+            // Compute pressure at quadrature points
+            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    soln_at_iquad_1[istate] = soln_at_q_xGL[istate][iquad];
+                    soln_at_iquad_2[istate] = soln_at_q_yGL[istate][iquad];
+                }
+                p_lim_1[iquad] = euler_physics->compute_pressure(soln_at_iquad_1);
+                p_lim_2[iquad] = euler_physics->compute_pressure(soln_at_iquad_2);
+            }
+
+            // Obtain value used to linearly scale state variables
+            std::vector<real> theta2_1 = get_theta2_Zhang2010(p_lim_1, soln_cell_avg_hat, soln_at_q_xGL, n_quad_pts, lower_bound, euler_physics->gam);
+            std::vector<real> theta2_2 = get_theta2_Zhang2010(p_lim_1, soln_cell_avg_hat, soln_at_q_xGL, n_quad_pts, lower_bound, euler_physics->gam);
+
+            // Limit values at quadrature points
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                    if (theta2_1[iquad] <= theta2_2[iquad]) {
+                        soln_coeff[istate][iquad] = theta2_1[iquad] * (soln_coeff[istate][iquad] - soln_cell_avg_hat[istate])
+                            + soln_cell_avg_hat[istate];
+                    } else {
+                        soln_coeff[istate][iquad] = theta2_2[iquad] * (soln_coeff[istate][iquad] - soln_cell_avg_hat[istate])
+                            + soln_cell_avg_hat[istate];
+                    }
+                }
+            }
+        }
+
         if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + 2) {
             real theta2_1 = get_theta2_Wang2012(soln_at_q_xGL, n_quad_pts, p_avg_hat); // Value used to linearly scale state variables 
             real theta2_2 = get_theta2_Wang2012(soln_at_q_yGL, n_quad_pts, p_avg_hat); // Value used to linearly scale state variables 
+
+            theta2 = std::min(theta2_1, theta2_2);
+
+            // Limit values at quadrature points
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                    soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg_hat[istate])
+                        + soln_cell_avg_hat[istate];
+                }
+            }
+        }
+
+        if (limiter_type == limiter_enum::positivity_preservingZhang2016 && nstate == dim + 2) {
+            real theta2_1 = get_theta2_Zhang2016(soln_at_q_xGL, n_quad_pts, p_avg_hat, lower_bound); // Value used to linearly scale state variables 
+            real theta2_2 = get_theta2_Zhang2016(soln_at_q_yGL, n_quad_pts, p_avg_hat, lower_bound); // Value used to linearly scale state variables 
 
             theta2 = std::min(theta2_1, theta2_2);
 
@@ -609,10 +648,5 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
     }
 }
 
-template class PositivityPreservingLimiter <PHILIP_DIM, 1, double>;
-template class PositivityPreservingLimiter <PHILIP_DIM, 2, double>;
-template class PositivityPreservingLimiter <PHILIP_DIM, 3, double>;
-template class PositivityPreservingLimiter <PHILIP_DIM, 4, double>;
-template class PositivityPreservingLimiter <PHILIP_DIM, 5, double>;
-template class PositivityPreservingLimiter <PHILIP_DIM, 6, double>;
+template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_DIM+2, double>;
 } // PHiLiP namespace

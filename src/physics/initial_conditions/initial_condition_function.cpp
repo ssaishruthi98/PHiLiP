@@ -618,10 +618,7 @@ InitialConditionFunction_SedovBlastWave<dim, nstate, real>
     Parameters::AllParameters const* const param)
     : n_subdivisions(param->flow_solver_param.number_of_grid_elements_x)
 {
-    if(dim==1)
-        this->h = 4.0/n_subdivisions;
-    else
-        this->h = 1.1/n_subdivisions;
+    this->h = 1.1/n_subdivisions;
 }
 
 
@@ -648,7 +645,7 @@ real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
         }
         else if (istate == 3) {
             // energy
-            if(x < this->h && y < this->h)
+            if(x <= this->h && y <= this->h)
                 value = 0.244816/(pow(this->h, 2));
             else
                 value = 1e-12;

@@ -125,7 +125,12 @@ void sedov_blast_wave_grid(
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
         for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
             if (cell->face(face)->at_boundary()) {
-                cell->face(face)->set_boundary_id(1001);
+                unsigned int current_id = cell->face(face)->boundary_id();
+                if (current_id == 0 || current_id == 2) {
+                    cell->face(face)->set_boundary_id(1001); // x_left, post-shock
+                } else {
+                    cell->face(face)->set_boundary_id(1004);
+                }
             }
         }
     }
