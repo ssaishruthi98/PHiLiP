@@ -2608,11 +2608,12 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                 }
                 else{
                     if (FR_Type == FR_enum::cAdaptive) {
-                        if (jameson_sensor > this->all_parameters->shock_sensor_threshold) {
-                            mass_inv_c10Thousand.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                                mass_inv_c10Thousand.oneD_vol_operator,
-                                false, 1.0 / metric_oper.det_Jac_vol[0]);
-                        } else if (jameson_sensor > this->all_parameters->shock_sensor_threshold/2.0){
+                        // if (jameson_sensor > this->all_parameters->shock_sensor_threshold) {
+                        //     mass_inv_c10Thousand.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                        //         mass_inv_c10Thousand.oneD_vol_operator,
+                        //         false, 1.0 / metric_oper.det_Jac_vol[0]);
+                        // } else 
+                        if (jameson_sensor > this->all_parameters->shock_sensor_threshold){
                             mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                 mass_inv_cPlus.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);

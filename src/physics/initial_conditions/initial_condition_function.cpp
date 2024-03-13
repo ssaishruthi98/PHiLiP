@@ -659,6 +659,44 @@ real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
 }
 
 // ========================================================
+// Mach 3 Wind Tunnel with a Step Problem (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_Mach3WindTunnel<dim, nstate, real>
+::InitialConditionFunction_Mach3WindTunnel(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_Mach3WindTunnel<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& /*point*/, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        if (istate == 0) {
+            // density
+            value = 1.4;
+        }
+        else if (istate == 1) {
+            // x-velocity
+            value = 3.0;
+        }
+        else if (istate == 2) {
+            // y-velocity
+            value = 0.0;
+        }
+        else if (istate == 3) {
+            // pressure
+            value = 1.0;
+        }
+    }
+    return value;
+}
+
+
+// ========================================================
 // 1D Leblanc Shock tube -- Initial Condition
 // See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
 // ========================================================
@@ -845,6 +883,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DoubleMachReflection<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::mach_3_wind_tunnel) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_Mach3WindTunnel<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::sedov_blast_wave) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SedovBlastWave<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {

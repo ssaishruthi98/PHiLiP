@@ -35,7 +35,8 @@ public:
         advection_limiter,
         burgers_limiter,
         double_mach_reflection,
-        sedov_blast_wave
+        sedov_blast_wave,
+        mach_3_wind_tunnel
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
