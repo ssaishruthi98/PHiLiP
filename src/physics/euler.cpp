@@ -1328,7 +1328,7 @@ void Euler<dim, nstate, real>
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = this->all_parameters->flow_solver_param.flow_case_type;
 
-    if(flow_case_type == flow_case_enum::double_mach_reflection) {
+    if(dim == 2 && flow_case_type == flow_case_enum::double_mach_reflection) {
         std::array<real, nstate> primitive_boundary_values;
         primitive_boundary_values[0] = 8.0;
         primitive_boundary_values[1] = 33.0*sqrt(3.0)/8.0;
@@ -1339,7 +1339,7 @@ void Euler<dim, nstate, real>
         for (int istate = 0; istate < nstate; ++istate) {
             soln_bc[istate] = conservative_bc[istate];
         }
-    } else if (flow_case_type == flow_case_enum::shock_diffraction) {
+    } else if (dim == 2 && flow_case_type == flow_case_enum::shock_diffraction) {
         std::array<real, nstate> primitive_boundary_values;
         primitive_boundary_values[0] = 7.041132906907898;
         primitive_boundary_values[1] = 4.07794695481336;
