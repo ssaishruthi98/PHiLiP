@@ -30,5 +30,9 @@ void mach_3_wind_tunnel_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input);
 
+template<int dim, typename TriangulationType>
+void shock_diffraction_grid(
+    TriangulationType&  grid,
+    const Parameters::AllParameters *const parameters_input);
 } // namespace PHiLiP::Grids
 #endif

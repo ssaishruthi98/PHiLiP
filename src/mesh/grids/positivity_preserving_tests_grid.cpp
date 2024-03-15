@@ -189,6 +189,71 @@ void mach_3_wind_tunnel_grid(
     }
 }
 
+template<int dim, typename TriangulationType>
+void shock_diffraction_grid(
+    TriangulationType&  grid,
+    const Parameters::AllParameters *const parameters_input) 
+{
+    double domain_left = parameters_input->flow_solver_param.grid_left_bound;
+    double domain_right = parameters_input->flow_solver_param.grid_right_bound;
+    double domain_bottom = parameters_input->flow_solver_param.grid_bottom_bound;
+    double domain_top = parameters_input->flow_solver_param.grid_top_bound;
+
+    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
+    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
+    
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    p1[0] = domain_left; p1[1] = domain_bottom;
+    p2[0] = domain_right; p2[1] = domain_top;
+    
+    std::vector<unsigned int> n_subdivisions(2);
+    n_subdivisions[0] = n_subdivisions_x;//log2(128);
+    n_subdivisions[1] = n_subdivisions_y;//log2(64);
+
+    std::vector<int> n_cells_remove(2);
+    n_cells_remove[0] = (1.0/13.0)*n_subdivisions[0];
+    n_cells_remove[1] = (6.0/11.0)*n_subdivisions[1];
+
+    dealii::GridGenerator::subdivided_hyper_L(grid, n_subdivisions, p1, p2, n_cells_remove);
+
+
+    // Set boundary type and design type
+    double left_y = 0.0;
+    double bottom_x = 0.0;
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                if (face == 0) {
+                    if (left_y < 6.0) {
+                        left_y += cell->extent_in_direction(1);
+                        cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                    }
+                    else {
+                        cell->face(face)->set_boundary_id(1007); // x_right, Symmetry/Wall
+                    }
+                }
+                else if (face == 1) {
+                    cell->face(face)->set_boundary_id(1008); // x_right, Symmetry/Wall
+                }
+                else if (face == 2) {
+                    if (bottom_x < 1.0) {
+                        bottom_x += cell->extent_in_direction(1);
+                        cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                    }
+                    else {
+                        cell->face(face)->set_boundary_id(1002); // x_right, Symmetry/Wall
+                    }
+                }
+                else if (face == 3) {
+                        cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                }
+            }
+        }
+    }
+
+}
+
 #if PHILIP_DIM==1
 template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
@@ -201,6 +266,9 @@ template void sedov_blast_wave_grid<2, dealii::parallel::distributed::Triangulat
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::AllParameters *const parameters_input);
 template void mach_3_wind_tunnel_grid<2, dealii::parallel::distributed::Triangulation<2>>(
+    dealii::parallel::distributed::Triangulation<2>&    grid,
+    const Parameters::AllParameters *const parameters_input);
+template void shock_diffraction_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::AllParameters *const parameters_input);
 #endif

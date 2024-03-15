@@ -1325,13 +1325,26 @@ void Euler<dim, nstate, real>
 ::boundary_postshock(
     std::array<real, nstate>& soln_bc) const
 {
-    if(dim==2) {
-        //std::cout << "post shock condition" << std::endl;
+    using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
+    flow_case_enum flow_case_type = this->all_parameters->flow_solver_param.flow_case_type;
+
+    if(flow_case_type == flow_case_enum::double_mach_reflection) {
         std::array<real, nstate> primitive_boundary_values;
         primitive_boundary_values[0] = 8.0;
         primitive_boundary_values[1] = 33.0*sqrt(3.0)/8.0;
         primitive_boundary_values[2] = -33.0/8.0;
         primitive_boundary_values[3] = 116.5;
+
+        const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+        for (int istate = 0; istate < nstate; ++istate) {
+            soln_bc[istate] = conservative_bc[istate];
+        }
+    } else if (flow_case_type == flow_case_enum::shock_diffraction) {
+        std::array<real, nstate> primitive_boundary_values;
+        primitive_boundary_values[0] = 7.041132906907898;
+        primitive_boundary_values[1] = 4.07794695481336;
+        primitive_boundary_values[2] = 0.0;
+        primitive_boundary_values[3] = 30.05945;
 
         const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
         for (int istate = 0; istate < nstate; ++istate) {

@@ -41,7 +41,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_limiter | "
                           " double_mach_reflection | "
                           " sedov_blast_wave | "
-                          " mach_3_wind_tunnel "),
+                          " mach_3_wind_tunnel | "
+                          " shock_diffraction "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -65,7 +66,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_limiter | "
                           " double_mach_reflection | "
                           " sedov_blast_wave | "
-                          " mach_3_wind_tunnel >. ");
+                          " mach_3_wind_tunnel | "
+                          " shock_diffraction >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -364,8 +366,9 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
         else if (flow_case_type_string == "double_mach_reflection")     {flow_case_type = double_mach_reflection;}
         else if (flow_case_type_string == "sedov_blast_wave")           {flow_case_type = sedov_blast_wave;}
-        else if (flow_case_type_string == "mach_3_wind_tunnel")           {flow_case_type = mach_3_wind_tunnel;}
-                
+        else if (flow_case_type_string == "mach_3_wind_tunnel")         {flow_case_type = mach_3_wind_tunnel;}
+        else if (flow_case_type_string == "shock_diffraction")          {flow_case_type = shock_diffraction;}
+
         poly_degree = prm.get_integer("poly_degree");
         
         // get max poly degree for adaptation
