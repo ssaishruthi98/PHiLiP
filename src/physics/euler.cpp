@@ -1328,32 +1328,32 @@ void Euler<dim, nstate, real>
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = this->all_parameters->flow_solver_param.flow_case_type;
 
+    std::array<real, nstate> primitive_boundary_values;
+
     if(dim == 2 && flow_case_type == flow_case_enum::double_mach_reflection) {
-        std::array<real, nstate> primitive_boundary_values;
         primitive_boundary_values[0] = 8.0;
         primitive_boundary_values[1] = 33.0*sqrt(3.0)/8.0;
         primitive_boundary_values[2] = -33.0/8.0;
         primitive_boundary_values[3] = 116.5;
-
-        const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
-        for (int istate = 0; istate < nstate; ++istate) {
-            soln_bc[istate] = conservative_bc[istate];
-        }
+    } else if (dim == 2 && flow_case_type == flow_case_enum::mach_3_wind_tunnel) {
+        primitive_boundary_values[0] = 1.4;
+        primitive_boundary_values[1] = 3.0;
+        primitive_boundary_values[2] = 0.0;
+        primitive_boundary_values[3] = 1.0;
     } else if (dim == 2 && flow_case_type == flow_case_enum::shock_diffraction) {
-        std::array<real, nstate> primitive_boundary_values;
         primitive_boundary_values[0] = 7.041132906907898;
         primitive_boundary_values[1] = 4.07794695481336;
         primitive_boundary_values[2] = 0.0;
         primitive_boundary_values[3] = 30.05945;
-
-        const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
-        for (int istate = 0; istate < nstate; ++istate) {
-            soln_bc[istate] = conservative_bc[istate];
-        }
     } else {
         for (int istate = 0; istate < nstate; ++istate) {
-            soln_bc[istate] = 0;
+            primitive_boundary_values[istate] = 0;
         }
+    }
+
+    const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate = 0; istate < nstate; ++istate) {
+        soln_bc[istate] = conservative_bc[istate];
     }
 }
 
