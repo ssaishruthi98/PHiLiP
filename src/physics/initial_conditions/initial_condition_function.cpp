@@ -709,9 +709,9 @@ real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
 {
     real value = 0.0;
     real x = point[0];
-    real y = point[1];
+    //real y = point[1];
     if constexpr (dim == 2 && nstate == (dim + 2)) {
-        if (x <= 0.5 && y >= 6.0) {
+        if (x <= 0.5) {
             if (istate == 0) {
                 // density
                 value = 7.041132906907898;

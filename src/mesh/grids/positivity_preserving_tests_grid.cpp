@@ -234,10 +234,10 @@ void shock_diffraction_grid(
                     }
                 }
                 else if (face == 1) {
-                    cell->face(face)->set_boundary_id(1008); // x_right, Symmetry/Wall
+                    cell->face(face)->set_boundary_id(1002); // x_right, Symmetry/Wall
                 }
                 else if (face == 2) {
-                    if (bottom_x < 1.0) {
+                    if (left_y >= 6.0 && bottom_x < 1.0) {
                         bottom_x += cell->extent_in_direction(1);
                         cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
                     }

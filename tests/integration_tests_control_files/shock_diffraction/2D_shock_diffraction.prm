@@ -18,7 +18,7 @@ set flux_nodes_type = GLL
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cDG
+set flux_reconstruction = cPlus
 set use_inverse_mass_on_the_fly = true
 
 subsection limiter
@@ -43,7 +43,7 @@ subsection euler
 end
 
 subsection flow_solver
-  set flow_case_type = double_mach_reflection
+  set flow_case_type = shock_diffraction
   set poly_degree = 3
   set final_time = 2.3
   #set constant_time_step = 0.0001
@@ -55,7 +55,7 @@ subsection flow_solver
     set grid_right_bound = 13.0
     set grid_top_bound = 11.0
     set grid_bottom_bound = 0.0
-    set number_of_grid_elements_x = 416
-    set number_of_grid_elements_y = 352
+    set number_of_grid_elements_x = 208
+    set number_of_grid_elements_y = 176
   end
 end
