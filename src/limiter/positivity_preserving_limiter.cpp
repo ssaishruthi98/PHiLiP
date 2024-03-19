@@ -206,8 +206,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
             solution[current_dofs_indices[idof]] = soln_coeff[istate][ishape]; //
 
             // Verify that positivity of density is preserved after application of theta2 limiter
-            if (istate == 0 && solution[current_dofs_indices[idof]] < 0) {
-                std::cout << "Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+            if (istate == 0 && (solution[current_dofs_indices[idof]] < 0 || isnan(solution[current_dofs_indices[idof]]))) {
+                std::cout << "Error: Density is a negative value or NaN - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
         }
@@ -548,7 +548,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
             // Compute average value of pressure using soln_cell_avg
             p_avg = euler_physics->compute_pressure(soln_cell_avg);
         }
-        
+
         // Obtain value used to linearly scale density
         real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
 
@@ -557,6 +557,12 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
             soln_coeff[0][ishape] = theta*(soln_coeff[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
         }
 
+        for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
+            if (isnan(soln_coeff[0][ishape]) || soln_coeff[0][ishape] < 0) {
+                std::cout << "Limit Density Step: Density is a negative value or NaN - Aborting... " << std::endl << soln_coeff[0][ishape] << std::endl << std::flush;
+                std::abort();
+            }
+        }
         // Interpolate new limited density to quadrature pts.
         soln_at_q_xGL[0].resize(n_quad_pts);
         soln_basis_xGL.matrix_vector_mult_1D(soln_coeff[0], soln_at_q_xGL[0],
@@ -640,6 +646,13 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
                     soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg_hat[istate])
                         + soln_cell_avg_hat[istate];
                 }
+            }
+        }
+
+        for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
+            if (isnan(soln_coeff[0][ishape]) || soln_coeff[0][ishape] < 0) {
+                std::cout << "Limit Pressure Step: Density is a negative value or NaN - Aborting... " << std::endl << soln_coeff[0][ishape] << std::endl << std::flush;
+                std::abort();
             }
         }
 

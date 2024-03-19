@@ -1345,6 +1345,11 @@ void Euler<dim, nstate, real>
         primitive_boundary_values[1] = 4.07794695481336;
         primitive_boundary_values[2] = 0.0;
         primitive_boundary_values[3] = 30.05945;
+    } else if (dim == 2 && flow_case_type == flow_case_enum::astrophysical_jet) {
+        primitive_boundary_values[0] = 5.0;
+        primitive_boundary_values[1] = 800.0;
+        primitive_boundary_values[2] = 0.0;
+        primitive_boundary_values[3] = 0.4127;
     } else {
         for (int istate = 0; istate < nstate; ++istate) {
             primitive_boundary_values[istate] = 0;
