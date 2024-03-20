@@ -34,11 +34,5 @@ template<int dim, typename TriangulationType>
 void shock_diffraction_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input);
-
-template<int dim, typename TriangulationType>
-void astrophysical_jet_grid(
-    TriangulationType& grid,
-    const Parameters::AllParameters *const parameters_input);
-} 
-// namespace PHiLiP::Grids
+} // namespace PHiLiP::Grids
 #endif

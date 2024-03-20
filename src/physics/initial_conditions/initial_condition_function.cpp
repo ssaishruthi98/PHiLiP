@@ -511,106 +511,6 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
 }
 
 // ========================================================
-// 1D Leblanc Shock tube -- Initial Condition
-// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
-// ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_LeblancShockTube<dim, nstate, real>
-::InitialConditionFunction_LeblancShockTube(
-    Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
-{}
-
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
-::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr (dim == 1 && nstate == (dim + 2)) {
-        const real x = point[0];
-        if (x < 0) {
-            if (istate == 0) {
-                // density
-                value = 2.0;
-            }
-            if (istate == 1) {
-                // x-velocity
-                value = 0.0;
-            }
-            if (istate == 2) {
-                // pressure
-                value = pow(10.0, 9.0);
-            }
-        }
-        else {
-            if (istate == 0) {
-                // density
-                value = 0.001;
-            }
-            if (istate == 1) {
-                // x-velocity
-                value = 0.0;
-            }
-            if (istate == 2) {
-                // pressure
-                value = 1.0;
-            }
-        }
-    }
-    return value;
-}
-
-// ========================================================
-// 1D Shu-Osher Problem -- Initial Condition
-// See Johnsen et al., Assessment of high-resolution..., 2010 Pg. 7
-// ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
-::InitialConditionFunction_ShuOsherProblem(
-    Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
-{}
-
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
-::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr (dim == 1 && nstate == (dim + 2)) {
-        const real x = point[0];
-        if (x < -4.0) {
-            if (istate == 0) {
-                // density
-                value = 3.857143;
-            }
-            else if (istate == 1) {
-                // x-velocity
-                value = 2.629369;
-            }
-            else if (istate == 2) {
-                // pressure
-                value = 10.33333;
-            }
-        }
-        else {
-            if (istate == 0) {
-                // density
-                value = 1 + 0.2 * sin(5 * x);
-            }
-            else if (istate == 1) {
-                // x-velocity
-                value = 0.0;
-            }
-            else if (istate == 2) {
-                // pressure
-                value = 1.0;
-            }
-        }
-    }
-    return value;
-}
-
-// ========================================================
 // 2D Low Density Euler -- Initial Condition
 // See Zhang & Shu, On positivity-preserving..., 2010 Pg. 10
 // ========================================================
@@ -852,37 +752,100 @@ real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
 }
 
 // ========================================================
-// Astrophysical Jet Problem (2D) -- Initial Condition
-// INCLUDE REFERENCE LATER
+// 1D Leblanc Shock tube -- Initial Condition
+// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
 // ========================================================
 template <int dim, int nstate, typename real>
-InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
-::InitialConditionFunction_AstrophysicalJet(
+InitialConditionFunction_LeblancShockTube<dim,nstate,real>
+::InitialConditionFunction_LeblancShockTube(
     Parameters::AllParameters const* const param)
     : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
 {}
 
 template <int dim, int nstate, typename real>
-real InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
-::primitive_value(const dealii::Point<dim, real>& /*point*/, const unsigned int istate) const
+real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim == 2 && nstate == (dim + 2)) {
-        if (istate == 0) {
-            // density
-            value = 0.5;
+    if constexpr (dim == 1 && nstate == (dim + 2)) {
+        const real x = point[0];
+        if (x < 0) {
+            if (istate == 0) {
+                // density
+                value = 2.0;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // pressure
+                value = pow(10.0, 9.0);
+            }
         }
-        else if (istate == 1) {
-            // x-velocity
-            value = 0.0;
+        else {
+            if (istate == 0) {
+                // density
+                value = 0.001;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // pressure
+                value = 1.0;
+            }
         }
-        else if (istate == 2) {
-            // y-velocity
-            value = 0.0;
+    }
+    return value;
+}
+
+// ========================================================
+// 1D Shu-Osher Problem -- Initial Condition
+// See Johnsen et al., Assessment of high-resolution..., 2010 Pg. 7
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
+::InitialConditionFunction_ShuOsherProblem(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 1 && nstate == (dim + 2)) {
+        const real x = point[0];
+        if (x < -4.0) {
+            if (istate == 0) {
+                // density
+                value = 3.857143;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 2.629369;
+            }
+            else if (istate == 2) {
+                // pressure
+                value = 10.33333;
+            }
         }
-        else if (istate == 3) {
-            // pressure
-            value = 0.4127;
+        else {
+            if (istate == 0) {
+                // density
+                value = 1 + 0.2 * sin(5 * x);
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // pressure
+                value = 1.0;
+            }
         }
     }
     return value;
@@ -981,8 +944,6 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SedovBlastWave<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::shock_diffraction) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim, nstate, real> >(param);
-    } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
-        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_AstrophysicalJet<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {

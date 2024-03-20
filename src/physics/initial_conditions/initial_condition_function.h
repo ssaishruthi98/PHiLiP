@@ -370,6 +370,25 @@ public:
             Parameters::AllParameters const* const param);
 };
 
+/// Initial Condition Function: 2D Low Density Euler
+/** See Zhang & Shu, On positivity-preserving high order 
+*   discontinuous Galerkin schemes for compressible Euler 
+*   equations on rectangular meshes, 2010 Pg. 10
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_LowDensity2D: public InitialConditionFunction_EulerBase<dim,nstate,real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_LowDensity2D(
+        Parameters::AllParameters const* const param);
+};
+
 /// Initial Condition Function: 1D Leblanc Shock Tube
 /** See Zhang & Shu, On positivity-preserving high order
 *   discontinuous Galerkin schemes for compressible Euler
@@ -390,8 +409,8 @@ public:
 };
 
 /// Initial Condition Function: 1D Shu Osher Problem
-/** See Johnsen et al., Assessment of high-resolution methods
-*   for numerical simulations of compressible turbulence with
+/** See Johnsen et al., Assessment of high-resolution methods 
+*   for numerical simulations of compressible turbulence with 
 *   shock waves, 2010 Pg. 7
 */
 template <int dim, int nstate, typename real>
@@ -405,25 +424,6 @@ public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_ShuOsherProblem(
-        Parameters::AllParameters const* const param);
-};
-
-/// Initial Condition Function: 2D Low Density Euler
-/** See Zhang & Shu, On positivity-preserving high order 
-*   discontinuous Galerkin schemes for compressible Euler 
-*   equations on rectangular meshes, 2010 Pg. 10
-*/
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_LowDensity2D: public InitialConditionFunction_EulerBase<dim,nstate,real>
-{
-protected:
-    /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
-
-public:
-    /// Constructor for InitialConditionFunction_SodShockTube
-    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    explicit InitialConditionFunction_LowDensity2D(
         Parameters::AllParameters const* const param);
 };
 
@@ -499,23 +499,6 @@ public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_ShockDiffraction(
-        Parameters::AllParameters const* const param);
-};
-
-/// Initial Condition Function: 2D Astrophysical Jet Problem
-/** INCLUDE REFERENCE LATER
-*/
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_AstrophysicalJet : public InitialConditionFunction_EulerBase<dim, nstate, real>
-{
-protected:
-    /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
-
-public:
-    /// Constructor for InitialConditionFunction_SodShockTube
-    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    explicit InitialConditionFunction_AstrophysicalJet(
         Parameters::AllParameters const* const param);
 };
 

@@ -37,8 +37,7 @@ public:
         double_mach_reflection,
         sedov_blast_wave,
         mach_3_wind_tunnel,
-        shock_diffraction,
-        astrophysical_jet
+        shock_diffraction
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

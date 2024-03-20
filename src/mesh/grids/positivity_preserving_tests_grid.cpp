@@ -254,61 +254,6 @@ void shock_diffraction_grid(
 
 }
 
-template<int dim, typename TriangulationType>
-void astrophysical_jet_grid(
-    TriangulationType& grid,
-    const Parameters::AllParameters* const parameters_input)
-{
-    double domain_left = parameters_input->flow_solver_param.grid_left_bound;
-    double domain_right = parameters_input->flow_solver_param.grid_right_bound;
-    double domain_bottom = parameters_input->flow_solver_param.grid_bottom_bound;
-    double domain_top = parameters_input->flow_solver_param.grid_top_bound;
-
-    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
-    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
-
-    dealii::Point<dim> p1;
-    dealii::Point<dim> p2;
-    p1[0] = domain_left; p1[1] = domain_bottom;
-    p2[0] = domain_right; p2[1] = domain_top;
-
-    std::vector<unsigned int> n_subdivisions(2);
-
-    n_subdivisions[0] = n_subdivisions_x;//log2(128);
-    n_subdivisions[1] = n_subdivisions_y;//log2(64);
-
-    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
-
-
-    double left_y = 0.0;
-
-    // Set boundary type and design type
-    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
-            if (cell->face(face)->at_boundary()) {
-                unsigned int current_id = cell->face(face)->boundary_id();
-                if (current_id == 0) {
-                    if (left_y <= 0.05) {
-                        left_y += cell->extent_in_direction(1);
-                        cell->face(face)->set_boundary_id(1007); // x_left, post-shock
-                    } else {
-                        cell->face(face)->set_boundary_id(1000);
-                    }
-                }
-                else if (current_id == 1) {
-                    cell->face(face)->set_boundary_id(1002); // x_right, riemann
-                }
-                else if (current_id == 2) {
-                    cell->face(face)->set_boundary_id(1001); // y_bottom, wall
-                }
-                else if (current_id == 3) {
-                    cell->face(face)->set_boundary_id(1002);
-                }
-            }
-        }
-    }
-}
-
 #if PHILIP_DIM==1
 template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
@@ -326,8 +271,5 @@ template void mach_3_wind_tunnel_grid<2, dealii::parallel::distributed::Triangul
 template void shock_diffraction_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::AllParameters *const parameters_input);
-template void astrophysical_jet_grid<2, dealii::parallel::distributed::Triangulation<2>>(
-    dealii::parallel::distributed::Triangulation<2>& grid,
-    const Parameters::AllParameters* const parameters_input);
 #endif
 } // namespace PHiLiP::Grids
