@@ -448,6 +448,8 @@ const std::string test_string = prm.get("test_type");
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
     check_valid_metric_Jacobian = prm.get_bool("check_valid_metric_Jacobian");
+    shock_sensor_threshold = prm.get_double("shock_sensor_threshold");
+    
     if(!use_weak_form){
         check_valid_metric_Jacobian = false;
     }
@@ -481,6 +483,7 @@ const std::string test_string = prm.get("test_type");
     if (flux_reconstruction_string == "cPlus")       { flux_reconstruction_type = cPlus; }
     if (flux_reconstruction_string == "c10Thousand") { flux_reconstruction_type = c10Thousand; }
     if (flux_reconstruction_string == "cHULumped")   { flux_reconstruction_type = cHULumped; }
+    if (flux_reconstruction_string == "cAdaptive")   { flux_reconstruction_type = cAdaptive; }
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }

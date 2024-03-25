@@ -2461,9 +2461,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
      
     OPERATOR::FR_mass_inv<dim,2*dim,real> mass_inv(1, max_degree, init_grid_degree, FR_Type);
     OPERATOR::FR_mass_inv_aux<dim,2*dim,real> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
-    //OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
-    OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cPlus(1, max_degree, init_grid_degree, FR_enum::cPlus);
-    OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cHU(1, max_degree, init_grid_degree, FR_enum::cHU);
+    // OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
+    // OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cPlus(1, max_degree, init_grid_degree, FR_enum::cPlus);
+    // OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cHU(1, max_degree, init_grid_degree, FR_enum::cHU);
      
     OPERATOR::vol_projection_operator_FR<dim,2*dim,real> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
     OPERATOR::vol_projection_operator_FR_aux<dim,2*dim,real> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
@@ -2481,9 +2481,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     if(Cartesian_first_element){//then we can factor out det of Jac and rapidly simplify
         if(use_auxiliary_eq){
             mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]); 
-            //mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-            mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-            mass_inv_cHU.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            // mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            // mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            // mass_inv_cHU.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
         }
         else{
             mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
@@ -2522,9 +2522,9 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
             mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
             if(Cartesian_element){//then we can factor out det of Jac and rapidly simplify
                 mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
-                //mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-                mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-                mass_inv_cHU.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                // mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                // mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                // mass_inv_cHU.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
 
                 if(use_auxiliary_eq){
                     mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
@@ -2608,22 +2608,21 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                 }
                 else{
                     if (FR_Type == FR_enum::cAdaptive) {
-                        // if (jameson_sensor > this->all_parameters->shock_sensor_threshold) {
-                        //     mass_inv_c10Thousand.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                        //         mass_inv_c10Thousand.oneD_vol_operator,
-                        //         false, 1.0 / metric_oper.det_Jac_vol[0]);
-                        // } else 
-                        if (jameson_sensor > this->all_parameters->shock_sensor_threshold){
-                            mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                        //std::cout << "sst:  " << this->all_parameters->shock_sensor_threshold << "   jameson_sensor:  " << jameson_sensor << std::endl;
+                        if (jameson_sensor >= this->all_parameters->shock_sensor_threshold){
+                           OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cPlus(1, max_degree, init_grid_degree, FR_enum::cPlus);
+                           mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                           mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                 mass_inv_cPlus.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
                         } else {
-                            mass_inv_cHU.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                                mass_inv_cHU.oneD_vol_operator,
+                           OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
+                           mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                           mass_inv_cDG.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv_cDG.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
                         }
-                    }
-                    else {
+                    } else {
                         mass_inv.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                             mass_inv.oneD_vol_operator,
                             false, 1.0 / metric_oper.det_Jac_vol[0]);
