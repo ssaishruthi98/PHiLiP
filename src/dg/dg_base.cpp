@@ -2567,26 +2567,26 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
 
         // JAMESON SENSOR - will be moved into separate function in the future
         real jameson_sensor = 0.0;
-        for (int istate = 0; istate < nstate; istate++) {
-            const unsigned int n_shape_fns = n_dofs_cell / nstate;
-            real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
+        const unsigned int n_shape_fns = n_dofs_cell / nstate;
+        real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
 
-            for (unsigned int ishape = 0; ishape < n_shape_fns; ishape++) {
-                const unsigned int idof = istate * n_shape_fns + ishape;
-                if (ishape < n_shape_fns - 1 && ishape > 0) {
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+            int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
 
-                    f_j = output_vector[current_dofs_indices[idof]];
-                    f_jm1 = output_vector[current_dofs_indices[istate * n_shape_fns + (ishape - 1)]];
-                    f_jp1 = output_vector[current_dofs_indices[istate * n_shape_fns + (ishape + 1)]];
+            if (ishape < n_shape_fns - 1 && ishape > 0 && istate == nstate - 1) {
+                f_j = output_vector[current_dofs_indices[idof]];
+                f_jm1 = output_vector[current_dofs_indices[istate * n_shape_fns + (ishape - 1)]];
+                f_jp1 = output_vector[current_dofs_indices[istate * n_shape_fns + (ishape + 1)]];
 
-                    real new_jameson_sensor = abs(f_jm1 - (2 * f_j) + f_jp1) / (abs(f_jm1) + abs(2 * f_j) + abs(f_jp1) + 1e-13);
+                real new_jameson_sensor = abs(f_jm1 - (2 * f_j) + f_jp1) / (abs(f_jm1) + abs(2 * f_j) + abs(f_jp1) + 1e-13);
 
-                    if (new_jameson_sensor > jameson_sensor) {
-                        jameson_sensor = new_jameson_sensor;
-                    }
+                if (new_jameson_sensor > jameson_sensor) {
+                    jameson_sensor = new_jameson_sensor;
                 }
             }
         }
+        
         this->jameson_sensor_cell[cell_index] = jameson_sensor;
 
         //solve mass inverse times input vector for each state independently
