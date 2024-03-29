@@ -5,6 +5,7 @@
 set dimension = 1
 set run_type = flow_simulation
 set pde_type = euler
+set shock_sensor_threshold = 0.5
 
 # DG formulation
 set use_weak_form = false
@@ -44,14 +45,14 @@ end
 
 subsection flow_solver
   set flow_case_type = sod_shock_tube
-  set poly_degree = 2
+  set poly_degree = 3
   set final_time = 0.13
-  set courant_friedrichs_lewy_number = 0.6
+  set courant_friedrichs_lewy_number = 0.4
   set adaptive_time_step = true
   set unsteady_data_table_filename = sod_shock_energy
   subsection grid
     set grid_left_bound = -0.5
     set grid_right_bound = 0.5
-    set number_of_mesh_refinements = 7
+    set number_of_mesh_refinements = 8
   end
 end

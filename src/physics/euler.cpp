@@ -1329,8 +1329,11 @@ void Euler<dim, nstate, real>
     flow_case_enum flow_case_type = this->all_parameters->flow_solver_param.flow_case_type;
 
     std::array<real, nstate> primitive_boundary_values;
-
-    if(dim == 2 && flow_case_type == flow_case_enum::double_mach_reflection) {
+    if(dim == 1 && flow_case_type == flow_case_enum::shu_osher_problem) {
+        primitive_boundary_values[0] = 3.857143;
+        primitive_boundary_values[1] = 2.629369;
+        primitive_boundary_values[2] = 10.333333;
+    } else if(dim == 2 && flow_case_type == flow_case_enum::double_mach_reflection) {
         primitive_boundary_values[0] = 8.0;
         primitive_boundary_values[1] = 33.0*sqrt(3.0)/8.0;
         primitive_boundary_values[2] = -33.0/8.0;

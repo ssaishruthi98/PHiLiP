@@ -23,7 +23,7 @@ void shock_tube_1D_grid(
         || flow_case_type == flow_case_enum::leblanc_shock_tube) {
         left_boundary_id = 1001;
     } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
-        left_boundary_id = 1004;
+        left_boundary_id = 1007;
     } 
 
     if (left_boundary_id != 9999 && dim == 1) {
