@@ -125,11 +125,14 @@ void PositivityPreservingTests<dim, nstate>::check_positivity_density(DGBase<dim
 
 template <int dim, int nstate>
 void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_table(
-    const unsigned int current_iteration,
-    const double current_time,
+    const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver,
     const std::shared_ptr <DGBase<dim, double>> dg,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
+    //unpack current iteration and current time from ode solver
+    const unsigned int current_iteration = ode_solver->current_iteration;
+    const double current_time = ode_solver->current_time;
+
     this->check_positivity_density(*dg);
     if (this->mpi_rank == 0) {
 
@@ -152,12 +155,7 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
     }
 }
 
+template class PositivityPreservingTests<PHILIP_DIM, PHILIP_DIM+2>;
 
-#if PHILIP_DIM==2
-    template class PositivityPreservingTests<PHILIP_DIM, 1>;
-    template class PositivityPreservingTests<PHILIP_DIM, PHILIP_DIM+2>;
-#else
-    template class PositivityPreservingTests <PHILIP_DIM,PHILIP_DIM+2>;
-#endif
 } // FlowSolver namespace
 } // PHiLiP namespace
