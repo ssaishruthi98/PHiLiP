@@ -16,6 +16,11 @@ void shock_tube_1D_grid(
     const Parameters::AllParameters *const parameters_input);
 
 template<int dim, typename TriangulationType>
+void explosion_problem_grid(
+    TriangulationType& grid,
+    const Parameters::AllParameters* const parameters_input);
+
+template<int dim, typename TriangulationType>
 void double_mach_reflection_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input);

@@ -40,6 +40,28 @@ void shock_tube_1D_grid(
 }
 
 template<int dim, typename TriangulationType>
+void explosion_problem_grid(
+    TriangulationType& grid,
+    const Parameters::AllParameters* const parameters_input)
+{
+    dealii::Point<dim> center;
+    center[0] = 0.0; center[1] = 0.0;
+
+    dealii::GridGenerator::hyper_ball(grid, center, 1.0, true);
+    // Set boundary type and design type
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                cell->face(face)->set_boundary_id(1001);
+            }
+        }
+    }
+
+    const unsigned int number_of_refinements = parameters_input->flow_solver_param.number_of_mesh_refinements;
+    grid.refine_global(number_of_refinements);
+}
+
+template<int dim, typename TriangulationType>
 void double_mach_reflection_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input) 
@@ -259,6 +281,9 @@ template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
     const Parameters::AllParameters *const parameters_input);
 #else
+template void explosion_problem_grid<2, dealii::parallel::distributed::Triangulation<2>>(
+    dealii::parallel::distributed::Triangulation<2>& grid,
+    const Parameters::AllParameters* const parameters_input);
 template void double_mach_reflection_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::AllParameters *const parameters_input);

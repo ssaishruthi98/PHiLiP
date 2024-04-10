@@ -85,6 +85,11 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
+    } else if (flow_type == FlowCaseEnum::explosion_problem) {
+        if constexpr (dim == 2 && nstate == dim + 2) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube){
         if constexpr (dim==1 && nstate==dim+2){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
@@ -95,12 +100,12 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
-    } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
+    }  else if (flow_type == FlowCaseEnum::double_mach_reflection) {
         if constexpr (dim == 2 && nstate == dim + 2) {
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
-    } else if (flow_type == FlowCaseEnum::sedov_blast_wave) {
+    }else if (flow_type == FlowCaseEnum::sedov_blast_wave) {
         if constexpr (dim == 2 && nstate == dim + 2) {
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);

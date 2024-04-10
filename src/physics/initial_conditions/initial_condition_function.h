@@ -408,6 +408,23 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+/// Initial Condition Function: 2D Explosion Problem
+/** INCLUDE REFERENCE LATER
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_ExplosionProblem : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_DoubleMachReflection
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_ExplosionProblem(
+        Parameters::AllParameters const* const param);
+};
+
 /// Initial Condition Function: 1D Shu Osher Problem
 /** See Johnsen et al., Assessment of high-resolution methods 
 *   for numerical simulations of compressible turbulence with 

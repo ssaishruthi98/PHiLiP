@@ -511,6 +511,65 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
 }
 
 // ========================================================
+// 2D Explosion Problem (2D version extension of Sod Shock Tube) -- Initial Condition
+// ADD REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ExplosionProblem<dim, nstate, real>
+::InitialConditionFunction_ExplosionProblem(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_ExplosionProblem<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        if (sqrt(pow(x,2)+ pow(y,2)) <= 0.5){
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = 0.125;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
+                // pressure
+                value = 0.1;
+            }
+        }
+    }
+    return value;
+}
+
+// ========================================================
 // 2D Low Density Euler -- Initial Condition
 // See Zhang & Shu, On positivity-preserving..., 2010 Pg. 10
 // ========================================================
@@ -930,6 +989,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::sod_shock_tube) {
         if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
+    } else if (flow_type == FlowCaseEnum::explosion_problem) {
+        if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_ExplosionProblem<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::low_density_2d) {
         if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LowDensity2D<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube) {
