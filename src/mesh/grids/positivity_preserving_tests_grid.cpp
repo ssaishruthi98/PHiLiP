@@ -44,10 +44,10 @@ void explosion_problem_grid(
     TriangulationType& grid,
     const Parameters::AllParameters* const parameters_input)
 {
-    dealii::Point<dim> center;
-    center[0] = 0.0; center[1] = 0.0;
+    double domain_left = parameters_input->flow_solver_param.grid_left_bound;
+    double domain_right = parameters_input->flow_solver_param.grid_right_bound;
 
-    dealii::GridGenerator::hyper_ball(grid, center, 1.0, true);
+    dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, true);
     // Set boundary type and design type
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
         for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
