@@ -173,6 +173,7 @@ std::array<real, nstate> TVBLimiter<dim, nstate, real>::get_neighbour_cell_avg(
 template <int dim, int nstate, typename real>
 void TVBLimiter<dim, nstate, real>::limit(
     dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+    const dealii::Mapping< dim, dim>&                       /*mapping*/,
     const dealii::DoFHandler<dim>&                          dof_handler,
     const dealii::hp::FECollection<dim>&                    fe_collection,
     const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,

@@ -76,6 +76,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         // Apply limiter at every RK stage
         if (this->limiter) {
             this->limiter->limit(this->dg->solution,
+                *(this->dg->high_order_grid->mapping_fe_field),
                 this->dg->dof_handler,
                 this->dg->fe_collection,
                 this->dg->volume_quadrature_collection,
@@ -123,6 +124,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     // Apply limiter at every RK stage
     if (this->limiter) {
         this->limiter->limit(this->dg->solution,
+            *(this->dg->high_order_grid->mapping_fe_field),
             this->dg->dof_handler,
             this->dg->fe_collection,
             this->dg->volume_quadrature_collection,

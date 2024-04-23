@@ -2949,14 +2949,18 @@ void local_flux_basis_stiffness<dim,nstate,n_faces,real>::build_1D_volume_state_
 template class OperatorsBase <PHILIP_DIM, 2*PHILIP_DIM, double>;
 
 template class SumFactorizedOperators <PHILIP_DIM, 2*PHILIP_DIM, double>;
+template class SumFactorizedOperators <1, 2, double>;
 
 template class SumFactorizedOperatorsState <PHILIP_DIM, 1, 2*PHILIP_DIM, double>;
 template class SumFactorizedOperatorsState <PHILIP_DIM, 2, 2*PHILIP_DIM, double>;
 template class SumFactorizedOperatorsState <PHILIP_DIM, 3, 2*PHILIP_DIM, double>;
 template class SumFactorizedOperatorsState <PHILIP_DIM, 4, 2*PHILIP_DIM, double>;
 template class SumFactorizedOperatorsState <PHILIP_DIM, 5, 2*PHILIP_DIM, double>;
+template class SumFactorizedOperatorsState <1, 4, 2, double>;
 
 template class basis_functions <PHILIP_DIM, 2*PHILIP_DIM, double>;
+template class basis_functions <1, 2, double>;
+
 template class vol_integral_basis <PHILIP_DIM, 2*PHILIP_DIM, double>;
 template class local_mass <PHILIP_DIM, 2*PHILIP_DIM, double>;
 template class local_basis_stiffness <PHILIP_DIM, 2*PHILIP_DIM, double>;
@@ -2964,7 +2968,10 @@ template class modal_basis_differential_operator <PHILIP_DIM, 2*PHILIP_DIM, doub
 template class derivative_p <PHILIP_DIM, 2*PHILIP_DIM, double>;
 template class local_Flux_Reconstruction_operator <PHILIP_DIM, 2*PHILIP_DIM, double>;
 template class local_Flux_Reconstruction_operator_aux <PHILIP_DIM, 2*PHILIP_DIM, double>;
+
 template class vol_projection_operator <PHILIP_DIM, 2*PHILIP_DIM, double>;
+template class vol_projection_operator <1, 2, double>;
+
 template class vol_projection_operator_FR <PHILIP_DIM, 2*PHILIP_DIM, double>;
 template class vol_projection_operator_FR_aux <PHILIP_DIM, 2*PHILIP_DIM, double>;
 template class FR_mass_inv <PHILIP_DIM, 2*PHILIP_DIM, double>;

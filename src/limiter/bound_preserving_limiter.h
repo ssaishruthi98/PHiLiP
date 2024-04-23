@@ -40,6 +40,7 @@ public:
     /// Function to limit the solution
     virtual void limit(
         dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const dealii::Mapping< dim, dim>&                       mapping,
         const dealii::DoFHandler<dim>&                          dof_handler,
         const dealii::hp::FECollection<dim>&                    fe_collection,
         const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
@@ -68,6 +69,7 @@ public:
     /// Function to limit the solution
     virtual void limit(
         dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const dealii::Mapping< dim, dim>&                       mapping,
         const dealii::DoFHandler<dim>&                          dof_handler,
         const dealii::hp::FECollection<dim>&                    fe_collection,
         const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
