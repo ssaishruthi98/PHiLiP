@@ -122,12 +122,12 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
 
         if (nstate == dim + 2){
             p_lim = euler_physics->compute_pressure(soln_at_iquad);
-            // if(p_lim < 0.0) {
-            //     for (unsigned int istate = 0; istate < nstate; ++istate) {
-            //         std::cout << soln_at_iquad[istate] << "    ";
-            //     }
-            //     std::cout << "   p_lim:   " << p_lim << "    " << std::endl;
-            // }
+            //if(p_lim < 0.0) {
+                // for (unsigned int istate = 0; istate < nstate; ++istate) {
+                //     std::cout << soln_at_iquad[istate] << "    ";
+                // }
+                // std::cout << "   p_lim:   " << p_lim << "    " << std::endl;
+            //}
         }
         //std::cout << std::endl;
         if (p_lim >= 0)
@@ -255,7 +255,6 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         // Build the oneD operator to perform interpolation/projection
         soln_basis.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
         soln_basis_projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-
         for (auto soln_cell : dof_handler.active_cell_iterators()) {
             if (!soln_cell->is_locally_owned()) continue;
 
@@ -492,6 +491,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
     soln_basis_yGL.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
     soln_basis_projection_oper_yGL.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
 
+    unsigned int cell_num = 0;
+
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;
 
@@ -521,14 +522,17 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
         for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
             const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
             const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
+
+            soln_coeff[istate][ishape] = solution[current_dofs_indices[idof]]; //
             if (isnan(soln_coeff[istate][ishape])) {
                 std::cout << "Error: Value passed to limiter is NaN - Aborting... " << std::endl << std::flush;
                 std::abort();
             }
-            soln_coeff[istate][ishape] = solution[current_dofs_indices[idof]]; //
         }
 
+        
         const unsigned int n_quad_pts = quad_xGLyGLL.size();
+
         const std::vector<real>& quad_weights_xGL = quad_xGLyGLL.get_weights();
         const std::vector<real>& quad_weights_yGL = quad_yGLxGLL.get_weights();
         std::array<std::vector<real>, nstate> soln_at_q_xGL;
@@ -543,6 +547,28 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
             soln_at_q_yGL[istate].resize(n_quad_pts);
             soln_basis_yGL.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q_yGL[istate],
                 soln_basis_yGL.oneD_vol_operator);
+        }
+
+        
+        if (cell_num == 18440){
+            std::cout << "cell_num:   " << cell_num << std::endl;
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    std::cout << soln_coeff[istate][iquad] << "    ";
+                }
+                std::cout << std::endl;
+
+                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    std::cout << soln_at_q_xGL[istate][iquad] << "    ";
+                }
+                std::cout << std::endl;
+
+                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    std::cout << soln_at_q_yGL[istate][iquad] << "    ";
+                }
+                std::cout << std::endl;
+            }  
+            std::cout << std::endl;
         }
 
         // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -674,8 +700,31 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
 
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
-        if (theta < 1.0 || theta2 < 1.0)
-                std::cout << "theta:   " << theta << "   theta2:   " << theta2 << std::endl;    
+        
+        if (theta < 1.0 || theta2 < 1.0){
+            std::cout << "cell_num:   " << cell_num << std::endl;
+            std::cout << "theta:   " << theta << std::endl;
+            std::cout << "theta2:   " << theta2 << std::endl;
+            std::cout << "p_avg_hat:   " << p_avg_hat << std::endl;
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    std::cout << soln_coeff[istate][iquad] << "    ";
+                }
+                // std::cout << std::endl;
+
+                // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                //     std::cout << soln_at_q_xGL[istate][iquad] << "    ";
+                // }
+                // std::cout << std::endl;
+
+                // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                //     std::cout << soln_at_q_yGL[istate][iquad] << "    ";
+                // }
+                std::cout << std::endl;
+            }  
+            std::cout << std::endl;
+        }
+        cell_num++;
     }
 }
 
@@ -711,20 +760,12 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
     std::vector< dealii::Point< 2 > > quad_yGLxGLL_pts = quad_yGLxGLL.get_points();
     std::vector< real > quad_yGLxGLL_weights = quad_yGLxGLL.get_weights();
 
-    // for(unsigned int i = 0; i < quad_xGLyGLL_pts.size(); i++) {
-    //     std::cout << quad_xGLyGLL_pts[i] << "   " << quad_xGLyGLL_weights[i] << std::endl;
-    // }
-    
-    // std::cout << std::endl;
-    // for(unsigned int i = 0; i < quad_yGLxGLL_pts.size(); i++) {
-    //     std::cout << quad_yGLxGLL_pts[i] << "   " << quad_yGLxGLL_weights[i] << std::endl;
-    // }
-    // std::cout << std::endl;
-
     dealii::FEValues<dim,dim> fe_values_xGL(mapping, fe_collection[max_degree], quad_xGLyGLL_pts, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
     dealii::FEValues<dim,dim> fe_values_yGL(mapping, fe_collection[max_degree], quad_yGLxGLL_pts, 
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+
+    unsigned int cell_num = 0;
 
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;               
@@ -758,7 +799,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
             soln_at_q_xGL[istate].resize(n_shape_fns);
             soln_at_q_yGL[istate].resize(n_shape_fns);
         }
-
+        bool nan_check = false;
+        const unsigned int n_quad_pts = quad_xGLyGLL.size();
         // Allocate solution dofs and set local min
         for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
             const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
@@ -770,29 +812,24 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
 
 
             if (isnan(soln_coeff[istate][ishape])) {
-                std::cout << "Error: Value passed to limiter is NaN - Aborting... " << std::endl << std::flush;
-                std::abort();
+                nan_check = true;
             }
         }
 
-        const unsigned int n_quad_pts = quad_xGLyGLL.size();
-        // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //     std::cout << soln_coeff[0][iquad] << "    ";
-        // }
-        // std::cout << std::endl;
+        if (nan_check) {
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                std::cout << "cell_num:   " << cell_num << std::endl;
+                std::cout << "Error: Value passed to limiter is NaN - Aborting... " << std::endl;
 
-        // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //     std::cout << soln_at_q_xGL[0][iquad] << "    ";
-        // }
-        // std::cout << std::endl;
+                for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                    std::cout << soln_coeff[istate][iquad] << "    ";
+                }
 
-        // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //     std::cout << soln_at_q_yGL[0][iquad] << "    ";
-        // }
-        // std::cout << std::endl << std::endl;
+                std::cout << std::endl;
 
-        
-        // sleep(1);
+                std::abort();
+            }  
+        }
 
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
             if (soln_at_q_xGL[0][iquad] < local_min_density)
@@ -814,43 +851,13 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
         // Obtain value used to linearly scale density
         real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
 
-        // if (theta < 1.0){
-        //     std::cout << "theta:   " << theta << std::endl << std::endl;
-
-        //     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //         std::cout << soln_coeff[0][iquad] << "    ";
-        //     }
-        //     std::cout << std::endl;
-
-        //     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //         std::cout << soln_at_q_xGL[0][iquad] << "    ";
-        //     }
-        //     std::cout << std::endl;
-
-        //     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //         std::cout << soln_at_q_yGL[0][iquad] << "    ";
-        //     }
-        //     std::cout << std::endl << std::endl;       
-        // }
-
         // Apply limiter on density values at quadrature points
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
-            soln_coeff[0][ishape] = theta*(soln_coeff[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
+            soln_at_q_xGL[0][ishape] = theta*(soln_at_q_xGL[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
+            soln_at_q_yGL[0][ishape] = theta*(soln_at_q_yGL[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
         }
 
-        // // Interpolate new limited density to quadrature pts.
-
-        // for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
-        //     const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
-        //     const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
-
-        //     if(istate == 0) {
-        //         soln_at_q_xGL[istate][ishape] = soln_coeff[istate][ishape] * fe_values_xGL.shape_value_component(idof, ishape, istate);
-        //         soln_at_q_yGL[istate][ishape] = soln_coeff[istate][ishape] * fe_values_yGL.shape_value_component(idof, ishape, istate);
-        //     }
-        // }
-
-        std::array<real, nstate> soln_cell_avg_hat = get_soln_cell_avg_2D(soln_at_q_xGL, soln_at_q_yGL, n_quad_pts, quad_xGLyGLL_weights, quad_yGLxGLL_weights, dt);
+        //std::array<real, nstate> soln_cell_avg_hat = get_soln_cell_avg_2D(soln_at_q_xGL, soln_at_q_yGL, n_quad_pts, quad_xGLyGLL_weights, quad_yGLxGLL_weights, dt);
 
         real p_avg_hat = 1e-13;
 
@@ -858,7 +865,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
             // Compute average value of pressure using soln_cell_avg
             p_avg_hat = euler_physics->compute_pressure(soln_cell_avg);
         }
-        
+
         real theta2 = 1.0;
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
@@ -880,18 +887,18 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
             }
 
             // Obtain value used to linearly scale state variables
-            std::vector<real> theta2_1 = get_theta2_Zhang2010(p_lim_1, soln_cell_avg_hat, soln_at_q_xGL, n_quad_pts, lower_bound, euler_physics->gam);
-            std::vector<real> theta2_2 = get_theta2_Zhang2010(p_lim_1, soln_cell_avg_hat, soln_at_q_xGL, n_quad_pts, lower_bound, euler_physics->gam);
+            std::vector<real> theta2_1 = get_theta2_Zhang2010(p_lim_1, soln_cell_avg, soln_at_q_xGL, n_quad_pts, lower_bound, euler_physics->gam);
+            std::vector<real> theta2_2 = get_theta2_Zhang2010(p_lim_1, soln_cell_avg, soln_at_q_xGL, n_quad_pts, lower_bound, euler_physics->gam);
 
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                     if (theta2_1[iquad] <= theta2_2[iquad]) {
-                        soln_coeff[istate][iquad] = theta2_1[iquad] * (soln_coeff[istate][iquad] - soln_cell_avg_hat[istate])
-                            + soln_cell_avg_hat[istate];
+                        soln_coeff[istate][iquad] = theta2_1[iquad] * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
+                            + soln_cell_avg[istate];
                     } else {
-                        soln_coeff[istate][iquad] = theta2_2[iquad] * (soln_coeff[istate][iquad] - soln_cell_avg_hat[istate])
-                            + soln_cell_avg_hat[istate];
+                        soln_coeff[istate][iquad] = theta2_2[iquad] * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
+                            + soln_cell_avg[istate];
                     }
                 }
             }
@@ -907,8 +914,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg_hat[istate])
-                        + soln_cell_avg_hat[istate];
+                    soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
+                        + soln_cell_avg[istate];
                 }
             }
         }
@@ -922,33 +929,38 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg_hat[istate])
-                        + soln_cell_avg_hat[istate];
+                    soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
+                        + soln_cell_avg[istate];
                 }
             }
         }
         
-        // if (theta2 < 1.0){
-        //     std::cout << "theta2:   " << theta2 << std::endl << std::endl;
-        //     std::cout << "p_avg_hat:   " << p_avg_hat << std::endl << std::endl;
+        // if (theta < 1.0 || theta2 < 1.0){
+        //     std::cout << "cell_num:   " << cell_num << std::endl;
+        //     std::cout << "theta:   " << theta << std::endl;
+        //     std::cout << "theta2:   " << theta2 << std::endl;
+        //     std::cout << "p_avg_hat:   " << p_avg_hat << std::endl;
+        //     for (unsigned int istate = 0; istate < nstate; ++istate) {
+        //         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        //             std::cout << soln_coeff[istate][iquad] << "    ";
+        //         }
+        //         // std::cout << std::endl;
 
-        //     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //         std::cout << soln_coeff[0][iquad] << "    ";
-        //     }
+        //         // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        //         //     std::cout << soln_at_q_xGL[istate][iquad] << "    ";
+        //         // }
+        //         // std::cout << std::endl;
+
+        //         // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        //         //     std::cout << soln_at_q_yGL[istate][iquad] << "    ";
+        //         // }
+        //         std::cout << std::endl;
+        //     }  
         //     std::cout << std::endl;
-
-        //     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //         std::cout << soln_at_q_xGL[0][iquad] << "    ";
-        //     }
-        //     std::cout << std::endl;
-
-        //     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-        //         std::cout << soln_at_q_yGL[0][iquad] << "    ";
-        //     }
-        //     std::cout << std::endl << std::endl;       
         // }
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
+        cell_num++;
     }
 
 }
