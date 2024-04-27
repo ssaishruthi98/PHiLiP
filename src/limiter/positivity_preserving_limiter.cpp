@@ -738,6 +738,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
 
         // Extract the local solution dofs in the cell from the global solution dofs
         std::array<std::vector<real>, nstate> soln_coeff;
+        //const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
 
         const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
         real local_min_density = 1e6;
@@ -783,6 +784,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
         }
 
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            if (soln_coeff[0][iquad] < local_min_density)
+                local_min_density = soln_coeff[0][iquad];
             if (soln_at_q_xGL[0][iquad] < local_min_density)
                 local_min_density = soln_at_q_xGL[0][iquad];
             if (soln_at_q_yGL[0][iquad] < local_min_density)
@@ -862,7 +865,9 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
             real theta2_1 = get_theta2_Wang2012(soln_at_q_xGL, n_quad_pts, p_avg_hat); // Value used to linearly scale state variables 
             real theta2_2 = get_theta2_Wang2012(soln_at_q_yGL, n_quad_pts, p_avg_hat); // Value used to linearly scale state variables 
 
-            theta2 = std::min({ theta2_1, theta2_2 });
+            real theta2_GLL = get_theta2_Wang2012(soln_coeff, n_quad_pts, p_avg_hat);
+
+            theta2 = std::min({ theta2_1, theta2_2, theta2_GLL });
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
