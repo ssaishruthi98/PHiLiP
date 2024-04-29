@@ -239,7 +239,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
         this->tvbLimiter->limit(solution, mapping, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt);
 
-    if (dim == 2) {
+    if (PHILIP_DIM == 2) {
         limit_2D_rewrite(solution, mapping, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt);
     }
     else {
@@ -710,11 +710,26 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
 
     std::vector< dealii::Point< 2 > > quad_yGLxGLL_pts = quad_yGLxGLL.get_points();
     std::vector< real > quad_yGLxGLL_weights = quad_yGLxGLL.get_weights();
+    
+    #if PHILIP_DIM == 1
+        dealii::FEValues<dim,dim> fe_values_xGL(mapping, fe_collection[max_degree], oneD_quadrature_collection[max_degree], 
+                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+        dealii::FEValues<dim,dim> fe_values_yGL(mapping, fe_collection[max_degree], oneD_quadrature_collection[max_degree], 
+                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+    #elif PHILIP_DIM == 2
+        dealii::FEValues<dim,dim> fe_values_xGL(mapping, fe_collection[max_degree], quad_xGLyGLL_pts, 
+                        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+        dealii::FEValues<dim,dim> fe_values_yGL(mapping, fe_collection[max_degree], quad_yGLxGLL_pts, 
+                        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+    #else 
+        dealii::Quadrature<3> quad_xGLyGLLzGLL(quad_xGLyGLL,oneD_quadrature_collection[max_degree]);
+        dealii::Quadrature<3> quad_xGLyGLLzGL(quad_xGLyGLL,oneD_quad_GL);
+        dealii::FEValues<dim,dim> fe_values_xGL(mapping, fe_collection[max_degree], quad_xGLyGLLzGLL.get_points(), 
+                        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+        dealii::FEValues<dim,dim> fe_values_yGL(mapping, fe_collection[max_degree], quad_xGLyGLLzGL.get_points(), 
+                        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
 
-    dealii::FEValues<dim,dim> fe_values_xGL(mapping, fe_collection[max_degree], quad_xGLyGLL_pts, 
-                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-    dealii::FEValues<dim,dim> fe_values_yGL(mapping, fe_collection[max_degree], quad_yGLxGLL_pts, 
-                    dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+    #endif
 
     unsigned int cell_num = 0;
 
@@ -900,4 +915,5 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D_rewrite(
 }
 
 template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_DIM+2, double>;
+
 } // PHiLiP namespace

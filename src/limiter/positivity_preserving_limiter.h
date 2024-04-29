@@ -51,29 +51,6 @@ public:
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
         double                                                  dt);
 
-    void limit_2D(
-        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-        const dealii::Mapping< dim, dim>&                       mapping,
-        const dealii::DoFHandler<dim>&                          dof_handler,
-        const dealii::hp::FECollection<dim>&                    fe_collection,
-        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
-        const unsigned int                                      grid_degree,
-        const unsigned int                                      max_degree,
-        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-        double                                                  dt);
-
-    void limit_2D_rewrite(
-        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-        const dealii::Mapping< dim, dim>&                       mapping,
-        const dealii::DoFHandler<dim>&                          dof_handler,
-        const dealii::hp::FECollection<dim>&                    fe_collection,
-        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
-        const unsigned int                                      grid_degree,
-        const unsigned int                                      max_degree,
-        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-        double                                                  dt);
 protected:
     /// Obtain the theta value used to scale all the states using 3.16-3.18 in Zhang, Shu 2010
     std::vector<real> get_theta2_Zhang2010(
@@ -120,6 +97,30 @@ protected:
         const std::vector<real>&                            quad_weights_1,
         const std::vector<real>&                            quad_weights_2,
         double                                              dt);
+
+    void limit_2D(
+        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const dealii::Mapping< dim, dim>&                       mapping,
+        const dealii::DoFHandler<dim>&                          dof_handler,
+        const dealii::hp::FECollection<dim>&                    fe_collection,
+        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+        const unsigned int                                      grid_degree,
+        const unsigned int                                      max_degree,
+        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
+        double                                                  dt);
+
+    void limit_2D_rewrite(
+        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
+        const dealii::Mapping< dim, dim>&                       mapping,
+        const dealii::DoFHandler<dim>&                          dof_handler,
+        const dealii::hp::FECollection<dim>&                    fe_collection,
+        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
+        const unsigned int                                      grid_degree,
+        const unsigned int                                      max_degree,
+        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
+        double                                                  dt);
 
     real dx;
     real dy;
