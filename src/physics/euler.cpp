@@ -1530,7 +1530,7 @@ std::vector<std::string> Euler<dim,nstate,real>
     }
     names.push_back ("energy");
     names.push_back ("pressure");
-    names.push_back ("pressure_coeffcient");
+    names.push_back ("pressure_coefficient");
     names.push_back ("temperature");
 
     names.push_back ("entropy_generation");
