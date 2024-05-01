@@ -118,8 +118,13 @@ void PositivityPreservingTests<dim, nstate>::check_positivity_density(DGBase<dim
 
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
             // Verify that positivity of density is preserved
-            if (soln_at_q[0][iquad] < -1e-13 || (isnan(soln_at_q[0][iquad])) ) {
-                std::cout << "Error: Density is negative or NaN - Aborting... " << std::endl << std::flush;
+            if (soln_at_q[0][iquad] < -1e-13) {
+                std::cout << "Error: Density is negative - Aborting... " << std::endl << std::flush;
+                std::abort();
+            }
+
+            if ((isnan(soln_at_q[0][iquad])) ) {
+                std::cout << "Error: Density is NaN - Aborting... " << std::endl << std::flush;
                 std::abort();
             }
         }
