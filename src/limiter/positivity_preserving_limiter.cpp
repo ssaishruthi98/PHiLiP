@@ -589,13 +589,6 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
         std::vector< real > GLL_weights = oneD_quad_GLL.get_weights();
         std::vector< real > GL_weights = oneD_quad_GL.get_weights();
 
-        // std::cout << "N_QUAD_PTS:    "  << soln_at_q_xGLL[0].size() << std::endl;
-        // for (unsigned int iquad = 0; iquad < GLL_weights.size(); ++iquad) {
-        //     std::cout << "GLL WEIGHT:   " << GLL_weights[iquad] << "   GL WEIGHT:   " << GL_weights[iquad] << std::endl;
-        // }
-        // std::cout << std::endl << std::endl;
-        // sleep(5);
-
         // Obtain solution cell average
         std::array<real, nstate> soln_cell_avg = get_soln_cell_avg_2D(soln_at_q_xGLL, soln_at_q_yGLL, n_quad_pts, oneD_quad_GLL.get_weights(), oneD_quad_GL.get_weights(), dt);
 
@@ -610,34 +603,19 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
         // Obtain value used to linearly scale density
         real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
 
-        // if(local_min_density < 0.1) {
-        //     for (int istate = 0; istate < nstate; istate++) {
-        //         std::cout << "soln_cell_avg:   " << soln_cell_avg[istate] << std::endl << std::endl;
-        //         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-        //             std::cout << soln_coeff[istate][iquad] << "   ";
-        //         }
-        //         std::cout << std::endl;
-
-        //         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-        //             std::cout << soln_at_q_xGLL[istate][iquad] << "   ";
-        //         }
-                
-        //         std::cout << std::endl;
-
-        //         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-        //             std::cout << soln_at_q_yGLL[istate][iquad] << "   ";
-        //         }
-        //         std::cout << std::endl << std::endl;
-        //     }
-        // }
-    // Apply limiter on density values at quadrature points
+        // Apply limiter on density values at quadrature points
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
             soln_coeff[0][ishape] = theta*(soln_coeff[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
-            soln_at_q_xGLL[0][ishape] = theta*(soln_at_q_xGLL[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
-            soln_at_q_yGLL[0][ishape] = theta*(soln_at_q_yGLL[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
+            //soln_at_q_xGLL[0][ishape] = theta*(soln_at_q_xGLL[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
+            //soln_at_q_yGLL[0][ishape] = theta*(soln_at_q_yGLL[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
         }
 
-        //std::array<real, nstate> soln_cell_avg_hat = get_soln_cell_avg_2D(soln_at_q_xGL, soln_at_q_yGL, n_quad_pts, quad_xGLyGLL_weights, quad_yGLxGLL_weights, dt);
+
+        soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q_xGLL[0],
+                soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, basis_z);
+
+        soln_basis_GL.matrix_vector_mult(soln_coeff[0], soln_at_q_yGLL[0],
+                soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator, basis_z);
 
         real theta2 = 1.0;
         using limiter_enum = Parameters::LimiterParam::LimiterType;
@@ -706,26 +684,6 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
         //                     + soln_cell_avg[istate];
         //         }
         //     }
-        // }
-
-        // if(local_min_density < 0.1) {
-        //     std::cout << "theta:   " << theta << "   theta2:   " << theta2 << std::endl << std::endl;
-        //     std::cout << "soln_cell_avg_density:   " << soln_cell_avg[0] << std::endl << std::endl;
-        //     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-        //         std::cout << soln_coeff[0][iquad] << "   ";
-        //     }
-        //     std::cout << std::endl;
-
-        //     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-        //         std::cout << soln_at_q_yGLL[0][iquad] << "   ";
-        //     }
-            
-        //     std::cout << std::endl;
-
-        //     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-        //         std::cout << soln_at_q_xGLL[0][iquad] << "   ";
-        //     }
-        //     std::cout << std::endl << std::endl;
         // }
 
         // Write limited solution back and verify that positivity of density is satisfied
