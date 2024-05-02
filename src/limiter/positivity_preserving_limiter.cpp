@@ -579,6 +579,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
         }
 
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            if (soln_coeff[0][iquad] < local_min_density)
+                local_min_density = soln_at_q_xGLL[0][iquad];
             if (soln_at_q_xGLL[0][iquad] < local_min_density)
                 local_min_density = soln_at_q_xGLL[0][iquad];
             if (soln_at_q_yGLL[0][iquad] < local_min_density)
@@ -652,9 +654,9 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
             real theta2_1 = get_theta2_Wang2012(soln_at_q_xGLL, n_quad_pts, p_avg_hat); // Value used to linearly scale state variables 
             real theta2_2 = get_theta2_Wang2012(soln_at_q_yGLL, n_quad_pts, p_avg_hat); // Value used to linearly scale state variables 
 
-            //real theta2_soln = get_theta2_Wang2012(soln_coeff, n_quad_pts, p_avg_hat);
+            real theta2_soln = get_theta2_Wang2012(soln_coeff, n_quad_pts, p_avg_hat);
 
-            theta2 = std::min({ theta2_1, theta2_2});//, theta2_soln});
+            theta2 = std::min({ theta2_1, theta2_2, theta2_soln});
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
