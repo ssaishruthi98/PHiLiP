@@ -202,13 +202,13 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
     if (theta < 0 || theta > 1)
         theta = 0;
 
-    if( density_min < 0.1) {
-    std::cout << "density_avg:   " << density_avg
-              << "   density_min:   " << density_min
-              << "   lower_bound:   " << lower_bound
-              << "   p_avg:   " << p_avg 
-              << "   theta:   " << theta << std::endl << std::endl;
-    }
+    // if(density_min < 0.0) {
+    // std::cout << "density_avg:   " << density_avg
+    //           << "   density_min:   " << density_min
+    //           << "   lower_bound:   " << lower_bound
+    //           << "   p_avg:   " << p_avg 
+    //           << "   theta:   " << theta << std::endl << std::endl;
+    // }
     return theta;
 }
 
@@ -580,7 +580,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
 
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
             if (soln_coeff[0][iquad] < local_min_density)
-                local_min_density = soln_at_q_xGLL[0][iquad];
+                local_min_density = soln_coeff[0][iquad];
             if (soln_at_q_xGLL[0][iquad] < local_min_density)
                 local_min_density = soln_at_q_xGLL[0][iquad];
             if (soln_at_q_yGLL[0][iquad] < local_min_density)
@@ -610,51 +610,44 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
         // Obtain value used to linearly scale density
         real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
 
-        if(theta < 1.0) {
-            for (int istate = 0; istate < nstate; istate++) {
-                std::cout << "soln_cell_avg:   " << soln_cell_avg[istate] << std::endl << std::endl;
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    std::cout << soln_coeff[istate][iquad] << "   ";
-                }
-                std::cout << std::endl;
+        // if(local_min_density < 0.1) {
+        //     for (int istate = 0; istate < nstate; istate++) {
+        //         std::cout << "soln_cell_avg:   " << soln_cell_avg[istate] << std::endl << std::endl;
+        //         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        //             std::cout << soln_coeff[istate][iquad] << "   ";
+        //         }
+        //         std::cout << std::endl;
 
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    std::cout << soln_at_q_xGLL[istate][iquad] << "   ";
-                }
+        //         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        //             std::cout << soln_at_q_xGLL[istate][iquad] << "   ";
+        //         }
                 
-                std::cout << std::endl;
+        //         std::cout << std::endl;
 
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    std::cout << soln_at_q_yGLL[istate][iquad] << "   ";
-                }
-                std::cout << std::endl << std::endl;
-            }
-        }
+        //         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        //             std::cout << soln_at_q_yGLL[istate][iquad] << "   ";
+        //         }
+        //         std::cout << std::endl << std::endl;
+        //     }
+        // }
     // Apply limiter on density values at quadrature points
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
             soln_coeff[0][ishape] = theta*(soln_coeff[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
-            //soln_at_q_xGLL[0][ishape] = theta*(soln_at_q_xGLL[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
-            //soln_at_q_yGLL[0][ishape] = theta*(soln_at_q_yGLL[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
+            soln_at_q_xGLL[0][ishape] = theta*(soln_at_q_xGLL[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
+            soln_at_q_yGLL[0][ishape] = theta*(soln_at_q_yGLL[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
         }
 
         //std::array<real, nstate> soln_cell_avg_hat = get_soln_cell_avg_2D(soln_at_q_xGL, soln_at_q_yGL, n_quad_pts, quad_xGLyGLL_weights, quad_yGLxGLL_weights, dt);
-
-        real p_avg_hat = 1e-13;
-
-        if (nstate == dim + 2) {
-            // Compute average value of pressure using soln_cell_avg
-            p_avg_hat = euler_physics->compute_pressure(soln_cell_avg);
-        }
 
         real theta2 = 1.0;
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
         if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + 2) {
-            real theta2_1 = get_theta2_Wang2012(soln_at_q_xGLL, n_quad_pts, p_avg_hat); // Value used to linearly scale state variables 
-            real theta2_2 = get_theta2_Wang2012(soln_at_q_yGLL, n_quad_pts, p_avg_hat); // Value used to linearly scale state variables 
+            real theta2_1 = get_theta2_Wang2012(soln_at_q_xGLL, n_quad_pts, p_avg); // Value used to linearly scale state variables 
+            real theta2_2 = get_theta2_Wang2012(soln_at_q_yGLL, n_quad_pts, p_avg); // Value used to linearly scale state variables 
 
-            real theta2_soln = get_theta2_Wang2012(soln_coeff, n_quad_pts, p_avg_hat);
+            real theta2_soln = get_theta2_Wang2012(soln_coeff, n_quad_pts, p_avg);
 
             theta2 = std::min({ theta2_1, theta2_2, theta2_soln});
             // Limit values at quadrature points
@@ -715,25 +708,25 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit_2D(
         //     }
         // }
 
-        if(theta < 1.0 || theta2 < 1.0) {
-            std::cout << "theta:   " << theta << "   theta2:   " << theta2 << std::endl << std::endl;
-            std::cout << "soln_cell_avg_density:   " << soln_cell_avg[0] << std::endl << std::endl;
-            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                std::cout << soln_coeff[0][iquad] << "   ";
-            }
-            std::cout << std::endl;
+        // if(local_min_density < 0.1) {
+        //     std::cout << "theta:   " << theta << "   theta2:   " << theta2 << std::endl << std::endl;
+        //     std::cout << "soln_cell_avg_density:   " << soln_cell_avg[0] << std::endl << std::endl;
+        //     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        //         std::cout << soln_coeff[0][iquad] << "   ";
+        //     }
+        //     std::cout << std::endl;
 
-            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                std::cout << soln_at_q_yGLL[0][iquad] << "   ";
-            }
+        //     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        //         std::cout << soln_at_q_yGLL[0][iquad] << "   ";
+        //     }
             
-            std::cout << std::endl;
+        //     std::cout << std::endl;
 
-            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                std::cout << soln_at_q_xGLL[0][iquad] << "   ";
-            }
-            std::cout << std::endl << std::endl;
-        }
+        //     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        //         std::cout << soln_at_q_xGLL[0][iquad] << "   ";
+        //     }
+        //     std::cout << std::endl << std::endl;
+        // }
 
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
