@@ -47,6 +47,16 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
         }
     }
 
+    if(dim >= 2 && (parameters_input->flow_solver_param.number_of_grid_elements_x == 1 || parameters_input->flow_solver_param.number_of_grid_elements_y == 1)) {
+        std::cout << "Error: number_of_grid_elements must be passed for all directions." << std::endl;
+        std::abort();
+    }
+
+    if(dim == 3 && parameters_input->flow_solver_param.number_of_grid_elements_z == 1) {
+        std::cout << "Error: number_of_grid_elements must be passed for all directions." << std::endl;
+        std::abort();
+    }
+
     this->dx = (parameters_input->flow_solver_param.grid_xmax-parameters_input->flow_solver_param.grid_xmin)
                 /parameters_input->flow_solver_param.number_of_grid_elements_x;
     this->dy = (parameters_input->flow_solver_param.grid_ymax-parameters_input->flow_solver_param.grid_ymin)

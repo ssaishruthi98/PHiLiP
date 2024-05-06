@@ -12,8 +12,9 @@ void shock_tube_1D_grid(
 {
     double xmax = parameters_input->flow_solver_param.grid_xmax;
     double xmin = parameters_input->flow_solver_param.grid_xmin;
+    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
 
-    dealii::GridGenerator::hyper_cube(grid, xmin, xmax, true);
+    dealii::GridGenerator::subdivided_hyper_cube(grid, n_subdivisions_x, xmin, xmax, true);
 
     int left_boundary_id = 9999;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
@@ -35,8 +36,8 @@ void shock_tube_1D_grid(
         }
     }
 
-    const unsigned int number_of_refinements = parameters_input->flow_solver_param.number_of_mesh_refinements;
-    grid.refine_global(number_of_refinements);
+    // const unsigned int number_of_refinements = parameters_input->flow_solver_param.number_of_mesh_refinements;
+    // grid.refine_global(number_of_refinements);
 }
 
 template<int dim, typename TriangulationType>
@@ -51,8 +52,35 @@ void explosion_problem_grid(
 
     double xmax = parameters_input->flow_solver_param.grid_xmax;
     double xmin = parameters_input->flow_solver_param.grid_xmin;
+    double ymax = parameters_input->flow_solver_param.grid_ymax;
+    double ymin = parameters_input->flow_solver_param.grid_ymin;
+    double zmax = parameters_input->flow_solver_param.grid_zmax;
+    double zmin = parameters_input->flow_solver_param.grid_zmin;
 
-    dealii::GridGenerator::hyper_cube(grid, xmin, xmax, true);
+    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
+    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
+    unsigned int n_subdivisions_z = parameters_input->flow_solver_param.number_of_grid_elements_z;
+    
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    p1[0] = xmin; p1[1] = ymin;
+    p2[0] = xmax; p2[1] = ymax;
+
+    if(dim == 3) {
+        p1[2] = zmin;
+        p2[2] = zmax;
+    }
+    
+    std::vector<unsigned int> n_subdivisions(dim);
+
+    n_subdivisions[0] = n_subdivisions_x;
+    n_subdivisions[1] = n_subdivisions_y;
+
+    if(dim == 3)
+        n_subdivisions[2] = n_subdivisions_z;
+
+
+    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
     // Set boundary type and design type
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
         for (unsigned int face = 0; face < dealii::GeometryInfo<PHILIP_DIM>::faces_per_cell; ++face) {
@@ -62,8 +90,8 @@ void explosion_problem_grid(
         }
     }
 
-    const unsigned int number_of_refinements = parameters_input->flow_solver_param.number_of_mesh_refinements;
-    grid.refine_global(number_of_refinements);
+    // const unsigned int number_of_refinements = parameters_input->flow_solver_param.number_of_mesh_refinements;
+    // grid.refine_global(number_of_refinements);
 }
 
 template<int dim, typename TriangulationType>

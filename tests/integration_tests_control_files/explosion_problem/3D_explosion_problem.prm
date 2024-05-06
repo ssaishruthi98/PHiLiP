@@ -2,7 +2,7 @@
 # ---------------------
 # Number of dimensions
 
-set dimension = 2
+set dimension = 3
 set run_type = flow_simulation
 set pde_type = euler
 set shock_sensor_threshold = 0.5
@@ -51,10 +51,15 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = sod_shock_energy
   subsection grid
-    set grid_xmin = -1.0
+    set grid_xmin = 0.0
     set grid_xmax = 1.0
     set grid_ymin = -1.0
     set grid_ymax = 1.0
-    set number_of_mesh_refinements = 6
+    set grid_zmin = -1.0
+    set grid_zmax = 1.0
+    
+    set number_of_grid_elements_x = 50
+    set number_of_grid_elements_y = 100
+    set number_of_grid_elements_z = 100
   end
 end

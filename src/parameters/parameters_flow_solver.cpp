@@ -179,15 +179,15 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                               "Number of grid elements per dimension for hyper_cube mesh based cases.");
 
-            prm.declare_entry("number_of_grid_elements_x", "4",
+            prm.declare_entry("number_of_grid_elements_x", "1",
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                               "Number of grid elements in the x-direction for 2/3D positivity-preserving limiter cases.");
 
-            prm.declare_entry("number_of_grid_elements_y", "4",
+            prm.declare_entry("number_of_grid_elements_y", "1",
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                               "Number of grid elements in the y-direction for 2/3D positivity-preserving limiter cases.");
 
-            prm.declare_entry("number_of_grid_elements_z", "4",
+            prm.declare_entry("number_of_grid_elements_z", "1",
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                               "Number of grid elements in the z-direction for 2/3D positivity-preserving limiter cases.");
 

@@ -2,7 +2,7 @@
 # ---------------------
 # Number of dimensions
 
-set dimension = 3
+set dimension = 2
 set run_type = flow_simulation
 set pde_type = euler
 set shock_sensor_threshold = 0.5
@@ -55,8 +55,8 @@ subsection flow_solver
     set grid_xmax = 1.0
     set grid_ymin = -1.0
     set grid_ymax = 1.0
-    set grid_zmin = -1.0
-    set grid_zmax = 1.0
-    set number_of_mesh_refinements = 4
+
+    set number_of_grid_elements_x = 300
+    set number_of_grid_elements_y = 300
   end
 end

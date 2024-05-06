@@ -511,8 +511,8 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
 }
 
 // ========================================================
-// 2D Explosion Problem (2D version extension of Sod Shock Tube) -- Initial Condition
-// ADD REFERENCE LATER
+// 2D/3D Explosion Problem (Cylindrical and Spherical extension of Sod Shock Tube) -- Initial Condition
+// See Dumbser & Loubere, A simple robust and accurate a posteriori sub-cell..., 2016, Pg. 17
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_ExplosionProblem<dim, nstate, real>
