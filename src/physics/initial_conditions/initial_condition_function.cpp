@@ -566,6 +566,57 @@ real InitialConditionFunction_ExplosionProblem<dim, nstate, real>
             }
         }
     }
+
+    if constexpr (dim == 3 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        const real z = point[2];
+        if (sqrt(pow(x,2) + pow(y,2) + pow(z,2)) <= 0.5){
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
+                // z-velocity
+                value = 0.0;
+            }
+            if (istate == 4) {
+                // pressure
+                value = 1.0;
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = 0.125;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
+                // z-velocity
+                value = 0.0;
+            }
+            if (istate == 4) {
+                // pressure
+                value = 0.1;
+            }
+        }
+    }
+
     return value;
 }
 
@@ -991,6 +1042,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::explosion_problem) {
         if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_ExplosionProblem<dim,nstate,real> > (param);
+        if constexpr (dim==3 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_ExplosionProblem<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::low_density_2d) {
         if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LowDensity2D<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube) {

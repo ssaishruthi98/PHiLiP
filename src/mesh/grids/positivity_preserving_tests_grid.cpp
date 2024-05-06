@@ -10,10 +10,10 @@ void shock_tube_1D_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input)
 {
-    double domain_left = parameters_input->flow_solver_param.grid_left_bound;
-    double domain_right = parameters_input->flow_solver_param.grid_right_bound;
+    double xmax = parameters_input->flow_solver_param.grid_xmax;
+    double xmin = parameters_input->flow_solver_param.grid_xmin;
 
-    dealii::GridGenerator::hyper_cube(grid, domain_left, domain_right, true);
+    dealii::GridGenerator::hyper_cube(grid, xmin, xmax, true);
 
     int left_boundary_id = 9999;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
@@ -44,13 +44,18 @@ void explosion_problem_grid(
     TriangulationType& grid,
     const Parameters::AllParameters* const parameters_input)
 {
-    dealii::Point<dim> center;
-    center[0] = 0.0; center[1] = 0.0;
+    // dealii::Point<dim> center;
+    // center[0] = 0.0; center[1] = 0.0;
 
-    dealii::GridGenerator::hyper_ball(grid, center, 1.0, true);
+    // dealii::GridGenerator::hyper_ball(grid, center, 1.0, true);
+
+    double xmax = parameters_input->flow_solver_param.grid_xmax;
+    double xmin = parameters_input->flow_solver_param.grid_xmin;
+
+    dealii::GridGenerator::hyper_cube(grid, xmin, xmax, true);
     // Set boundary type and design type
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+        for (unsigned int face = 0; face < dealii::GeometryInfo<PHILIP_DIM>::faces_per_cell; ++face) {
             if (cell->face(face)->at_boundary()) {
                 cell->face(face)->set_boundary_id(1001);
             }
@@ -66,18 +71,18 @@ void double_mach_reflection_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input) 
 {
-    double domain_left = parameters_input->flow_solver_param.grid_left_bound;
-    double domain_right = parameters_input->flow_solver_param.grid_right_bound;
-    double domain_bottom = parameters_input->flow_solver_param.grid_bottom_bound;
-    double domain_top = parameters_input->flow_solver_param.grid_top_bound;
+    double xmax = parameters_input->flow_solver_param.grid_xmax;
+    double xmin = parameters_input->flow_solver_param.grid_xmin;
+    double ymax = parameters_input->flow_solver_param.grid_ymax;
+    double ymin = parameters_input->flow_solver_param.grid_ymin;
 
     unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
     unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
     
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
-    p1[0] = domain_left; p1[1] = domain_bottom;
-    p2[0] = domain_right; p2[1] = domain_top;
+    p1[0] = xmin; p1[1] = ymin;
+    p2[0] = xmax; p2[1] = ymax;
     
     std::vector<unsigned int> n_subdivisions(2);
 
@@ -123,18 +128,18 @@ void sedov_blast_wave_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input) 
 {
-    double domain_left = parameters_input->flow_solver_param.grid_left_bound;
-    double domain_right = parameters_input->flow_solver_param.grid_right_bound;
-    double domain_bottom = parameters_input->flow_solver_param.grid_bottom_bound;
-    double domain_top = parameters_input->flow_solver_param.grid_top_bound;
+    double xmax = parameters_input->flow_solver_param.grid_xmax;
+    double xmin = parameters_input->flow_solver_param.grid_xmin;
+    double ymax = parameters_input->flow_solver_param.grid_ymax;
+    double ymin = parameters_input->flow_solver_param.grid_ymin;
 
     unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
     unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
     
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
-    p1[0] = domain_left; p1[1] = domain_bottom;
-    p2[0] = domain_right; p2[1] = domain_top;
+    p1[0] = xmin; p1[1] = ymin;
+    p2[0] = xmax; p2[1] = ymax;
     
     std::vector<unsigned int> n_subdivisions(2);
 
@@ -163,18 +168,18 @@ void mach_3_wind_tunnel_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input) 
 {
-    double domain_left = parameters_input->flow_solver_param.grid_left_bound;
-    double domain_right = parameters_input->flow_solver_param.grid_right_bound;
-    double domain_bottom = parameters_input->flow_solver_param.grid_bottom_bound;
-    double domain_top = parameters_input->flow_solver_param.grid_top_bound;
+    double xmax = parameters_input->flow_solver_param.grid_xmax;
+    double xmin = parameters_input->flow_solver_param.grid_xmin;
+    double ymax = parameters_input->flow_solver_param.grid_ymax;
+    double ymin = parameters_input->flow_solver_param.grid_ymin;
 
     unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
     unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
     
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
-    p1[0] = domain_left; p1[1] = domain_bottom;
-    p2[0] = domain_right; p2[1] = domain_top;
+    p1[0] = xmin; p1[1] = ymin;
+    p2[0] = xmax; p2[1] = ymax;
     
     std::vector<unsigned int> n_subdivisions(2);
     n_subdivisions[0] = n_subdivisions_x;//log2(128);
@@ -216,18 +221,18 @@ void shock_diffraction_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input) 
 {
-    double domain_left = parameters_input->flow_solver_param.grid_left_bound;
-    double domain_right = parameters_input->flow_solver_param.grid_right_bound;
-    double domain_bottom = parameters_input->flow_solver_param.grid_bottom_bound;
-    double domain_top = parameters_input->flow_solver_param.grid_top_bound;
+    double xmax = parameters_input->flow_solver_param.grid_xmax;
+    double xmin = parameters_input->flow_solver_param.grid_xmin;
+    double ymax = parameters_input->flow_solver_param.grid_ymax;
+    double ymin = parameters_input->flow_solver_param.grid_ymin;
 
     unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
     unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
     
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
-    p1[0] = domain_left; p1[1] = domain_bottom;
-    p2[0] = domain_right; p2[1] = domain_top;
+    p1[0] = xmin; p1[1] = ymin;
+    p2[0] = xmax; p2[1] = ymax;
     
     std::vector<unsigned int> n_subdivisions(2);
     n_subdivisions[0] = n_subdivisions_x;//log2(128);
@@ -281,8 +286,8 @@ template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
     const Parameters::AllParameters *const parameters_input);
 #else
-template void explosion_problem_grid<2, dealii::parallel::distributed::Triangulation<2>>(
-    dealii::parallel::distributed::Triangulation<2>& grid,
+template void explosion_problem_grid<PHILIP_DIM, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>(
+    dealii::parallel::distributed::Triangulation<PHILIP_DIM>& grid,
     const Parameters::AllParameters* const parameters_input);
 template void double_mach_reflection_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,

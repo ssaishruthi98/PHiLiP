@@ -147,19 +147,31 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                               "Polynomial degree of the grid. Curvilinear grid if set greater than 1; default is 1.");
 
-            prm.declare_entry("grid_left_bound", "0.0",
+            prm.declare_entry("grid_xmin", "0.0",
                               dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Left bound of domain for hyper_cube mesh based cases.");
 
-            prm.declare_entry("grid_right_bound", "1.0",
+            prm.declare_entry("grid_xmin", "0.0",
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                              "Left bound of domain for hyper_cube mesh based cases.");
+
+            prm.declare_entry("grid_xmax", "0.0",
                               dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Right bound of domain for hyper_cube mesh based cases.");
 
-            prm.declare_entry("grid_top_bound", "0.0",
+            prm.declare_entry("grid_ymin", "0.0",
                               dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Left bound of domain for hyper_cube mesh based cases.");
 
-            prm.declare_entry("grid_bottom_bound", "1.0",
+            prm.declare_entry("grid_ymax", "0.0",
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                              "Right bound of domain for hyper_cube mesh based cases.");
+
+            prm.declare_entry("grid_zmin", "0.0",
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                              "Left bound of domain for hyper_cube mesh based cases.");
+
+            prm.declare_entry("grid_zmax", "0.0",
                               dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Right bound of domain for hyper_cube mesh based cases.");
 
@@ -169,11 +181,15 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
             prm.declare_entry("number_of_grid_elements_x", "4",
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                              "Number of grid elements in the x-direction for 2D positivity-preserving limiter cases.");
+                              "Number of grid elements in the x-direction for 2/3D positivity-preserving limiter cases.");
 
             prm.declare_entry("number_of_grid_elements_y", "4",
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                              "Number of grid elements in the y-direction for 2D positivity-preserving limiter cases.");
+                              "Number of grid elements in the y-direction for 2/3D positivity-preserving limiter cases.");
+
+            prm.declare_entry("number_of_grid_elements_z", "4",
+                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                              "Number of grid elements in the z-direction for 2/3D positivity-preserving limiter cases.");
 
             prm.declare_entry("number_of_mesh_refinements", "0",
                               dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -407,13 +423,22 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         {
             input_mesh_filename = prm.get("input_mesh_filename");
             grid_degree = prm.get_integer("grid_degree");
-            grid_left_bound = prm.get_double("grid_left_bound");
-            grid_right_bound = prm.get_double("grid_right_bound");
-            grid_top_bound = prm.get_double("grid_top_bound");
-            grid_bottom_bound = prm.get_double("grid_bottom_bound");
+
+            grid_right_bound = prm.get_double("grid_xmax");
+            grid_left_bound = prm.get_double("grid_xmin");
+            grid_xmax = prm.get_double("grid_xmax");
+            grid_xmin = prm.get_double("grid_xmin");
+            grid_ymax = prm.get_double("grid_ymax");
+            grid_ymin = prm.get_double("grid_ymin");
+            grid_zmax = prm.get_double("grid_zmax");
+            grid_zmin = prm.get_double("grid_zmin");
+
             number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
+
             number_of_grid_elements_x = prm.get_integer("number_of_grid_elements_x");
             number_of_grid_elements_y = prm.get_integer("number_of_grid_elements_y");
+            number_of_grid_elements_z = prm.get_integer("number_of_grid_elements_z");
+
             number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
             use_gmsh_mesh = prm.get_bool("use_gmsh_mesh");
             mesh_reader_verbose_output = prm.get_bool("mesh_reader_verbose_output");

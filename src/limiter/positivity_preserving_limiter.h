@@ -67,13 +67,6 @@ protected:
         const unsigned int                              n_quad_pts,
         const double                                    p_avg);
 
-    /// Obtain the theta value used to scale all the states using 37b in Zhang 2016
-    real get_theta2_Zhang2016(
-        const std::array<std::vector<real>, nstate>& soln_at_q,
-        const unsigned int                              n_quad_pts,
-        const double                                    p_avg,
-        const double                                    lower_bound);
-
     /// Obtain the value used to scale density and enforce positivity of density
     /// Using 3.15 from Zhang, Shu 2010
     real get_density_scaling_value(
@@ -90,28 +83,16 @@ protected:
         const unsigned int                                      n_shape_fns,
         const std::vector<dealii::types::global_dof_index>&     current_dofs_indices);
 
-    std::array<real, nstate> get_soln_cell_avg_2D(
-        const std::array<std::vector<real>, nstate>&        soln_at_q_1,
-        const std::array<std::vector<real>, nstate>&        soln_at_q_2,
-        const unsigned int                                  n_quad_pts,
-        const std::vector<real>&                            quad_weights_1,
-        const std::vector<real>&                            quad_weights_2,
-        double                                              dt);
-
-    void limit_2D(
-        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-        const dealii::Mapping< dim, dim>&                       mapping,
-        const dealii::DoFHandler<dim>&                          dof_handler,
-        const dealii::hp::FECollection<dim>&                    fe_collection,
-        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
-        const unsigned int                                      grid_degree,
-        const unsigned int                                      max_degree,
-        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-        double                                                  dt);
+    std::array<real, nstate> get_soln_cell_avg_PPL(
+        const std::array<std::array<std::vector<real>, nstate>, dim>&        soln_at_q,
+        const unsigned int                                                   n_quad_pts,
+        const std::vector<real>&                                             quad_weights_1,
+        const std::vector<real>&                                             quad_weights_2,
+        double                                                               dt);
 
     real dx;
     real dy;
+    real dz;
 }; // End of PositivityPreservingLimiter Class
 } // PHiLiP namespace
 

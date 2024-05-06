@@ -117,10 +117,13 @@ int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
     flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
     const double pi = atan(1) * 4.0;
     if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d) {
+        param.flow_solver_param.grid_xmin = 0.0;
         param.flow_solver_param.grid_left_bound = 0.0;
+        param.flow_solver_param.grid_xmax = 2.0 * pi;
         param.flow_solver_param.grid_right_bound = 2.0 * pi;
-        param.flow_solver_param.grid_bottom_bound = 0.0;
-        param.flow_solver_param.grid_top_bound = 2.0 * pi;
+        
+        param.flow_solver_param.grid_ymin = 0.0;
+        param.flow_solver_param.grid_ymax = 2.0 * pi;
     }
 
     std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
