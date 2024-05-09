@@ -119,7 +119,6 @@ void double_mach_reflection_grid(
 
     dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
 
-
     double bottom_x = 0.0;
 
     // Set boundary type and design type

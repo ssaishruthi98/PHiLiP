@@ -170,6 +170,11 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
     if (theta < 0 || theta > 1)
         theta = 0;
 
+    if (isnan(theta)) {
+        std::cout << "Error: Theta is NaN - Aborting... " << std::endl << theta << std::endl << std::flush;
+        std::abort();
+    }
+
     return theta;
 }
 
@@ -189,6 +194,10 @@ void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
             // Verify that positivity of density is preserved after application of theta2 limiter
             if (istate == 0 && solution[current_dofs_indices[idof]] < 0) {
                 std::cout << "Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::abort();
+            }
+            if (isnan(solution[current_dofs_indices[idof]])) {
+                std::cout << "Error: Solution is NaN - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
         }
@@ -290,20 +299,25 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
             std::array<real,nstate> local_soln_at_q_2;
             std::array<real,nstate> local_soln_at_q_3;
             for(unsigned int istate = 0; istate < nstate; ++istate){
-                local_soln_at_q_1[istate] = soln_at_q[0][istate][iquad];
-                local_soln_at_q_2[istate] = soln_at_q[1][istate][iquad];
+                local_soln_at_q_1[istate] = abs(soln_at_q[0][istate][iquad]);
+                local_soln_at_q_2[istate] = abs(soln_at_q[1][istate][iquad]);
                 if(dim == 3)
-                    local_soln_at_q_3[istate] = soln_at_q[2][istate][iquad];
+                    local_soln_at_q_3[istate] = abs(soln_at_q[2][istate][iquad]);
                 else
                     local_soln_at_q_3[istate] = 0;
             }
             // Update the maximum local wave speed (i.e. convective eigenvalue)
             const real local_wave_speed_1 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_1);
             const real local_wave_speed_2 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_2);
-            const real local_wave_speed_3 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_3);
+
+            real local_wave_speed_3 = 0;
+            if(dim == 3)
+                local_wave_speed_3 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_3);
+
             if(local_wave_speed_1 > max_local_wave_speed_1) max_local_wave_speed_1 = local_wave_speed_1;
             if(local_wave_speed_2 > max_local_wave_speed_2) max_local_wave_speed_2 = local_wave_speed_2;
-            if(local_wave_speed_3 > max_local_wave_speed_3) max_local_wave_speed_3 = local_wave_speed_3;
+            if(dim == 3 && local_wave_speed_3 > max_local_wave_speed_3) max_local_wave_speed_3 = local_wave_speed_3;
+
         }
 
         real mu = max_local_wave_speed_1*lambda_1 + max_local_wave_speed_2*lambda_2 + max_local_wave_speed_3*lambda_3;
@@ -315,6 +329,22 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
             soln_cell_avg[istate] = avg_weight_1*soln_cell_avg_dim[0][istate] + avg_weight_2*soln_cell_avg_dim[1][istate];
             if(dim == 3)
                 soln_cell_avg[istate] += avg_weight_3*soln_cell_avg_dim[2][istate];
+
+            if (isnan(soln_cell_avg[istate])) {
+                std::cout << "Error: Solution Cell Avg is NaN - Aborting... " << std::endl 
+                          << "istate:  " << istate << std::endl 
+                          << "dx:   " << this->dx << std::endl 
+                          << "dy:   " << this->dy << std::endl 
+                          << "dz:   " << this->dz << std::endl 
+                          << "mu:   " << mu << std::endl 
+                          << "max_local_wave_speed_1:   " << max_local_wave_speed_1 << std::endl
+                          << "max_local_wave_speed_2:   " << max_local_wave_speed_2 << std::endl
+                          << "max_local_wave_speed_3:   " << max_local_wave_speed_3 << std::endl 
+                          << "lambda_1:   " << lambda_1 << std::endl
+                          << "lambda_2:   " << lambda_2 << std::endl
+                          << "lambda_3:   " << lambda_3 << std::endl << std::flush;
+                std::abort();
+            }
         }
     }
     return soln_cell_avg;
@@ -439,6 +469,12 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         // Obtain solution cell average
         soln_cell_avg = get_soln_cell_avg_PPL(soln_at_q, n_quad_pts, oneD_quad_GLL.get_weights(), oneD_quad_GL.get_weights(), dt);
 
+        // for (unsigned int istate = 0; istate < nstate; ++istate) {
+        //     std::cout << soln_cell_avg[istate] << "   ";
+        // }
+        // std::cout << std::endl;
+
+
         real lower_bound = this->all_parameters->limiter_param.min_density;
         real p_avg = 1e-13;
 
@@ -551,6 +587,11 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
                             + soln_cell_avg[istate];
                 }
             }
+        }
+
+        if (isnan(theta2)) {
+            std::cout << "Error: Theta2 is NaN - Aborting... " << std::endl << theta2 << std::endl << std::flush;
+            std::abort();
         }
 
         // Write limited solution back and verify that positivity of density is satisfied

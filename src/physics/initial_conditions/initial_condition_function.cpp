@@ -477,18 +477,14 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim == 1 && nstate == (dim+2)) {
+    if constexpr (nstate == (dim+2)) {
         const real x = point[0];
         if (x < 0) {
             if (istate == 0) {
                 // density
                 value = 1.0;
             }
-            if (istate == 1) {
-                // x-velocity
-                value = 0.0;
-            }
-            if (istate == 2) {
+            if (istate == nstate - 1) {
                 // pressure
                 value = 1.0;
             }
@@ -497,16 +493,13 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
                 // density
                 value = 0.125;
             }
-            if (istate == 1) {
-                // x-velocity
-                value = 0.0;
-            }
-            if (istate == 2) {
+            if (istate == nstate - 1) {
                 // pressure
                 value = 0.1;
             }
-        } 
+        }
     }
+
     return value;
 }
 
@@ -908,6 +901,47 @@ real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
             }
         }
     }
+
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        if (sqrt(pow(x,2)+ pow(y,2)) <= 10.0){
+            if (istate == 0) {
+                // density
+                value = 2.0;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
+                // pressure
+                value = pow(10.0, 9.0);
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = 0.001;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+        }
+    }
     return value;
 }
 
@@ -1039,14 +1073,13 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::non_periodic_cube_flow) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::sod_shock_tube) {
-        if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
+        if constexpr (nstate==dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::explosion_problem) {
-        if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_ExplosionProblem<dim,nstate,real> > (param);
-        if constexpr (dim==3 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_ExplosionProblem<dim,nstate,real> > (param);
+        if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_ExplosionProblem<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::low_density_2d) {
         if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LowDensity2D<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube) {
-        if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > (param);
+        if constexpr (dim < 3 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::shu_osher_problem) {
         if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
@@ -1084,9 +1117,6 @@ template class InitialConditionFactory <PHILIP_DIM, 6, double>;
 template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, double>;
-template class InitialConditionFunction_EulerBase <PHILIP_DIM,PHILIP_DIM+2,double>;
-template class InitialConditionFunction_SodShockTube <PHILIP_DIM,PHILIP_DIM+2,double>;
-template class InitialConditionFunction_LeblancShockTube <PHILIP_DIM,PHILIP_DIM+2,double>;
 template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_DIM + 2, double>;
 #endif
 #if PHILIP_DIM==3

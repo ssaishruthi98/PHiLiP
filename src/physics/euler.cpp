@@ -912,7 +912,7 @@ real Euler<dim,nstate,real>
 
     real vel2 = compute_velocity_squared<real>(vel);
 
-    const real max_eig = sqrt(vel2) + sound;
+    const real max_eig = sqrt(vel2) + sound;    
 
     return max_eig;
 }

@@ -58,8 +58,8 @@ subsection flow_solver
     set grid_zmin = -1.0
     set grid_zmax = 1.0
     
-    set number_of_grid_elements_x = 50
-    set number_of_grid_elements_y = 100
-    set number_of_grid_elements_z = 100
+    set number_of_grid_elements_x = 5
+    set number_of_grid_elements_y = 10
+    set number_of_grid_elements_z = 10
   end
 end
