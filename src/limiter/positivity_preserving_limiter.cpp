@@ -210,7 +210,7 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
     const unsigned int                                                   n_quad_pts,
     const std::vector<real>&                                             quad_weights_1,
     const std::vector<real>&                                             quad_weights_2,
-    double                                                               dt)
+    double&                                                              dt)
 {
     std::array<real, nstate> soln_cell_avg;
 
@@ -299,10 +299,10 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
             std::array<real,nstate> local_soln_at_q_2;
             std::array<real,nstate> local_soln_at_q_3;
             for(unsigned int istate = 0; istate < nstate; ++istate){
-                local_soln_at_q_1[istate] = abs(soln_at_q[0][istate][iquad]);
-                local_soln_at_q_2[istate] = abs(soln_at_q[1][istate][iquad]);
+                local_soln_at_q_1[istate] = soln_at_q[0][istate][iquad];
+                local_soln_at_q_2[istate] = soln_at_q[1][istate][iquad];
                 if(dim == 3)
-                    local_soln_at_q_3[istate] = abs(soln_at_q[2][istate][iquad]);
+                    local_soln_at_q_3[istate] = soln_at_q[2][istate][iquad];
                 else
                     local_soln_at_q_3[istate] = 0;
             }
@@ -353,16 +353,21 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
 template <int dim, int nstate, typename real>
 void PositivityPreservingLimiter<dim, nstate, real>::limit(
     dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-    const dealii::Mapping< dim, dim >&                      /*mapping*/,
+    const dealii::Mapping< dim, dim >&                      mapping,
     const dealii::DoFHandler<dim>&                          dof_handler,
     const dealii::hp::FECollection<dim>&                    fe_collection,
-    const dealii::hp::QCollection<dim>&                     /*volume_quadrature_collection*/,
+    const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
     const unsigned int                                      grid_degree,
     const unsigned int                                      max_degree,
     const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-    const dealii::hp::QCollection<1>                        /*oneD_quadrature_collection*/,
+    const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
     double                                                  dt)
 {
+
+    // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
+    if (this->all_parameters->limiter_param.use_tvb_limiter == true)
+        this->tvbLimiter->limit(solution, mapping, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt);
+
     //create 1D solution polynomial basis functions to interpolate the solution to the quadrature nodes
     const unsigned int init_grid_degree = grid_degree;
 

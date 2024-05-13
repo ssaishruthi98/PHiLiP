@@ -88,7 +88,7 @@ protected:
         const unsigned int                                                   n_quad_pts,
         const std::vector<real>&                                             quad_weights_1,
         const std::vector<real>&                                             quad_weights_2,
-        double                                                               dt);
+        double&                                                               dt);
 
     real dx;
     real dy;
