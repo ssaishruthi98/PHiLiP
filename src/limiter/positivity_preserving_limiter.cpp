@@ -18,11 +18,19 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
     // Create pointer to Euler Physics to compute pressure if pde_type==euler
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
+    using Model_enum = Parameters::AllParameters::ModelType;
+    Model_enum model_type = parameters_input->model_type;
 
     std::shared_ptr< ManufacturedSolutionFunction<dim, real> >  manufactured_solution_function
         = ManufacturedSolutionFactory<dim, real>::create_ManufacturedSolution(parameters_input, nstate);
 
-    if (pde_type == PDE_enum::euler && nstate == dim + 2) {
+    if(pde_type!=PDE_enum::euler && 
+        pde_type!=PDE_enum::navier_stokes && 
+        !(pde_type==PDE_enum::physics_model && model_type==Model_enum::large_eddy_simulation)) 
+    {
+        this->pcout << "Error: Positivity-Preserving Limiter can only be applied for Euler, Navier-Stokes, or LES physics type." << std::endl;
+        std::abort();
+    } else {
         euler_physics = std::make_shared < Physics::Euler<dim, nstate, real> >(
             parameters_input,
             parameters_input->euler_param.ref_length,
@@ -33,10 +41,6 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
             manufactured_solution_function,
             parameters_input->two_point_num_flux_type);
     }
-    else {
-        std::cout << "Error: Positivity-Preserving Limiter can only be applied for pde_type==euler" << std::endl;
-        std::abort();
-    }
 
     // Create pointer to TVB Limiter class if use_tvb_limiter==true && dim == 1
     if (parameters_input->limiter_param.use_tvb_limiter) {
@@ -44,18 +48,18 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
             tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
         }
         else {
-            std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
+            this->pcout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
             std::abort();
         }
     }
 
     if(dim >= 2 && (parameters_input->flow_solver_param.number_of_grid_elements_x == 1 || parameters_input->flow_solver_param.number_of_grid_elements_y == 1)) {
-        std::cout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
+        this->pcout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
         std::abort();
     }
 
     if(dim == 3 && parameters_input->flow_solver_param.number_of_grid_elements_z == 1) {
-        std::cout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
+        this->pcout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
         std::abort();
     }
 

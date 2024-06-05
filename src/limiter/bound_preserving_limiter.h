@@ -65,6 +65,13 @@ public:
     /// Destructor
     ~BoundPreservingLimiterState() = default;
 
+protected:
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
+
+public:
     /// Function to limit the solution
     virtual void limit(
         dealii::LinearAlgebra::distributed::Vector<double>&     solution,

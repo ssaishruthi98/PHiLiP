@@ -648,6 +648,19 @@ void AllParameters::modify_parameters () {
       pcout << "Setting non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run... " << std::flush;
       non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run;
       pcout << "done." << std::endl;
+      pcout << "Setting positivity_preserving_limiter grid parameters for TGV or DHIT test... " << std::flush;
+      // grid limits are the same in all directions
+      flow_solver_param.grid_xmax = flow_solver_param.grid_right_bound;
+      flow_solver_param.grid_xmin = flow_solver_param.grid_left_bound;
+      flow_solver_param.grid_ymax = flow_solver_param.grid_right_bound;
+      flow_solver_param.grid_ymin = flow_solver_param.grid_left_bound;
+      flow_solver_param.grid_zmax = flow_solver_param.grid_right_bound;
+      flow_solver_param.grid_zmin = flow_solver_param.grid_left_bound;
+      // number of grid elements is the same for all directions
+      flow_solver_param.number_of_grid_elements_x = flow_solver_param.number_of_grid_elements_per_dimension;
+      flow_solver_param.number_of_grid_elements_y = flow_solver_param.number_of_grid_elements_per_dimension;
+      flow_solver_param.number_of_grid_elements_z = flow_solver_param.number_of_grid_elements_per_dimension;
+      pcout << "done." << std::endl;
     }
 
     

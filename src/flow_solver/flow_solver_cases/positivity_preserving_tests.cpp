@@ -2,6 +2,7 @@
 #include "mesh/grids/positivity_preserving_tests_grid.h"
 #include <deal.II/grid/grid_generator.h>
 #include "physics/physics_factory.h"
+#include "mesh/gmsh_reader.hpp"
 
 namespace PHiLiP {
 namespace FlowSolver {
