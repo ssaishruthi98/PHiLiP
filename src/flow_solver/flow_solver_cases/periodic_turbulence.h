@@ -16,7 +16,7 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
     /** Number of different computed quantities
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
-    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 5;
+    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 7;
 public:
     /// Constructor.
     explicit PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
@@ -68,6 +68,16 @@ public:
      *                to Turbulence for Compact Nodal Schemes." 
      * */
     double get_strain_rate_tensor_based_dissipation_rate() const;
+
+    /** Gets non-dimensional solenoidal dissipation rate from integrand.
+     *  -- Reference: Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+     * */
+    double get_solenoidal_dissipation_rate() const;
+
+    /** Gets non-dimensional dilatational dissipation rate from integrand.
+     *  -- Reference: Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+     * */
+    double get_dilatational_dissipation_rate() const;
 
     /// Output the velocity field to file
     void output_velocity_field(
@@ -143,7 +153,9 @@ protected:
         enstrophy,
         pressure_dilatation,
         viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr,
-        viscosity_times_strain_rate_tensor_magnitude_sqr
+        viscosity_times_strain_rate_tensor_magnitude_sqr,
+        solenoidal_dissipation,
+        dilatational_dissipation
     };
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;

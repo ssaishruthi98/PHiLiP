@@ -531,6 +531,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
             integrand_values[IntegratedQuantitiesEnum::pressure_dilatation] = this->navier_stokes_physics->compute_pressure_dilatation(soln_at_q,soln_grad_at_q);
             integrand_values[IntegratedQuantitiesEnum::viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
             integrand_values[IntegratedQuantitiesEnum::viscosity_times_strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_viscosity_times_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
+            integrand_values[IntegratedQuantitiesEnum::solenoidal_dissipation] = this->navier_stokes_physics->compute_solenoidal_dissipation_integrand(soln_at_q,soln_grad_at_q);
+            integrand_values[IntegratedQuantitiesEnum::dilatational_dissipation] = this->navier_stokes_physics->compute_dilatational_dissipation_integrand(soln_at_q,soln_grad_at_q);
 
             for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
                 integral_values[i_quantity] += integrand_values[i_quantity] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
@@ -612,6 +614,30 @@ double PeriodicTurbulence<dim, nstate>::get_strain_rate_tensor_based_dissipation
             this->navier_stokes_physics->compute_strain_rate_tensor_based_dissipation_rate_from_integrated_viscosity_times_strain_rate_tensor_magnitude_sqr(integrated_viscosity_times_strain_rate_tensor_magnitude_sqr);
     }
     return strain_rate_tensor_based_dissipation_rate;
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::get_solenoidal_dissipation_rate() const
+{
+    const double integrand = this->integrated_quantities[IntegratedQuantitiesEnum::solenoidal_dissipation];
+    double solenoidal_dissipation_rate = 0.0;
+    if (is_viscous_flow){
+        solenoidal_dissipation_rate = 
+            this->navier_stokes_physics->compute_solenoidal_dissipation_from_integrand(integrand);
+    }
+    return solenoidal_dissipation_rate;
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::get_dilatational_dissipation_rate() const
+{
+    const double integrand = this->integrated_quantities[IntegratedQuantitiesEnum::dilatational_dissipation];
+    double dilatational_dissipation_rate = 0.0;
+    if (is_viscous_flow){
+        dilatational_dissipation_rate = 
+            this->navier_stokes_physics->compute_dilatational_dissipation_from_integrand(integrand);
+    }
+    return dilatational_dissipation_rate;
 }
 
 template<int dim, int nstate>
@@ -767,6 +793,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double pressure_dilatation_based_dissipation_rate = this->get_pressure_dilatation_based_dissipation_rate();
     const double deviatoric_strain_rate_tensor_based_dissipation_rate = this->get_deviatoric_strain_rate_tensor_based_dissipation_rate();
     const double strain_rate_tensor_based_dissipation_rate = this->get_strain_rate_tensor_based_dissipation_rate();
+    const double solenoidal_dissipation_rate = this->get_solenoidal_dissipation_rate();
+    const double dilatational_dissipation_rate = this->get_dilatational_dissipation_rate();
     
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
@@ -787,6 +815,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->add_value_to_data_table(pressure_dilatation_based_dissipation_rate,"eps_pressure",unsteady_data_table);
         if(is_viscous_flow) this->add_value_to_data_table(strain_rate_tensor_based_dissipation_rate,"eps_strain",unsteady_data_table);
         if(is_viscous_flow) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_dev_strain",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(solenoidal_dissipation_rate,"eps_solenoidal",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(dilatational_dissipation_rate,"eps_dilatational",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
