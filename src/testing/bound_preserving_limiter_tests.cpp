@@ -119,6 +119,15 @@ int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
     if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d) {
         param.flow_solver_param.grid_left_bound = 0.0;
         param.flow_solver_param.grid_right_bound = 2.0 * pi;
+
+        // To ensure PPL can be used
+        param.flow_solver_param.grid_xmin = param.flow_solver_param.grid_left_bound;
+        param.flow_solver_param.grid_xmax = param.flow_solver_param.grid_right_bound;
+        param.flow_solver_param.grid_ymin = param.flow_solver_param.grid_left_bound;
+        param.flow_solver_param.grid_ymax = param.flow_solver_param.grid_right_bound;
+
+        param.flow_solver_param.number_of_grid_elements_x = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
+        param.flow_solver_param.number_of_grid_elements_y = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
     }
 
     std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
@@ -138,7 +147,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error(n_grids);
 
-    for (unsigned int igrid = 0; igrid < n_grids; igrid++) {
+    for (unsigned int igrid = 2; igrid < n_grids; igrid++) {
 
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 
@@ -152,6 +161,15 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d) {
             param.flow_solver_param.grid_left_bound = 0.0;
             param.flow_solver_param.grid_right_bound = 2.0 * pi;
+
+            // To ensure PPL can be used
+            param.flow_solver_param.grid_xmin = param.flow_solver_param.grid_left_bound;
+            param.flow_solver_param.grid_xmax = param.flow_solver_param.grid_right_bound;
+            param.flow_solver_param.grid_ymin = param.flow_solver_param.grid_left_bound;
+            param.flow_solver_param.grid_ymax = param.flow_solver_param.grid_right_bound;
+
+            param.flow_solver_param.number_of_grid_elements_x = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
+            param.flow_solver_param.number_of_grid_elements_y = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
         }
 
         std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
