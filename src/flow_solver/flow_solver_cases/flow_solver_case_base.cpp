@@ -127,11 +127,7 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<D
         else if (fr_type == FREnum::c10Thousand) c_parameter_string = "c10Thousand";
         else if (fr_type == FREnum::cHULumped)   c_parameter_string = "cHULumped";
 
-        if (c_parameter_string == "cDG" ) {
-            // No additional output to indicate classical strong DG
-        } else {
-            this->pcout << "- - Using flux reconstruction c parameter: " << c_parameter_string << std::endl;
-        }
+        this->pcout << "- - Using flux reconstruction c parameter: " << c_parameter_string << std::endl;
 
         const bool use_split_form = this->all_param.use_split_form;
         if (use_split_form){
@@ -140,7 +136,6 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<D
     }
     else{
         this->pcout << "- Using weak DG" << std::endl;
-
     }
 
     const std::string flow_case_string = this->get_flow_case_string();
