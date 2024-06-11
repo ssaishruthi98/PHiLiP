@@ -34,6 +34,9 @@ Euler<dim,nstate,real>::Euler (
     , pressure_inf(1.0/(gam*mach_inf_sqr))
     , entropy_inf(pressure_inf*pow(density_inf,-gam))
     , two_point_num_flux_type(two_point_num_flux_type_input)
+    , using_positivity_preserving_limiter(
+        parameters_input->limiter_param.bound_preserving_limiter == Parameters::LimiterParam::LimiterType::positivity_preservingZhang2010
+        || parameters_input->limiter_param.bound_preserving_limiter == Parameters::LimiterParam::LimiterType::positivity_preservingWang2012)
     //, internal_energy_inf(1.0/(gam*(gam-1.0)*mach_inf_sqr)) 
     // Note: Eq.(3.11.18) has a typo in internal_energy_inf expression, mach_inf_sqr should be in denominator. 
 {
@@ -63,6 +66,11 @@ Euler<dim,nstate,real>::Euler (
 
     double velocity_inf_sqr = 1.0;
     dynamic_pressure_inf = 0.5 * density_inf * velocity_inf_sqr;
+
+    for (int istate = 0; istate < nstate; ++istate) {
+        this->custom_boundary_state_primitive_boundary_values[istate] = parameters_input->euler_param.custom_boundary_for_each_state[istate];
+    }
+    this->custom_boundary_state_conservative_boundary_values = convert_primitive_to_conservative(this->custom_boundary_state_primitive_boundary_values);
 }
 
 template <int dim, int nstate, typename real>
@@ -152,21 +160,14 @@ std::array<real,nstate> Euler<dim,nstate,real>
 template <int dim, int nstate, typename real>
 template<typename real2>
 bool Euler<dim,nstate,real>::check_positive_quantity(real2 &qty, const std::string qty_name) const {
-    using limiter_enum = Parameters::LimiterParam::LimiterType;
-    bool qty_is_positive;
+    bool qty_is_positive = true;
 
-    if (this->all_parameters->limiter_param.bound_preserving_limiter != limiter_enum::positivity_preservingZhang2010
-        && this->all_parameters->limiter_param.bound_preserving_limiter != limiter_enum::positivity_preservingWang2012) {
+    if (!this->using_positivity_preserving_limiter) {
         if (qty < 0.0) {
             // Refer to base class for non-physical results handling
             qty = this->template handle_non_physical_result<real2>(qty_name + " is negative.");
             qty_is_positive = false;
         }
-        else {
-            qty_is_positive = true;
-        }
-    } else {
-        qty_is_positive = true;
     }
     return qty_is_positive;
 }
@@ -1428,14 +1429,8 @@ void Euler<dim, nstate, real>
 ::boundary_custom(
     std::array<real, nstate>& soln_bc) const
 {
-    std::array<real, nstate> primitive_boundary_values;
     for (int istate = 0; istate < nstate; ++istate) {
-            primitive_boundary_values[istate] = this->all_parameters->euler_param.custom_boundary_for_each_state[istate];
-    }
-
-    const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
-    for (int istate = 0; istate < nstate; ++istate) {
-        soln_bc[istate] = conservative_bc[istate];
+        soln_bc[istate] = this->custom_boundary_state_conservative_boundary_values[istate];
     }
 }
 

@@ -60,9 +60,6 @@ public:
 
     /// Flag to signal that physical source term is non-zero
     const bool has_nonzero_physical_source;
-
-    /// Pointer to parameters object
-    const Parameters::AllParameters *const all_parameters;
     
     /// Determines type of nonphysical behavior
     const NonPhysicalBehaviorEnum non_physical_behavior_type;    
