@@ -156,7 +156,9 @@ inline real2 NavierStokes<dim,nstate,real>
      * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
      */
     const real2 temperature = this->template compute_temperature<real2>(primitive_soln); // from Euler
-
+    if(temperature < 0.0){
+        std::cout << "\n====================\nTEMPERATURE IS NEGATIVE\n====================\n";
+    }
     const real2 viscosity_coefficient = compute_viscosity_coefficient_sutherlands_law_from_temperature<real2>(temperature);
     
     return viscosity_coefficient;
