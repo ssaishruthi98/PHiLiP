@@ -786,7 +786,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double current_time = ode_solver->current_time;
 
     // Compute and update integrated quantities
-    this->compute_and_update_integrated_quantities(*dg,ode_solver->limiter->use_limiter);
+    this->compute_and_update_integrated_quantities(*dg,ode_solver->use_limiter);
     // Get computed quantities
     const double integrated_kinetic_energy = this->get_integrated_kinetic_energy();
     const double integrated_enstrophy = this->get_integrated_enstrophy();

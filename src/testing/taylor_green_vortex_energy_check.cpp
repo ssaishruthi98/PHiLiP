@@ -24,7 +24,7 @@ int TaylorGreenVortexEnergyCheck<dim, nstate>::run_test() const
 
     // Compute kinetic energy and theoretical dissipation rate
     std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nstate>>(this->all_parameters);
-    flow_solver_case->compute_and_update_integrated_quantities(*(flow_solver->dg),flow_solver->ode_solver->limiter->use_limiter);
+    flow_solver_case->compute_and_update_integrated_quantities(*(flow_solver->dg),flow_solver->ode_solver->use_limiter);
     const double kinetic_energy_computed = flow_solver_case->get_integrated_kinetic_energy();
     const double theoretical_dissipation_rate_computed = flow_solver_case->get_vorticity_based_dissipation_rate();
 

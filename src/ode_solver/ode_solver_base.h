@@ -30,6 +30,9 @@ public:
 
     virtual ~ODESolverBase() = default; ///< Destructor.
 
+    /// Flag if using limiter
+    const bool use_limiter;
+
     /// Table used to output solution vector at each time step
     dealii::TableHandler solutions_table;
 

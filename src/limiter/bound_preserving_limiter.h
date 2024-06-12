@@ -37,9 +37,6 @@ public:
     /// Pointer to parameters object
     const Parameters::AllParameters* const all_parameters;
 
-    /// Flag if using limiter
-    const bool use_limiter;
-
     /// Function to limit the solution
     virtual void limit(
         dealii::LinearAlgebra::distributed::Vector<double>&     solution,
