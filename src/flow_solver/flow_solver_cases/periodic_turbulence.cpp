@@ -400,7 +400,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     if(this->all_param.flow_solver_param.adaptive_time_step == true) this->maximum_local_wave_speed = 0.0;
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
+    int overintegrate = 0; // TO DO: SET BACK TO 10
 
     // Set the quadrature of size dim and 1D for sum-factorization.
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
