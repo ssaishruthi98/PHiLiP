@@ -9,7 +9,7 @@ BoundPreservingLimiter<dim, real>::BoundPreservingLimiter(
     const Parameters::AllParameters* const parameters_input)
     : nstate(nstate_input)
     , all_parameters(parameters_input)
-    , use_limiter(parameters_input->limiter_param.bound_preserving_limiter == Parameters::LimiterParam::LimiterType::None 
+    , use_limiter(parameters_input->limiter_param.bound_preserving_limiter == Parameters::LimiterParam::LimiterType::none 
                   && parameters_input->limiter_param.use_tvb_limiter == false) 
     {}
 
