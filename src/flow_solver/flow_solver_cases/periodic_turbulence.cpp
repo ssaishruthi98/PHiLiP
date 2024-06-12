@@ -391,7 +391,7 @@ void PeriodicTurbulence<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim
 }
 
 template<int dim, int nstate>
-void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg)
+void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg,const bool using_limiter)
 {
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integral_values;
     std::fill(integral_values.begin(), integral_values.end(), 0.0);
@@ -400,7 +400,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     if(this->all_param.flow_solver_param.adaptive_time_step == true) this->maximum_local_wave_speed = 0.0;
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 0; // TO DO: SET BACK TO 10
+    int overintegrate = 10;
+    if(using_limiter) overintegrate = 0; // set to zero if using limiter; can yield negative values for total energy otherwise
 
     // Set the quadrature of size dim and 1D for sum-factorization.
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
@@ -785,7 +786,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double current_time = ode_solver->current_time;
 
     // Compute and update integrated quantities
-    this->compute_and_update_integrated_quantities(*dg);
+    this->compute_and_update_integrated_quantities(*dg,ode_solver->limiter->use_limiter);
     // Get computed quantities
     const double integrated_kinetic_energy = this->get_integrated_kinetic_energy();
     const double integrated_enstrophy = this->get_integrated_enstrophy();

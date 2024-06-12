@@ -41,12 +41,12 @@ int EulerSplitEntropyCheck<dim, nstate>::run_test() const
 
         // Compute  initial and final entropy
         std::shared_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::PeriodicTurbulence<dim, nstate>>(flow_solver->flow_solver_case);
-        flow_solver_case->compute_and_update_integrated_quantities(*flow_solver->dg);
+        flow_solver_case->compute_and_update_integrated_quantities(*flow_solver->dg,*(flow_solver->ode_solver->limiter->use_limiter));
         const double initial_KE = flow_solver_case->get_integrated_kinetic_energy();
 
         static_cast<void>(flow_solver->run());
         const double final_entropy = flow_solver_case->get_numerical_entropy(flow_solver->dg); 
-        flow_solver_case->compute_and_update_integrated_quantities(*flow_solver->dg);
+        flow_solver_case->compute_and_update_integrated_quantities(*flow_solver->dg,*(flow_solver->ode_solver->limiter->use_limiter));
         const double final_KE = flow_solver_case->get_integrated_kinetic_energy();
 
         //Compare initial and final entropy to confirm entropy preservation

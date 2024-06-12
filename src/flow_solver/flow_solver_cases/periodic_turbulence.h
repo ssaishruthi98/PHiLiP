@@ -24,7 +24,7 @@ public:
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */
-    void compute_and_update_integrated_quantities(DGBase<dim, double> &dg);
+    void compute_and_update_integrated_quantities(DGBase<dim, double> &dg, const bool using_limiter);
 
     /** Gets the nondimensional integrated kinetic energy given a DG object from dg->solution
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
