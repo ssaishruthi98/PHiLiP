@@ -85,6 +85,13 @@ public:
             const unsigned int output_file_index,
             const double current_time) const;
 
+    /// Output the Mach number field to file
+    void output_mach_number_field(
+            std::shared_ptr<DGBase<dim,double>> dg,
+            const unsigned int output_file_index,
+            const double current_time,
+            const bool using_limiter) const;
+
     /// Calculate numerical entropy by matrix-vector product
     double compute_current_integrated_numerical_entropy(
             const std::shared_ptr <DGBase<dim, double>> dg) const;

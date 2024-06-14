@@ -377,38 +377,33 @@ void PeriodicTurbulence<dim, nstate>::output_mach_number_field(
     if(using_limiter) overintegrate = 0; // set to zero if using limiter; can yield negative values for total energy otherwise
 
     // Set the quadrature of size dim and 1D for sum-factorization.
-    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
-    dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
+    dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+    dealii::QGauss<1> quad_extra_1D(dg->max_degree+1+overintegrate);
 
     const unsigned int n_quad_pts = quad_extra.size();
-    const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
-    const unsigned int poly_degree = dg.max_degree;
+    const unsigned int grid_degree = dg->high_order_grid->fe_system.tensor_degree();
+    const unsigned int poly_degree = dg->max_degree;
     // Construct the basis functions and mapping shape functions.
     OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, grid_degree); 
     OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
-    soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
-    soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
+    soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], quad_extra_1D);
+    soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[poly_degree], quad_extra_1D);
     // Build mapping shape functions operators using the oneD high_ordeR_grid finite element
-    mapping_basis.build_1D_shape_functions_at_grid_nodes(dg.high_order_grid->oneD_fe_system, dg.high_order_grid->oneD_grid_nodes);
-    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg.high_order_grid->oneD_fe_system, quad_extra_1D, dg.oneD_face_quadrature);
-    const std::vector<double> &quad_weights = quad_extra.get_weights();
-    // If in the future we need the physical quadrature node location, turn these flags to true and the constructor will
-    // automatically compute it for you. Currently set to false as to not compute extra unused terms.
-    const bool store_vol_flux_nodes = false;//currently doesn't need the volume physical nodal position
-    const bool store_surf_flux_nodes = false;//currently doesn't need the surface physical nodal position
-
-    const unsigned int n_dofs = dg.fe_collection[poly_degree].n_dofs_per_cell();
+    mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, quad_extra_1D, dg->oneD_face_quadrature);
+    // const std::vector<double> &quad_weights = quad_extra.get_weights();
+    const unsigned int n_dofs = dg->fe_collection[poly_degree].n_dofs_per_cell();
     const unsigned int n_shape_fns = n_dofs / nstate;
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs);
-    auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
     // Changed for loop to update metric_cell.
-    for (auto cell = dg.dof_handler.begin_active(); cell!= dg.dof_handler.end(); ++cell, ++metric_cell) {
+    for (auto cell = dg->dof_handler.begin_active(); cell!= dg->dof_handler.end(); ++cell, ++metric_cell) {
         if (!cell->is_locally_owned()) continue;
         cell->get_dof_indices (dofs_indices);
 
         // We first need to extract the mapping support points (grid nodes) from high_order_grid.
-        const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->fe_system;
+        const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->fe_system;
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
         const unsigned int n_grid_nodes  = n_metric_dofs / dim;
         std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
@@ -421,7 +416,7 @@ void PeriodicTurbulence<dim, nstate>::output_mach_number_field(
         // Store it in such a way we can use sum-factorization on it with the mapping basis functions.
         const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
         for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const double val = (dg.high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const double val = (dg->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
             const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
             const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
             const unsigned int igrid_node = index_renumbering[ishape];
@@ -436,7 +431,7 @@ void PeriodicTurbulence<dim, nstate>::output_mach_number_field(
             n_quad_pts, n_grid_nodes,
             mapping_support_points,
             mapping_basis,
-            dg.all_parameters->use_invariant_curl_form);
+            dg->all_parameters->use_invariant_curl_form);
 
         // Fetch the modal soln coefficients
         // We immediately separate them by state as to be able to use sum-factorization
@@ -445,13 +440,13 @@ void PeriodicTurbulence<dim, nstate>::output_mach_number_field(
         // That is why the basis functions are based off the 1state oneD fe_collection.
         std::array<std::vector<double>,nstate> soln_coeff;
         for (unsigned int idof = 0; idof < n_dofs; ++idof) {
-            const unsigned int istate = dg.fe_collection[poly_degree].system_to_component_index(idof).first;
-            const unsigned int ishape = dg.fe_collection[poly_degree].system_to_component_index(idof).second;
+            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
             if(ishape == 0){
                 soln_coeff[istate].resize(n_shape_fns);
             }
          
-            soln_coeff[istate][ishape] = dg.solution(dofs_indices[idof]);
+            soln_coeff[istate][ishape] = dg->solution(dofs_indices[idof]);
         }
         // Interpolate each state to the quadrature points using sum-factorization
         // with the basis functions in each reference direction.
