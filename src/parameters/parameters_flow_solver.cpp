@@ -412,6 +412,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("output_flow_field_files_directory_name", ".",
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "Name of directory for writing flow field files. Current directory by default.");
+
+            prm.declare_entry("output_mach_number_field_in_place_of_velocity_field", "false",
+                              dealii::Patterns::Bool(),
+                              "Output Mach number field in instead of the velocity field. False by default.");
         }
         prm.leave_subsection();
 
@@ -605,6 +609,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
                           << "Please create the directory and restart. Aborting..." << std::endl;
                 std::abort();
             }
+          output_mach_number_field_in_place_of_velocity_field = prm.get_bool("output_mach_number_field_in_place_of_velocity_field");
         }
         prm.leave_subsection();
 
