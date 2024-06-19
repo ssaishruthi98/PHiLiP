@@ -191,6 +191,26 @@ protected:
 
     /// Data table storing the exact output times for the velocity field files
     std::shared_ptr<dealii::TableHandler> exact_output_times_of_velocity_field_files_table;
+
+    /// Corrected pressure dilatation based dissipation rate
+    double corrected_pressure_dilatation_based_dissipation_rate;
+    
+    /// Corrected dilatational dissipation rate
+    double corrected_dilatational_dissipation_rate;
+
+    /// Uncorrected pressure dilatation based dissipation rate
+    double uncorrected_pressure_dilatation_based_dissipation_rate;
+    
+    /// Uncorrected dilatational dissipation rate
+    double uncorrected_dilatational_dissipation_rate;
+protected:
+    /// Compute viscosity coefficient from conservative solution
+    double compute_viscosity_coefficient_from_conservative_solution(const std::array<double,nstate> &conservative_soln) const;
+    
+    /** Computes and updates the corrected dilatation (i.e. velocity divergence) based dissipation rate components.
+     *  The correction subtracts the contribution of the surface (i.e. area) integral that should vanish theoretically (i.e. on paper)
+     *  from the volume integral */
+    void compute_and_update_corrected_dilatation_based_dissipation_rate_components(const std::shared_ptr <DGBase<dim, double>> &dg);
 };
 
 } // FlowSolver namespace

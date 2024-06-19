@@ -750,6 +750,448 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
 }
 
 template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::compute_viscosity_coefficient_from_conservative_solution(const std::array<double,nstate> &conservative_soln) const
+{
+    // Compute viscosity coefficient
+    const std::array<double,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln); // from Euler
+    const double viscosity_coefficient = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln);
+    return viscosity_coefficient;
+}
+
+template<int dim, int nstate>
+void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_based_dissipation_rate_components(const std::shared_ptr < DGBase<dim, double> > &dg)
+{
+    /* Computes and updates the corrected dilatation (i.e. velocity divergence) based dissipation rate components.
+       The correction subtracts the contribution of the surface (i.e. area) integral that should vanish theoretically (i.e. on paper)
+       from the volume integral */
+
+    const unsigned int poly_degree = dg->max_degree;
+    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_shape_fns = n_dofs_cell / nstate;
+    const unsigned int grid_degree = dg->high_order_grid->fe_system.tensor_degree();
+
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree);
+    soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+    soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+    soln_basis.build_1D_surface_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_face_quadrature);
+
+    OPERATOR::basis_functions<dim,2*dim> flux_basis(1, poly_degree, dg->max_grid_degree);
+    flux_basis.build_1D_volume_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+    flux_basis.build_1D_gradient_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+    flux_basis.build_1D_surface_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_face_quadrature);
+    // flux_basis.build_1D_surface_gradient_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_face_quadrature); // using aux_soln_at_surf_q instead
+
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
+    const std::vector<double> &quad_weights_vol = dg->volume_quadrature_collection[poly_degree].get_weights();
+    const std::vector<double> &quad_weights_surf = dg->face_quadrature_collection[poly_degree].get_weights();
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+
+    double pressure_work = 0.0;
+    double dilatation_work = 0.0;
+    double uncorrected_pressure_work = 0.0;
+    double uncorrected_dilatation_work = 0.0;
+
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+    for (auto cell = dg->dof_handler.begin_active(); cell!= dg->dof_handler.end(); ++cell, ++metric_cell) {
+        if (!cell->is_locally_owned()) continue;
+        cell->get_dof_indices (dofs_indices);
+
+        // We first need to extract the mapping support points (grid nodes) from high_order_grid.
+        const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+        const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dof_indices);
+        std::array<std::vector<double>,dim> mapping_support_points;
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_grid_nodes);
+        }
+        // Get the mapping support points (physical grid nodes) from high_order_grid.
+        // Store it in such a way we can use sum-factorization on it with the mapping basis functions.
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const double val = (dg->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points[istate][igrid_node] = val; 
+        }
+        // Construct the metric operators.
+        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, false, false);
+        // Build the metric terms to compute the gradient and volume node positions.
+        // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
+        // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
+        metric_oper.build_volume_metric_operators(
+            n_quad_pts, n_grid_nodes,
+            mapping_support_points,
+            mapping_basis,
+            dg->all_parameters->use_invariant_curl_form);
+
+
+
+        std::array<std::vector<double>,nstate> soln_coeff;
+        std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff;
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+            if(ishape == 0)
+                soln_coeff[istate].resize(n_shape_fns);
+            soln_coeff[istate][ishape] = dg->solution(dofs_indices[idof]);
+            for(int idim=0; idim<dim; idim++){
+                if(ishape == 0){
+                    aux_soln_coeff[istate][idim].resize(n_shape_fns);
+                }
+                if(dg->use_auxiliary_eq){
+                    aux_soln_coeff[istate][idim][ishape] = dg->auxiliary_solution[idim](dof_indices[idof]);
+                }
+                else{
+                    aux_soln_coeff[istate][idim][ishape] = 0.0;
+                }
+            }
+        }
+
+        std::array<std::vector<double>,nstate> soln_at_q;
+        std::array<std::vector<double>,dim> vel_at_q;
+        dealii::Tensor<1,dim,std::vector<double>> vel_grad_at_q;
+        for(int istate=0; istate<nstate; istate++){
+            soln_at_q[istate].resize(n_quad_pts);
+            // Interpolate soln coeff to volume cubature nodes.
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                             soln_basis.oneD_vol_operator);
+        }
+        //get du/dx dv/dy, dw/dz
+        for(int idim=0; idim<dim; idim++){
+            dealii::Tensor<1,dim,std::vector<double>> ref_gradient_basis_fns_times_vel;
+            for(int jdim=0; jdim<dim; jdim++){
+                ref_gradient_basis_fns_times_vel[jdim].resize(n_quad_pts);
+            }
+            vel_at_q[idim].resize(n_quad_pts);
+            vel_grad_at_q[idim].resize(n_quad_pts);
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                vel_at_q[idim][iquad] = soln_at_q[idim+1][iquad] / soln_at_q[0][iquad];
+            }
+            // Apply gradient of reference basis functions on the solution at volume cubature nodes.}
+            flux_basis.gradient_matrix_vector_mult_1D(vel_at_q[idim], ref_gradient_basis_fns_times_vel,
+                                                      flux_basis.oneD_vol_operator,
+                                                      flux_basis.oneD_grad_operator);
+            // Transform the reference gradient into a physical gradient operator.
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                for(int jdim=0; jdim<dim; jdim++){
+                    //transform into the physical gradient
+                    vel_grad_at_q[idim][iquad] += metric_oper.metric_cofactor_vol[idim][jdim][iquad]
+                                                * ref_gradient_basis_fns_times_vel[jdim][iquad]
+                                                / metric_oper.det_Jac_vol[iquad];
+                }
+            }
+        }
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            std::array<double,nstate> soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_q[istate][iquad];
+            }
+            const double pressure = this->navier_stokes_physics->compute_pressure(soln_state);
+            const double viscosity_coefficient = this->compute_viscosity_coefficient_from_conservative_solution(soln_state);
+            for(int idim=0; idim<dim; idim++){
+                // pressure work
+                pressure_work += vel_grad_at_q[idim][iquad] * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+                uncorrected_pressure_work += vel_grad_at_q[idim][iquad] * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+                // dilatation work
+                dilatation_work += (vel_grad_at_q[idim][iquad]*vel_grad_at_q[idim][iquad]) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+                uncorrected_dilatation_work += (vel_grad_at_q[idim][iquad]*vel_grad_at_q[idim][iquad]) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            }
+        }
+        const unsigned int n_quad_face_pts = dg->face_quadrature_collection[poly_degree].size();
+        const unsigned int n_face_quad_pts = dg->face_quadrature_collection[poly_degree].size();
+        for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
+            metric_oper.build_facet_metric_operators(
+                iface,
+                n_quad_face_pts, n_metric_dofs/dim,
+                mapping_support_points,
+                mapping_basis,
+                dg->all_parameters->use_invariant_curl_form);
+            const dealii::Tensor<1,dim,double> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+            std::vector<dealii::Tensor<1,dim,double>> normals_int(n_quad_face_pts);
+            for(unsigned int iquad=0; iquad<n_quad_face_pts; iquad++){
+                for(unsigned int idim=0; idim<dim; idim++){
+                    normals_int[iquad][idim] =  0.0;
+                    for(int idim2=0; idim2<dim; idim2++){
+                        normals_int[iquad][idim] += unit_normal_int[idim2] * metric_oper.metric_cofactor_surf[idim][idim2][iquad];//\hat{n}^r * C_m^T 
+                    }
+                }
+            }
+            const auto neighbor_cell = cell->neighbor_or_periodic_neighbor(iface);
+            unsigned int neighbor_iface;
+            auto current_face = cell->face(iface);
+            if(current_face->at_boundary())
+                neighbor_iface = cell->periodic_neighbor_of_periodic_neighbor(iface);
+            else
+                neighbor_iface = cell->neighbor_of_neighbor(iface);
+
+            // Get information about neighbor cell
+            const unsigned int n_dofs_neigh_cell = dg->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+            // Obtain the mapping from local dof indices to global dof indices for neighbor cell
+            std::vector<dealii::types::global_dof_index> neighbor_dofs_indices;
+            neighbor_dofs_indices.resize(n_dofs_neigh_cell);
+            neighbor_cell->get_dof_indices (neighbor_dofs_indices);
+             
+            const int poly_degree_ext = neighbor_cell->active_fe_index();
+            std::array<std::vector<double>,nstate> soln_coeff_ext;
+            std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff_ext;
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                const unsigned int istate = dg->fe_collection[poly_degree_ext].system_to_component_index(idof).first;
+                const unsigned int ishape = dg->fe_collection[poly_degree_ext].system_to_component_index(idof).second;
+                if(ishape == 0)
+                    soln_coeff_ext[istate].resize(n_shape_fns);
+                soln_coeff_ext[istate][ishape] = dg->solution(neighbor_dofs_indices[idof]);
+                for(int idim=0; idim<dim; idim++){
+                    if(ishape == 0){
+                        aux_soln_coeff_ext[istate][idim].resize(n_shape_fns);
+                    }
+                    if(dg->use_auxiliary_eq){
+                        aux_soln_coeff_ext[istate][idim][ishape] = dg->auxiliary_solution[idim](neighbor_dofs_indices[idof]);
+                    }
+                    else{
+                        aux_soln_coeff_ext[istate][idim][ishape] = 0.0;
+                    }
+                }
+            }
+            std::array<std::vector<double>,nstate> soln_at_q_ext;
+            std::array<std::vector<double>,dim> vel_at_q_ext;
+            dealii::Tensor<1,dim,std::vector<double>> vel_grad_at_q_ext;
+            for(int istate=0; istate<nstate; istate++){
+                soln_at_q_ext[istate].resize(n_quad_pts);
+                // Interpolate soln coeff to volume cubature nodes.
+                soln_basis.matrix_vector_mult_1D(soln_coeff_ext[istate], soln_at_q_ext[istate],
+                                                 soln_basis.oneD_vol_operator);
+            }
+            //get du/dx dv/dy, dw/dz
+            for(int idim=0; idim<dim; idim++){
+                dealii::Tensor<1,dim,std::vector<double>> ref_gradient_basis_fns_times_vel;
+                for(int jdim=0; jdim<dim; jdim++){
+                    ref_gradient_basis_fns_times_vel[jdim].resize(n_quad_pts);
+                }
+                vel_at_q_ext[idim].resize(n_quad_pts);
+                vel_grad_at_q_ext[idim].resize(n_quad_pts);
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    vel_at_q_ext[idim][iquad] = soln_at_q_ext[idim+1][iquad] / soln_at_q_ext[0][iquad];
+                }
+                // Apply gradient of reference basis functions on the solution at volume cubature nodes.}
+                flux_basis.gradient_matrix_vector_mult_1D(vel_at_q_ext[idim], ref_gradient_basis_fns_times_vel,
+                                                          flux_basis.oneD_vol_operator,
+                                                          flux_basis.oneD_grad_operator);
+                // Transform the reference gradient into a physical gradient operator.
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    for(int jdim=0; jdim<dim; jdim++){
+                        //transform into the physical gradient
+                        vel_grad_at_q_ext[idim][iquad] += metric_oper.metric_cofactor_vol[idim][jdim][iquad]
+                                                        * ref_gradient_basis_fns_times_vel[jdim][iquad]
+                                                        / metric_oper.det_Jac_vol[iquad];
+                    }
+                }
+            }
+
+
+            //get volume entropy var and interp to face
+            std::array<std::vector<double>,nstate> entropy_var_vol_int;
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                std::array<double,nstate> soln_state;
+                for(int istate=0; istate<nstate; istate++){
+                    soln_state[istate] = soln_at_q[istate][iquad];
+                }
+                std::array<double,nstate> entropy_var;
+                entropy_var = euler_double->compute_entropy_variables(soln_state);
+                for(int istate=0; istate<nstate; istate++){
+                    if(iquad==0){
+                        entropy_var_vol_int[istate].resize(n_quad_pts);
+                    }
+                    entropy_var_vol_int[istate][iquad] = entropy_var[istate];
+                }
+            }
+            std::array<std::vector<double>,nstate> entropy_var_vol_ext;
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                std::array<double,nstate> soln_state;
+                for(int istate=0; istate<nstate; istate++){
+                    soln_state[istate] = soln_at_q_ext[istate][iquad];
+                }
+                std::array<double,nstate> entropy_var;
+                entropy_var = this->navier_stokes_physics->compute_entropy_variables(soln_state);
+                for(int istate=0; istate<nstate; istate++){
+                    if(iquad==0){
+                        entropy_var_vol_ext[istate].resize(n_quad_pts);
+                    }
+                    entropy_var_vol_ext[istate][iquad] = entropy_var[istate];
+                }
+            }
+            //Then interpolate the entropy variables at volume cubature nodes to the facet.
+            std::array<std::vector<double>,nstate> entropy_var_vol_int_interp_to_surf;
+            std::array<std::vector<double>,nstate> entropy_var_vol_ext_interp_to_surf;
+            for(int istate=0; istate<nstate; ++istate){
+                // allocate
+                entropy_var_vol_int_interp_to_surf[istate].resize(n_face_quad_pts);
+                entropy_var_vol_ext_interp_to_surf[istate].resize(n_face_quad_pts);
+                // solve entropy variables at facet cubature nodes
+                flux_basis.matrix_vector_mult_surface_1D(iface,
+                                                         entropy_var_vol_int[istate], 
+                                                         entropy_var_vol_int_interp_to_surf[istate],
+                                                         flux_basis.oneD_surf_operator,
+                                                         flux_basis.oneD_vol_operator);
+                flux_basis.matrix_vector_mult_surface_1D(neighbor_iface,
+                                                         entropy_var_vol_ext[istate], 
+                                                         entropy_var_vol_ext_interp_to_surf[istate],
+                                                         flux_basis.oneD_surf_operator,
+                                                         flux_basis.oneD_vol_operator);
+            }
+
+
+            //end of get volume entropy var and interp to face
+            std::array<std::vector<double>,nstate> soln_at_surf_q_int;
+            std::array<std::vector<double>,nstate> soln_at_surf_q_ext;
+            std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_surf_q_int;
+            std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_surf_q_ext;
+            for(int istate=0; istate<nstate; ++istate){
+                // allocate
+                soln_at_surf_q_int[istate].resize(n_face_quad_pts);
+                soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
+                // solve soln at facet cubature nodes
+                soln_basis.matrix_vector_mult_surface_1D(iface,
+                                                         soln_coeff[istate], soln_at_surf_q_int[istate],
+                                                         soln_basis.oneD_surf_operator,
+                                                         soln_basis.oneD_vol_operator);
+                soln_basis.matrix_vector_mult_surface_1D(neighbor_iface,
+                                                         soln_coeff_ext[istate], soln_at_surf_q_ext[istate],
+                                                         soln_basis.oneD_surf_operator,
+                                                         soln_basis.oneD_vol_operator);
+
+                for(int idim=0; idim<dim; idim++){
+                    // allocate
+                    aux_soln_at_surf_q_int[istate][idim].resize(n_face_quad_pts);
+                    aux_soln_at_surf_q_ext[istate][idim].resize(n_face_quad_pts);
+                    // solve auxiliary soln at facet cubature nodes
+                    soln_basis.matrix_vector_mult_surface_1D(iface,
+                                                             aux_soln_coeff[istate][idim], aux_soln_at_surf_q_int[istate][idim],
+                                                             soln_basis_int.oneD_surf_operator,
+                                                             soln_basis_int.oneD_vol_operator);
+                    soln_basis.matrix_vector_mult_surface_1D(neighbor_iface,
+                                                             aux_soln_coeff_ext[istate][idim], aux_soln_at_surf_q_ext[istate][idim],
+                                                             soln_basis.oneD_surf_operator,
+                                                             soln_basis.oneD_vol_operator);
+                }
+            }
+
+            std::array<std::vector<double>,dim> vel_at_surf_q_int;
+            std::array<std::vector<double>,dim> vel_at_surf_q_ext;
+            for(int idim=0; idim<dim; ++idim){
+                // allocate
+                vel_at_surf_q_int[idim].resize(n_face_quad_pts);
+                vel_at_surf_q_ext[idim].resize(n_face_quad_pts);
+                // solve soln at facet cubature nodes
+                flux_basis.matrix_vector_mult_surface_1D(iface,
+                                                         vel_at_q[idim], vel_at_surf_q_int[idim],
+                                                         flux_basis.oneD_surf_operator,
+                                                         flux_basis.oneD_vol_operator);
+                flux_basis.matrix_vector_mult_surface_1D(neighbor_iface,
+                                                         vel_at_q_ext[idim], vel_at_surf_q_ext[idim],
+                                                         flux_basis.oneD_surf_operator,
+                                                         flux_basis.oneD_vol_operator);
+                /* NOTES:
+                call flux_basis.oneD_surf_grad_operator in place of flux_basis.oneD_grad_operator
+                first step will be to project the gradient from the volume to the face just like above
+                -- looks like that's only possible in the volume or no one has used oneD_surf_grad_operator, try using the aux soln coeffs to do all this
+                */
+                // TO DO: Add vel_grad_at_surf_q_int and vel_grad_at_surf_q_ext
+            }
+            for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
+                std::array<double,nstate> entropy_var_face_int;
+                std::array<double,nstate> entropy_var_face_ext;
+                for(int istate=0; istate<nstate; istate++){
+                    entropy_var_face_int[istate] = entropy_var_vol_int_interp_to_surf[istate][iquad];
+                    entropy_var_face_ext[istate] = entropy_var_vol_ext_interp_to_surf[istate][iquad];
+                }
+
+                // from the entropy variables
+                std::array<double,nstate> soln_state_from_entropy_var_int;
+                soln_state_from_entropy_var_int = this->navier_stokes_physics->compute_conservative_variables_from_entropy_variables (entropy_var_face_int);
+                std::array<double,nstate> soln_state_from_entropy_var_ext;
+                soln_state_from_entropy_var_ext = this->navier_stokes_physics->compute_conservative_variables_from_entropy_variables (entropy_var_face_ext);
+
+                // from the dg solution and aux_solution
+                std::array<double,nstate> soln_state_int;
+                std::array<double,nstate> soln_state_ext;
+                std::array<dealii::Tensor<1,dim,double>,nstate> aux_soln_state_int;
+                std::array<dealii::Tensor<1,dim,double>,nstate> aux_soln_state_ext;
+                for(int istate=0; istate<nstate; istate++){
+                    soln_state_int[istate] = soln_at_surf_q_int[istate][iquad];
+                    soln_state_ext[istate] = soln_at_surf_q_ext[istate][iquad];
+                    for(int idim=0; idim<dim; idim++){
+                        aux_soln_state_int[istate][idim] = aux_soln_at_surf_q_int[istate][idim][iquad];
+                        aux_soln_state_ext[istate][idim] = aux_soln_at_surf_q_ext[istate][idim][iquad];
+                    }
+                }
+
+                
+                // // Reciple (1): soln_state_from_entropy_var and aux_soln_state
+                // const double pressure_int = this->navier_stokes_physics->compute_pressure(soln_state_from_entropy_var_int);
+                // const double pressure_ext = this->navier_stokes_physics->compute_pressure(soln_state_from_entropy_var_ext);
+                // const double viscosity_coefficient_int = this->compute_viscosity_coefficient_from_conservative_solution(soln_state_from_entropy_var_int);
+                // const double viscosity_coefficient_ext = this->compute_viscosity_coefficient_from_conservative_solution(soln_state_from_entropy_var_ext);
+                // const double dilatation_int = this->navier_stokes_physics->compute_dilatation(soln_state_from_entropy_var_int,aux_soln_state_int);
+                // const double dilatation_ext = this->navier_stokes_physics->compute_dilatation(soln_state_from_entropy_var_ext,aux_soln_state_ext);
+                // Recipe (2): soln_state and aux_soln_state
+                const double pressure_int = this->navier_stokes_physics->compute_pressure(soln_state_int);
+                const double pressure_ext = this->navier_stokes_physics->compute_pressure(soln_state_ext);
+                const double viscosity_coefficient_int = this->compute_viscosity_coefficient_from_conservative_solution(soln_state_int);
+                const double viscosity_coefficient_ext = this->compute_viscosity_coefficient_from_conservative_solution(soln_state_ext);
+                const double dilatation_int = this->navier_stokes_physics->compute_dilatation(soln_state_int,aux_soln_state_int);
+                const double dilatation_ext = this->navier_stokes_physics->compute_dilatation(soln_state_ext,aux_soln_state_ext);
+                // double dilatation_int = 0.0;
+                // double dilatation_ext = 0.0;
+                // for(int idim=0; idim<dim; idim++){
+                    // dilatation_int += vel_grad_at_surf_q_int[idim][iquad]; // * metric_oper.det_Jac_vol[iquad] ??
+                    // dilatation_ext += vel_grad_at_surf_q_ext[idim][iquad]; // * metric_oper.det_Jac_vol[iquad] ??
+                // }
+                const double dilatational_int = viscosity_coefficient_int*dilatation_int;
+                const double dilatational_ext = viscosity_coefficient_ext*dilatation_ext;
+                for(int idim=0; idim<dim; idim++){
+                  //  double vel_int = soln_at_surf_q_int[idim+1][iquad] / soln_at_surf_q_int[0][iquad];
+                   // double vel_int = soln_state_int[idim+1] / soln_state_int[0];
+                    double vel_int = vel_at_surf_q_int[idim][iquad];
+//                    double vel_ext = soln_at_surf_q_ext[idim+1][iquad] / soln_at_surf_q_ext[0][iquad];
+
+                   // pressure_work -= quad_weights_surf[iquad] * 0.5*(pressure_int + pressure_ext) * normals_int[iquad][idim] * (vel_int -vel_ext); 
+                   //only do interior since double count face
+                    pressure_work -= quad_weights_surf[iquad] * 0.5*(pressure_int + pressure_ext) * normals_int[iquad][idim] * vel_int; 
+                    // AREA INTEGRAL FOR THE DILATATIONAL DISSIPATION TERM:
+                    dilatation_work -= quad_weights_surf[iquad] * 0.5*(dilatational_int + dilatational_ext) * normals_int[iquad][idim] * vel_int; 
+                }
+            }
+        }
+    }
+    double pressure_work_mpi = dealii::Utilities::MPI::sum(pressure_work, this->mpi_communicator);
+    pressure_work_mpi *= -1.0; // output as negative
+    pressure_work_mpi /= this->domain_size; // divide by total domain volume
+    double dilatation_work_mpi = dealii::Utilities::MPI::sum(dilatation_work, this->mpi_communicator);
+    dilatation_work_mpi /= this->domain_size; // divide by total domain volume
+
+    // Update the corrected dilatation based dissipation rate components
+    this->corrected_pressure_dilatation_based_dissipation_rate = pressure_work_mpi;
+    this->corrected_dilatational_dissipation_rate = this->navier_stokes_physics->compute_dilatational_dissipation_from_integrand(dilatation_work_mpi);
+
+    double uncorrected_pressure_work_mpi = dealii::Utilities::MPI::sum(uncorrected_pressure_work, this->mpi_communicator);
+    uncorrected_pressure_work_mpi *= -1.0; // output as negative
+    uncorrected_pressure_work_mpi /= this->domain_size; // divide by total domain volume
+    double uncorrected_dilatation_work_mpi = dealii::Utilities::MPI::sum(uncorrected_dilatation_work, this->mpi_communicator);
+    uncorrected_dilatation_work_mpi /= this->domain_size; // divide by total domain volume
+
+    // Update the uncorrected dilatation based dissipation rate components
+    this->uncorrected_pressure_dilatation_based_dissipation_rate = uncorrected_pressure_work_mpi;
+    this->uncorrected_dilatational_dissipation_rate = this->navier_stokes_physics->compute_dilatational_dissipation_from_integrand(uncorrected_dilatation_work_mpi);
+}
+
+template<int dim, int nstate>
 double PeriodicTurbulence<dim, nstate>::get_integrated_kinetic_energy() const
 {
     const double integrated_kinetic_energy = this->integrated_quantities[IntegratedQuantitiesEnum::kinetic_energy];
@@ -989,6 +1431,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double strain_rate_tensor_based_dissipation_rate = this->get_strain_rate_tensor_based_dissipation_rate();
     const double solenoidal_dissipation_rate = this->get_solenoidal_dissipation_rate();
     const double dilatational_dissipation_rate = this->get_dilatational_dissipation_rate();
+    // Compute and update corrected dilatation based dissipation rate components
+    this->compute_and_update_corrected_dilatation_based_dissipation_rate_components(dg);
     
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
@@ -1011,6 +1455,10 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         if(is_viscous_flow) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_dev_strain",unsteady_data_table);
         if(is_viscous_flow) this->add_value_to_data_table(solenoidal_dissipation_rate,"eps_solenoidal",unsteady_data_table);
         if(is_viscous_flow) this->add_value_to_data_table(dilatational_dissipation_rate,"eps_dilatational",unsteady_data_table);
+        this->add_value_to_data_table(this->corrected_pressure_dilatation_based_dissipation_rate,"eps_pressure_corrected",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(this->corrected_dilatational_dissipation_rate,"eps_dilatational_corrected",unsteady_data_table);
+        this->add_value_to_data_table(this->uncorrected_pressure_dilatation_based_dissipation_rate,"eps_pressure_uncorrected",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(this->uncorrected_dilatational_dissipation_rate,"eps_dilatational_uncorrected",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
