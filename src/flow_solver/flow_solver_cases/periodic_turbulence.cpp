@@ -1171,23 +1171,21 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
         }
     }
     double pressure_work_mpi = dealii::Utilities::MPI::sum(pressure_work, this->mpi_communicator);
-    pressure_work_mpi *= -1.0; // output as negative
     pressure_work_mpi /= this->domain_size; // divide by total domain volume
     double dilatation_work_mpi = dealii::Utilities::MPI::sum(dilatation_work, this->mpi_communicator);
     dilatation_work_mpi /= this->domain_size; // divide by total domain volume
 
     // Update the corrected dilatation based dissipation rate components
-    this->corrected_pressure_dilatation_based_dissipation_rate = pressure_work_mpi;
+    this->corrected_pressure_dilatation_based_dissipation_rate = -1.0*pressure_work_mpi;
     this->corrected_dilatational_dissipation_rate = this->navier_stokes_physics->compute_dilatational_dissipation_from_integrand(dilatation_work_mpi);
 
     double uncorrected_pressure_work_mpi = dealii::Utilities::MPI::sum(uncorrected_pressure_work, this->mpi_communicator);
-    uncorrected_pressure_work_mpi *= -1.0; // output as negative
     uncorrected_pressure_work_mpi /= this->domain_size; // divide by total domain volume
     double uncorrected_dilatation_work_mpi = dealii::Utilities::MPI::sum(uncorrected_dilatation_work, this->mpi_communicator);
     uncorrected_dilatation_work_mpi /= this->domain_size; // divide by total domain volume
 
     // Update the uncorrected dilatation based dissipation rate components
-    this->uncorrected_pressure_dilatation_based_dissipation_rate = uncorrected_pressure_work_mpi;
+    this->uncorrected_pressure_dilatation_based_dissipation_rate = -1.0*uncorrected_pressure_work_mpi;
     this->uncorrected_dilatational_dissipation_rate = this->navier_stokes_physics->compute_dilatational_dissipation_from_integrand(uncorrected_dilatation_work_mpi);
 }
 
