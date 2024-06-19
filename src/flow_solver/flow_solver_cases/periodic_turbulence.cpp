@@ -846,7 +846,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
                     aux_soln_coeff[istate][idim].resize(n_shape_fns);
                 }
                 if(dg->use_auxiliary_eq){
-                    aux_soln_coeff[istate][idim][ishape] = dg->auxiliary_solution[idim](dof_indices[idof]);
+                    aux_soln_coeff[istate][idim][ishape] = dg->auxiliary_solution[idim](dofs_indices[idof]);
                 }
                 else{
                     aux_soln_coeff[istate][idim][ishape] = 0.0;
