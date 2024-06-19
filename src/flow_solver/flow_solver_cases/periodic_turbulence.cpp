@@ -771,18 +771,18 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
     const unsigned int n_shape_fns = n_dofs_cell / nstate;
     const unsigned int grid_degree = dg->high_order_grid->fe_system.tensor_degree();
 
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, dg->max_grid_degree);
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
     soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
     soln_basis.build_1D_surface_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_face_quadrature);
 
-    OPERATOR::basis_functions<dim,2*dim> flux_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> flux_basis(1, poly_degree, dg->max_grid_degree);
     flux_basis.build_1D_volume_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
     flux_basis.build_1D_gradient_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
     flux_basis.build_1D_surface_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_face_quadrature);
     // flux_basis.build_1D_surface_gradient_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_face_quadrature); // using aux_soln_at_surf_q instead
 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, grid_degree);
     mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
     mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
     const std::vector<double> &quad_weights_vol = dg->volume_quadrature_collection[poly_degree].get_weights();
@@ -834,7 +834,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
 
 
         std::array<std::vector<double>,nstate> soln_coeff;
-        std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff;
+        std::array<dealii::Tensor<1,dim,std::vector<double>>,nstate> aux_soln_coeff;
         for(unsigned int idof=0; idof<n_dofs_cell; idof++){
             const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
             const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
@@ -940,7 +940,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
              
             const int poly_degree_ext = neighbor_cell->active_fe_index();
             std::array<std::vector<double>,nstate> soln_coeff_ext;
-            std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff_ext;
+            std::array<dealii::Tensor<1,dim,std::vector<double>>,nstate> aux_soln_coeff_ext;
             for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                 const unsigned int istate = dg->fe_collection[poly_degree_ext].system_to_component_index(idof).first;
                 const unsigned int ishape = dg->fe_collection[poly_degree_ext].system_to_component_index(idof).second;
@@ -1050,8 +1050,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
             //end of get volume entropy var and interp to face
             std::array<std::vector<double>,nstate> soln_at_surf_q_int;
             std::array<std::vector<double>,nstate> soln_at_surf_q_ext;
-            std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_surf_q_int;
-            std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_surf_q_ext;
+            std::array<dealii::Tensor<1,dim,std::vector<double>>,nstate> aux_soln_at_surf_q_int;
+            std::array<dealii::Tensor<1,dim,std::vector<double>>,nstate> aux_soln_at_surf_q_ext;
             for(int istate=0; istate<nstate; ++istate){
                 // allocate
                 soln_at_surf_q_int[istate].resize(n_face_quad_pts);
@@ -1073,8 +1073,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
                     // solve auxiliary soln at facet cubature nodes
                     soln_basis.matrix_vector_mult_surface_1D(iface,
                                                              aux_soln_coeff[istate][idim], aux_soln_at_surf_q_int[istate][idim],
-                                                             soln_basis_int.oneD_surf_operator,
-                                                             soln_basis_int.oneD_vol_operator);
+                                                             soln_basis.oneD_surf_operator,
+                                                             soln_basis.oneD_vol_operator);
                     soln_basis.matrix_vector_mult_surface_1D(neighbor_iface,
                                                              aux_soln_coeff_ext[istate][idim], aux_soln_at_surf_q_ext[istate][idim],
                                                              soln_basis.oneD_surf_operator,
