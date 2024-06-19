@@ -1003,7 +1003,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
                     soln_state[istate] = soln_at_q[istate][iquad];
                 }
                 std::array<double,nstate> entropy_var;
-                entropy_var = euler_double->compute_entropy_variables(soln_state);
+                entropy_var = this->navier_stokes_physics->compute_entropy_variables(soln_state);
                 for(int istate=0; istate<nstate; istate++){
                     if(iquad==0){
                         entropy_var_vol_int[istate].resize(n_quad_pts);
