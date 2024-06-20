@@ -895,14 +895,25 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
             }
             const double pressure = this->navier_stokes_physics->compute_pressure(soln_state);
             const double viscosity_coefficient = this->compute_viscosity_coefficient_from_conservative_solution(soln_state);
+            // compute dilatation
+            double dilatation_at_q = 0.0;
             for(int idim=0; idim<dim; idim++){
-                // pressure work
-                pressure_work += vel_grad_at_q[idim][iquad] * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
-                uncorrected_pressure_work += vel_grad_at_q[idim][iquad] * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
-                // dilatation work
-                dilatation_work += (vel_grad_at_q[idim][iquad]*vel_grad_at_q[idim][iquad]) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
-                uncorrected_dilatation_work += (vel_grad_at_q[idim][iquad]*vel_grad_at_q[idim][iquad]) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+                dilatation_at_q += vel_grad_at_q[idim][iquad];
             }
+            // pressure work
+            pressure_work += dilatation_at_q * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            uncorrected_pressure_work += dilatation_at_q * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            // dilatation work
+            dilatation_work += (dilatation_at_q*dilatation_at_q) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            uncorrected_dilatation_work += (dilatation_at_q*dilatation_at_q) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            // for(int idim=0; idim<dim; idim++){
+            //     // pressure work
+            //     pressure_work += vel_grad_at_q[idim][iquad] * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            //     uncorrected_pressure_work += vel_grad_at_q[idim][iquad] * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            //     // dilatation work
+            //     dilatation_work += (vel_grad_at_q[idim][iquad]*vel_grad_at_q[idim][iquad]) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            //     uncorrected_dilatation_work += (vel_grad_at_q[idim][iquad]*vel_grad_at_q[idim][iquad]) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            // }
         }
         const unsigned int n_quad_face_pts = dg->face_quadrature_collection[poly_degree].size();
         const unsigned int n_face_quad_pts = dg->face_quadrature_collection[poly_degree].size();
@@ -1143,18 +1154,21 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
                 // Recipe (2): soln_state and aux_soln_state
                 const double pressure_int = this->navier_stokes_physics->compute_pressure(soln_state_int);
                 const double pressure_ext = this->navier_stokes_physics->compute_pressure(soln_state_ext);
-                const double viscosity_coefficient_int = this->compute_viscosity_coefficient_from_conservative_solution(soln_state_int);
-                const double viscosity_coefficient_ext = this->compute_viscosity_coefficient_from_conservative_solution(soln_state_ext);
-                const double dilatation_int = this->navier_stokes_physics->compute_dilatation(soln_state_int,aux_soln_state_int);
-                const double dilatation_ext = this->navier_stokes_physics->compute_dilatation(soln_state_ext,aux_soln_state_ext);
+                // const double viscosity_coefficient_int = this->compute_viscosity_coefficient_from_conservative_solution(soln_state_int);
+                // const double viscosity_coefficient_ext = this->compute_viscosity_coefficient_from_conservative_solution(soln_state_ext);
+                // const double dilatation_int = this->navier_stokes_physics->compute_dilatation(soln_state_int,aux_soln_state_int);
+                // const double dilatation_ext = this->navier_stokes_physics->compute_dilatation(soln_state_ext,aux_soln_state_ext);
                 // double dilatation_int = 0.0;
                 // double dilatation_ext = 0.0;
                 // for(int idim=0; idim<dim; idim++){
                     // dilatation_int += vel_grad_at_surf_q_int[idim][iquad]; // * metric_oper.det_Jac_vol[iquad] ??
                     // dilatation_ext += vel_grad_at_surf_q_ext[idim][iquad]; // * metric_oper.det_Jac_vol[iquad] ??
                 // }
-                const double dilatational_int = viscosity_coefficient_int*dilatation_int;
-                const double dilatational_ext = viscosity_coefficient_ext*dilatation_ext;
+                // const double dilatational_int = dilatation_int*dilatation_int*viscosity_coefficient_int;
+                // const double dilatational_ext = dilatation_ext*dilatation_ext*viscosity_coefficient_ext;
+                const double dilatational_int = this->navier_stokes_physics->compute_dilatational_dissipation_integrand(soln_state_int,aux_soln_state_int);
+                const double dilatational_ext = this->navier_stokes_physics->compute_dilatational_dissipation_integrand(soln_state_ext,aux_soln_state_ext);
+                // could have simply called compute_dilatational_dissipation_integrand(soln_state,aux_soln_state)
                 for(int idim=0; idim<dim; idim++){
                   //  double vel_int = soln_at_surf_q_int[idim+1][iquad] / soln_at_surf_q_int[0][iquad];
                    // double vel_int = soln_state_int[idim+1] / soln_state_int[0];
