@@ -855,6 +855,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
         }
 
         std::array<std::vector<double>,nstate> soln_at_q;
+        std::array<dealii::Tensor<1,dim,std::vector<double>>,nstate> aux_soln_at_q;
         std::array<std::vector<double>,dim> vel_at_q;
         dealii::Tensor<1,dim,std::vector<double>> vel_grad_at_q;
         for(int istate=0; istate<nstate; istate++){
@@ -862,6 +863,11 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
             // Interpolate soln coeff to volume cubature nodes.
             soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
                                              soln_basis.oneD_vol_operator);
+            for(int idim=0; idim<dim; idim++){
+                aux_soln_at_q[istate][idim].resize(n_quad_pts);
+                soln_basis.matrix_vector_mult_1D(aux_soln_coeff[istate][idim], aux_soln_at_q[istate][idim],
+                                                 soln_basis.oneD_vol_operator);
+            }
         }
         //get du/dx dv/dy, dw/dz
         for(int idim=0; idim<dim; idim++){
@@ -888,6 +894,23 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
                 }
             }
         }
+        // get velocity gradients based on aux soln
+        // Compute the primitive soln at all iquad and fill arrays
+        std::vector<double> dilatation_at_q_from_aux_soln;
+        dilatation_at_q_from_aux_soln.resize(n_quad_pts);
+        for (unsigned int iquad=0; iquad<n_quad_pts; iquad++) {
+            // extract conservative soln state
+            std::array<double,nstate> soln_state;
+            std::array<dealii::Tensor<1,dim,double>,nstate> aux_soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_q[istate][iquad];
+                for(int idim=0; idim<dim; idim++){
+                    aux_soln_state[istate][idim] = aux_soln_at_q[istate][idim][iquad];
+                }
+            }
+            dilatation_at_q_from_aux_soln[iquad] = this->navier_stokes_physics->compute_dilatation(soln_state,aux_soln_state);
+        }
+
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             std::array<double,nstate> soln_state;
             for(int istate=0; istate<nstate; istate++){
@@ -904,8 +927,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_corrected_dilatation_ba
             pressure_work += dilatation_at_q * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
             uncorrected_pressure_work += dilatation_at_q * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
             // dilatation work
-            dilatation_work += (dilatation_at_q*dilatation_at_q) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
-            uncorrected_dilatation_work += (dilatation_at_q*dilatation_at_q) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            dilatation_work += (dilatation_at_q*dilatation_at_q_from_aux_soln[iquad]) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
+            uncorrected_dilatation_work += (dilatation_at_q*dilatation_at_q_from_aux_soln[iquad]) * viscosity_coefficient * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
             // for(int idim=0; idim<dim; idim++){
             //     // pressure work
             //     pressure_work += vel_grad_at_q[idim][iquad] * pressure * quad_weights_vol[iquad] * metric_oper.det_Jac_vol[iquad];
