@@ -45,6 +45,7 @@
 #include "khi_robustness.h"
 #include "bound_preserving_limiter_tests.h"
 #include "naca0012_unsteady_check_quick.h"
+#include "h_refinement_study_sod_shock_tube.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -311,6 +312,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<BoundPreservingLimiterTests<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::naca0012_unsteady_check_quick){
         if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<NACA0012UnsteadyCheckQuick<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::h_refinement_study_sod_shock_tube){
+        if constexpr (dim==1 && nstate==dim+2)  return std::make_unique<HRefinementStudySodShockTube<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

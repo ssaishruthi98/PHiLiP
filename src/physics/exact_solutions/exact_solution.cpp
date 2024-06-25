@@ -103,6 +103,73 @@ inline real ExactSolutionFunction_IsentropicVortex<dim,nstate,real>
 
 }
 
+
+// ========================================================
+// Sod Shock Tube
+// ========================================================
+template <int dim, int nstate, typename real>
+ExactSolutionFunction_SodShockTube<dim,nstate,real>
+::ExactSolutionFunction_SodShockTube(double time_compare)
+        : ExactSolutionFunction<dim,nstate,real>()
+        , t(time_compare)
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+inline real ExactSolutionFunction_SodShockTube<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Setting constants
+    const double gam = 1.4;
+    const double gam_p1 = gam + 1.0;
+    const double gam_m1 = gam - 1.0;
+    const double c_1 = sqrt(gam * 1.0 / 1.0);
+    const double x_i = 0.5;
+    const double t_final = 0.2;
+    
+    double rho_1 = 1.0;
+    double Ux_1 = 0.0;
+    double p_1 = 1.0;
+
+    double rho = 0.0;
+    double Ux = 0.0;
+    double p = 0.0;
+
+    if(point[0] < 0.26335680867601535) {
+        rho = rho_1;
+        Ux = Ux_1;
+        p = p_1;
+    } else if (point[0] < 0.4859454374877634) {
+        Ux = 2.0 / gam_p1 * (c_1 + (point[0] - x_i) / t_final);
+
+        double fact = 1 - 0.5 * gam_m1 * Ux / c_1;
+
+        rho = rho_1 * pow(fact , (2.0 / gam_m1));
+        p = p_1 * pow(fact , (2.0 * gam / gam_m1));
+    } else if(point[0] < 0.6854905240097902) {
+        rho = 0.42631942817849544;
+        Ux = 0.92745262004895057;
+        p = 0.30313017805064707;
+    } else if(point[0] < 0.8504311464060357) {
+        rho = 0.26557371170530725;
+        Ux = 0.92745262004895057;
+        p = 0.30313017805064707;
+    } else {
+        rho = 0.125;
+        Ux = 0.0;
+        p = 0.1;
+    }
+
+    //Convert to conservative variables
+    if (istate == 0)      return rho;       //density 
+    else if (istate == nstate-1) return p/(gam-1.0) + 0.5 * rho * (Ux*Ux);   //total energy
+    else if (istate == 1) return rho * Ux;  //x-momentum
+    
+    else return 0;
+
+}
+
 //=========================================================
 // FLOW SOLVER -- Exact Solution Base Class + Factory
 //=========================================================
@@ -126,6 +193,8 @@ ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > (time_compare);
     } else if (flow_type == FlowCaseEnum::isentropic_vortex){
         if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<ExactSolutionFunction_IsentropicVortex<dim,nstate,real> > (time_compare);
+    } else if (flow_type == FlowCaseEnum::sod_shock_tube){
+        if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<ExactSolutionFunction_SodShockTube<dim,nstate,real> > (time_compare);
     } else {
         // Select zero function if there is no exact solution defined
         return std::make_shared<ExactSolutionFunction_Zero<dim,nstate,real>> (time_compare);

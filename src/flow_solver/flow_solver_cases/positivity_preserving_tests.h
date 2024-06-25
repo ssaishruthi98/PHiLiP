@@ -18,15 +18,16 @@ class PositivityPreservingTests : public CubeFlow_UniformGrid<dim, nstate>
  #endif
 
  public:
-     explicit PositivityPreservingTests(const Parameters::AllParameters *const parameters_input);
+    explicit PositivityPreservingTests(const Parameters::AllParameters *const parameters_input);
      
-     std::shared_ptr<Triangulation> generate_grid() const override;
+    std::shared_ptr<Triangulation> generate_grid() const override;
 
-     void display_additional_flow_case_specific_parameters() const override;
+    void display_additional_flow_case_specific_parameters() const override;
 
- protected:
     /// Function to compute the adaptive time step
     using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step;
+
+ protected:
 
     /// Function to compute the initial adaptive time step
     using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step_initial;

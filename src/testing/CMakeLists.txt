@@ -36,6 +36,7 @@ set(TESTS_SOURCE
     khi_robustness.cpp
     bound_preserving_limiter_tests.cpp
     naca0012_unsteady_check_quick.cpp
+    h_refinement_study_sod_shock_tube.cpp
     )
 
 foreach(dim RANGE 1 3)
