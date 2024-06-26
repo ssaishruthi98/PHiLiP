@@ -434,7 +434,7 @@ int FlowSolver<dim,nstate>::run() const
         // Initializing restart related variables
         //----------------------------------------------------
 #if PHILIP_DIM>1
-        double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time; // when used, same as the initial time
+        double current_desired_time_for_output_restart_files_every_dt_time_intervals = flow_solver_param.output_restart_files_every_dt_time_intervals; // when used, same as the initial time
 #endif
         //----------------------------------------------------
         // Initialize time step
