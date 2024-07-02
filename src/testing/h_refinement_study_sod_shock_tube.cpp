@@ -42,7 +42,7 @@ void HRefinementStudySodShockTube<dim,nstate>::calculate_Lp_error_at_final_time_
     //generate exact solution at final time
     std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function;
     exact_solution_function = ExactSolutionFactory<dim,nstate,double>::create_ExactSolutionFunction(parameters.flow_solver_param, final_time);
-    int overintegrate = 10;
+    int overintegrate = 0;
 
     // For Euler, compare only density or pressure
     // deal.ii compute_global_error() does not interface simply
@@ -96,7 +96,7 @@ void HRefinementStudySodShockTube<dim,nstate>::calculate_Lp_error_at_final_time_
                 const double exact_pressure = euler_physics->compute_pressure(exact_soln_at_q);
                 const double pressure = euler_physics->compute_pressure(soln_at_q);
 
-                std::cout << qpoint[0] <<  "   " << soln_at_q[0] << "   " << exact_soln_at_q[0] << std::endl;
+                std::cout << qpoint[0] <<  "   " << soln_at_q[0] << "   " << exact_soln_at_q[0] << "   " << pressure << "   " << exact_pressure << std::endl;
                 if (norm_p > 0){
                     Lp_error_density_local += pow(abs(soln_at_q[0] - exact_soln_at_q[0]), norm_p) * fe_values_extra.JxW(iquad);
                     Lp_error_pressure_local += pow(abs(pressure-exact_pressure), norm_p) * fe_values_extra.JxW(iquad);
@@ -144,7 +144,7 @@ int HRefinementStudySodShockTube<dim, nstate>::run_test() const
     double L2_error_pressure_conv_rate=0;
 
 
-    for (int refinement = 4; refinement < n_calculations; ++refinement){
+    for (int refinement = n_calculations - 1; refinement < n_calculations; ++refinement){
         
         pcout << "\n\n---------------------------------------------" << std::endl;
         pcout << "Refinement number " << refinement << " of " << n_calculations - 1 << std::endl;
