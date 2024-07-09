@@ -456,6 +456,11 @@ public:
      */
     dealii::Vector<double> max_dt_cell;
 
+    // ************************* Adaptive Flux Reconstruction Steps ************************* //
+    dealii::Vector<double> jameson_sensor_cell;
+    dealii::Vector<double> c_value_cell;
+
+
     /// Artificial dissipation in each cell.
     dealii::Vector<double> artificial_dissipation_coeffs;
 

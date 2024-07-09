@@ -1661,7 +1661,6 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
     data_out.add_data_vector(cell_volume, std::string("cell_volume"), dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
 
-
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
     data_out.add_data_vector (solution, *post_processor);
@@ -1782,6 +1781,10 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
+    // ************************* Adaptive Flux Reconstruction Steps ************************* //
+    data_out.add_data_vector(jameson_sensor_cell, "jameson_sensor", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(c_value_cell, "c_value", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
 
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
@@ -1895,6 +1898,10 @@ void DGBase<dim,real,MeshType>::allocate_system (
     
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
+
+    // ************************* Adaptive Flux Reconstruction Steps ************************* //
+    jameson_sensor_cell.reinit(triangulation->n_active_cells());
+    c_value_cell.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
@@ -2460,7 +2467,13 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
      
     OPERATOR::FR_mass_inv<dim,2*dim,real> mass_inv(1, max_degree, init_grid_degree, FR_Type);
     OPERATOR::FR_mass_inv_aux<dim,2*dim,real> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
-     
+
+    // ************************* Adaptive Flux Reconstruction Steps ************************* //
+    OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cDG(1, max_degree, init_grid_degree, FR_enum::cDG);
+    OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_cPlus(1, max_degree, init_grid_degree, FR_enum::cPlus);
+    OPERATOR::FR_mass_inv<dim, 2 * dim, real> mass_inv_c10Thousand(1, max_degree, init_grid_degree, FR_enum::c10Thousand);
+    // ************************* Adaptive Flux Reconstruction Steps ************************* //
+
     OPERATOR::vol_projection_operator_FR<dim,2*dim,real> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
     OPERATOR::vol_projection_operator_FR_aux<dim,2*dim,real> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
      
@@ -2480,6 +2493,12 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }
         else{
             mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+
+            // ************************* Adaptive Flux Reconstruction Steps ************************* //
+            mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            mass_inv_c10Thousand.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+            // ************************* Adaptive Flux Reconstruction Steps ************************* //
         }
     }
     else{//we always use weight-adjusted for curvilinear based off the projection operator
@@ -2495,8 +2514,11 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     if(all_parameters->store_residual_cpu_time){
         timer.start();
     }
+    
+    // ************************* Adaptive Flux Reconstruction Steps ************************* //
+    unsigned int cell_index = 0;
 
-    for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
+    for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell, ++cell_index) {
         if (!soln_cell->is_locally_owned()) continue;
 
         const unsigned int poly_degree = soln_cell->active_fe_index();
@@ -2514,6 +2536,13 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
             mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree]);
             if(Cartesian_element){//then we can factor out det of Jac and rapidly simplify
                 mass_inv.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
+
+                // ************************* Adaptive Flux Reconstruction Steps ************************* //
+                mass_inv_cDG.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                mass_inv_cPlus.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                mass_inv_c10Thousand.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                // ************************* Adaptive Flux Reconstruction Steps ************************* //
+
                 if(use_auxiliary_eq){
                     mass_inv_aux.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree], oneD_quadrature_collection[poly_degree]);
                 }
@@ -2552,6 +2581,33 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                         n_quad_pts, n_grid_nodes, 
                         mapping_support_points,
                         mapping_basis);
+
+        // ************************* Adaptive Flux Reconstruction Steps ************************* //
+        real jameson_sensor = 0.0;
+        const unsigned int n_shape_fns = n_dofs_cell / nstate;
+        real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
+
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+            int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
+
+            if (ishape < n_shape_fns - 1 && ishape > 0 && istate == nstate - 1) {
+                f_j = output_vector[current_dofs_indices[idof]];
+                f_jm1 = output_vector[current_dofs_indices[istate * n_shape_fns + (ishape - 1)]];
+                f_jp1 = output_vector[current_dofs_indices[istate * n_shape_fns + (ishape + 1)]];
+
+                real new_jameson_sensor = abs(f_jm1 - (2 * f_j) + f_jp1) / (abs(f_jm1) + abs(2 * f_j) + abs(f_jp1) + 1e-13);
+
+                if (new_jameson_sensor > jameson_sensor) {
+                    jameson_sensor = new_jameson_sensor;
+                }
+            }
+        }
+        
+        this->jameson_sensor_cell[cell_index] = jameson_sensor;
+        // ************************* Adaptive Flux Reconstruction Steps ************************* //
+
+
         //solve mass inverse times input vector for each state independently
         for(int istate=0; istate<nstate; istate++){
             const unsigned int n_shape_fns = n_dofs_cell / nstate;
@@ -2570,9 +2626,30 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                                                        false, 1.0 / metric_oper.det_Jac_vol[0]);
                 }
                 else{
-                    mass_inv.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                                                   mass_inv.oneD_vol_operator,
-                                                   false, 1.0 / metric_oper.det_Jac_vol[0]);
+                    // ************************* Adaptive Flux Reconstruction Steps ************************* //
+                    if (FR_Type == FR_enum::cAdaptive) {
+                        if (jameson_sensor > this->all_parameters->shock_sensor_threshold) {
+                            mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv_cPlus.oneD_vol_operator,
+                                false, 1.0 / metric_oper.det_Jac_vol[0]);
+                            this->c_value_cell[cell_index] = 1.0;
+                        }
+                        
+                        else {
+                            mass_inv_cDG.matrix_vector_mult_1D(
+                                local_input_vector, local_output_vector,
+                                mass_inv_cDG.oneD_vol_operator,
+                                false, 1.0 / metric_oper.det_Jac_vol[0]);
+                            this->c_value_cell[cell_index] = 0.0;
+                        }
+                    }
+                    // ************************* Adaptive Flux Reconstruction Steps ************************* //
+
+                    else {
+                        mass_inv.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                            mass_inv.oneD_vol_operator,
+                            false, 1.0 / metric_oper.det_Jac_vol[0]);
+                    }
                 }
             }
             else{
