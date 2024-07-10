@@ -146,7 +146,7 @@ void double_mach_reflection_grid(
     dealii::GridGenerator::subdivided_hyper_rectangle(grid, step_sizes, p1, p2, true);
 
     double bottom_x = 0.0;
-    double right_y = 0.0;
+    // double right_y = 0.0;
 
     // Set boundary type and design type
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
@@ -154,13 +154,13 @@ void double_mach_reflection_grid(
             if (cell->face(face)->at_boundary()) {
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if (current_id == 0) {
-                    if(right_y<=2.0){
-                        right_y += cell->extent_in_direction(1);
+                    // if(right_y<=2.0){
+                    //     right_y += cell->extent_in_direction(1);
                         cell->face(face)->set_boundary_id(1007); // x_left, post-shock
-                    }
-                    else {
-                        cell->face(face)->set_boundary_id(1001);
-                    }
+                    // }
+                    // else {
+                    //     cell->face(face)->set_boundary_id(1001);
+                    // }
                 }
                 else if (current_id == 1) {
                     cell->face(face)->set_boundary_id(1004); // x_right, riemann
@@ -176,7 +176,7 @@ void double_mach_reflection_grid(
                     }
                 }
                 else if (current_id == 3) {
-                    cell->face(face)->set_boundary_id(1004);
+                    cell->face(face)->set_boundary_id(1002);
                 }
             }
         }
