@@ -650,6 +650,67 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 }
 
 // ========================================================
+// Shock Diffraction (backwards facing step) (2D) -- Initial Condition
+// See Xu & Shu, Third order maximum-principle-satisfying 
+// and positivity-preserving Lax-Wendroff discontinuous Galerkin 
+// methods for hyperbolic conservation laws, 2022 pg. 30
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ShockDiffraction<dim, nstate, real>
+::InitialConditionFunction_ShockDiffraction(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    real x = point[0];
+    //real y = point[1];
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        if (x <= 0.5) {
+            if (istate == 0) {
+                // density
+                value = 7.041132906907898;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 4.07794695481336;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 30.05945;
+            }
+        }
+        else {
+           if (istate == 0) {
+               // density
+               value = 1.4;
+           }
+           else if (istate == 1) {
+               // x-velocity
+               value = 0.0;
+           }
+           else if (istate == 2) {
+               // y-velocity
+               value = 0.0;
+           }
+           else if (istate == 3) {
+               // pressure
+               value = 1.0;
+           }
+        }
+    }
+    return value;
+}
+
+// ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -738,7 +799,9 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
         if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim, nstate, real> >();
-    }else {
+    } else if (flow_type == FlowCaseEnum::shock_diffraction) {
+        if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim,nstate,real> > (param);
+    } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
     }
@@ -777,6 +840,7 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_EulerBase <PHILIP_DIM, PHILIP_DIM + 2, double>;
 template class InitialConditionFunction_LowDensity2D <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;

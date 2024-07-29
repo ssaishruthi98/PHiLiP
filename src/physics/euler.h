@@ -427,6 +427,10 @@ protected:
     void boundary_farfield (
         std::array<real,nstate> &soln_bc) const;
 
+    // Custom boundary condition for the shock diffraction case
+    void boundary_postshock(
+        std::array<real, nstate>& soln_bc) const;
+    
     /// Get manufactured solution value
     std::array<real,nstate> get_manufactured_solution_value(
         const dealii::Point<dim,real> &pos) const;

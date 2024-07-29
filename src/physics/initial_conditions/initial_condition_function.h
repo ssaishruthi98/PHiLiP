@@ -427,6 +427,25 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+/// Initial Condition Function: 2D Shock Diffraction Problem
+/** See Xu & Shu, Third order maximum-principle-satisfying 
+ *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
+ *  methods for hyperbolic conservation laws, 2022 pg. 30
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_ShockDiffraction : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_ShockDiffraction(
+        Parameters::AllParameters const* const param);
+};
+
 /// Initial condition 0.
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nstate,real>

@@ -49,7 +49,9 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() 
 
 
     Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id);
-    grid->refine_global(number_of_refinements);
+    if(dim==1){
+        grid->refine_global(number_of_refinements);
+    }
 
     return grid;
 }
@@ -160,6 +162,7 @@ void NonPeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
 #if PHILIP_DIM==2
     template class NonPeriodicCubeFlow<PHILIP_DIM, 1>;
+    template class NonPeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #else
     template class NonPeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
