@@ -98,6 +98,8 @@ protected:
     real dx;
     real dy;
     real dz;
+
+    bool flux_nodes_GL;
 }; // End of PositivityPreservingLimiter Class
 } // PHiLiP namespace
 

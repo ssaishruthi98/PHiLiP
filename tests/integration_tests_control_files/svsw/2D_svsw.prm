@@ -8,23 +8,23 @@ set pde_type = euler
 
 # DG formulation
 set use_weak_form = false
-set flux_nodes_type = GLL
+set flux_nodes_type = GL
 
 # Strong DG - LaxF
-set use_split_form = false
-set conv_num_flux = lax_friedrichs
+#set use_split_form = false
+#set conv_num_flux = lax_friedrichs
 
 # NSFR - Ra
 set use_split_form = true
-set two_point_num_flux_type = KG
+set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
-#subsection limiter
-#  set bound_preserving_limiter = positivity_preservingWang2012
-#  set min_density = 1e-13
-#end
+subsection limiter
+  set bound_preserving_limiter = positivity_preservingWang2012
+  set min_density = 1e-13
+end
 
 # ODE solver
 subsection ODE solver
@@ -47,19 +47,19 @@ end
 subsection flow_solver
   set flow_case_type = svsw
   set poly_degree = 3
-  set final_time = 1.75
+  set final_time = 0.7
   #set constant_time_step = 0.0005
-  set courant_friedrichs_lewy_number = 0.25
+  set courant_friedrichs_lewy_number = 0.2
   set adaptive_time_step = true
   set unsteady_data_table_filename = svsw_energy
   subsection grid
     subsection positivity_preserving_tests
       set grid_xmin = 0.0
-      set grid_xmax = 4.0
+      set grid_xmax = 2.0
       set grid_ymin = 0.0
       set grid_ymax = 1.0
 
-      set number_of_grid_elements_x = 200
+      set number_of_grid_elements_x = 100
       set number_of_grid_elements_y = 50
     end
   end
