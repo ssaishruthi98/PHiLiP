@@ -456,6 +456,8 @@ public:
      */
     dealii::Vector<double> max_dt_cell;
 
+    dealii::Vector<double> jameson_sensor;
+
     /// Artificial dissipation in each cell.
     dealii::Vector<double> artificial_dissipation_coeffs;
 

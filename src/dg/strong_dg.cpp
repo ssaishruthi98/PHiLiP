@@ -967,6 +967,62 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         cell_volume_estimate += metric_oper.det_Jac_vol[iquad] * vol_quad_weights[iquad];
     }
+
+    // ************************* Adaptive Flux Reconstruction Steps ************************* //
+    real current_jameson_sensor = 0.0;
+    //const unsigned int n_shape_fns = n_dofs_cell / nstate;
+    real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
+
+    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+        //pcout << "get istate" << std::endl;
+        const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
+        const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
+
+        if (ishape < n_shape_fns - 1 && ishape > 0 && istate == nstate - 1) {
+            //pcout << "calculating sensor value:   ";
+            f_j = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[idof]);
+            //pcout << "f_j   " << f_j;
+            f_jm1 = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[istate * n_shape_fns + (ishape - 1)]);
+            //pcout << "   f_jm1   " << f_jm1;
+            f_jp1 = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[istate * n_shape_fns + (ishape + 1)]);
+            //pcout << "   f_jp1   " << f_jp1 << std::endl;
+
+            real new_jameson_sensor = abs(f_jm1 - (2 * f_j) + f_jp1) / (abs(f_jm1) + abs(2 * f_j) + abs(f_jp1) + 1e-13);
+
+            if (new_jameson_sensor > current_jameson_sensor) {
+                current_jameson_sensor = new_jameson_sensor;
+            }
+        }
+    }
+    
+
+    // for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+    //     pcout << "get istate" << std::endl;
+    //     const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
+    //     //const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
+
+    //     if (idof > 0 && idof < n_dofs_cell && istate == nstate - 1) {
+    //         pcout << "calculating sensor value:   ";
+    //         f_j = soln_coeff[istate][idof];
+    //         pcout << "f_j   " << f_j;
+    //         f_jm1 = soln_coeff[istate][idof-1];
+    //         pcout << "   f_jm1   " << f_jm1;
+    //         f_jp1 = soln_coeff[istate][idof+1];
+    //         pcout << "   f_jp1   " << f_jp1 << std::endl;
+
+    //         real new_jameson_sensor = abs(f_jm1 - (2 * f_j) + f_jp1) / (abs(f_jm1) + abs(2 * f_j) + abs(f_jp1) + 1e-13);
+
+    //         if (new_jameson_sensor > current_jameson_sensor) {
+    //             current_jameson_sensor = new_jameson_sensor;
+    //         }
+    //     }
+    // }
+
+    this->jameson_sensor[current_cell_index] = current_jameson_sensor;
+    if(current_jameson_sensor > 0.5)
+        pcout << "Jameson Sensor Value:   " << this->jameson_sensor[current_cell_index] << "   at cell index  " << current_cell_index << std::endl;
+    // ************************* Adaptive Flux Reconstruction Steps ************************* //
+
     const real cell_volume = cell_volume_estimate;
     const real diameter = cell->diameter();
     const real cell_diameter = cell_volume / std::pow(diameter,dim-1);
@@ -977,7 +1033,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     //get entropy projected variables
     std::array<std::vector<real>,nstate> entropy_var_at_q;
     std::array<std::vector<real>,nstate> projected_entropy_var_at_q;
-    if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+    if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && current_jameson_sensor < 0.5){
         for(int istate=0; istate<nstate; istate++){
             entropy_var_at_q[istate].resize(n_quad_pts);
             projected_entropy_var_at_q[istate].resize(n_quad_pts);
@@ -1020,7 +1076,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     std::vector<std::array<unsigned int,dim>> Hadamard_rows_sparsity(n_quad_pts * n_quad_pts_1D);//size n^{d+1}
     std::vector<std::array<unsigned int,dim>> Hadamard_columns_sparsity(n_quad_pts * n_quad_pts_1D);
     //allocate reference 2pt flux for Hadamard product
-    if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+    if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && current_jameson_sensor < 0.5){
         for(int istate=0; istate<nstate; istate++){
             for(int idim=0; idim<dim; idim++){
                 conv_ref_2pt_flux_at_q[istate][idim].reinit(n_quad_pts, n_quad_pts_1D);//size n^d x n
@@ -1057,7 +1113,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         // If 2pt flux, transform to reference at construction to improve performance.
         // We technically use a REFERENCE 2pt flux for all entropy stable schemes.
         std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux;
-        if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+        if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && current_jameson_sensor < 0.5){
             //get the soln for iquad from projected entropy variables
             std::array<real,nstate> entropy_var;
             for(int istate=0; istate<nstate; istate++){
@@ -1150,7 +1206,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             dealii::Tensor<1,dim,real> conv_ref_flux;
             dealii::Tensor<1,dim,real> diffusive_ref_flux;
             //Trnasform to reference fluxes
-            if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+            if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && current_jameson_sensor < 0.5){
                 //Do Nothing. 
                 //I am leaving this block here so the diligent reader
                 //remembers that, for entropy stable schemes, we construct
@@ -1180,7 +1236,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
                     diffusive_ref_flux_at_q[istate][idim].resize(n_quad_pts);
                 }
                 //write data
-                if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+                if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && current_jameson_sensor < 0.5){
                     //Do nothing because written in a Hadamard product sum-factorized form above.
                 }
                 else{
@@ -1206,7 +1262,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
 
     // Get a flux basis reference gradient operator in a sum-factorized Hadamard product sparse form. Then apply the divergence.
     std::array<dealii::FullMatrix<real>,dim> flux_basis_stiffness_skew_symm_oper_sparse;
-    if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+    if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && current_jameson_sensor < 0.5){
         for(int idim=0; idim<dim; idim++){
             flux_basis_stiffness_skew_symm_oper_sparse[idim].reinit(n_quad_pts, n_quad_pts_1D);
         }
@@ -1226,7 +1282,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         std::vector<real> conv_flux_divergence(n_quad_pts); 
         std::vector<real> diffusive_flux_divergence(n_quad_pts); 
 
-        if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+        if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && current_jameson_sensor < 0.5){
             //2pt flux Hadamard Product, and then multiply by vector of ones scaled by 1.
             // Same as the volume term in Eq. (15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485. but, 
             // where we use the reference skew-symmetric stiffness operator of the flux basis for the Q operator and the reference two-point flux as to make use of Alex's Hadamard product
@@ -1270,7 +1326,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         std::vector<real> rhs(n_shape_fns);
 
         // Convective
-        if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
+        if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && current_jameson_sensor < 0.5){
             std::vector<real> ones(n_quad_pts, 1.0);
             soln_basis.inner_product_1D(conv_flux_divergence, ones, rhs, soln_basis.oneD_vol_operator, false, -1.0);
         }

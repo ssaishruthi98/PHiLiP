@@ -444,16 +444,14 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         if (nan_check) {
             for (unsigned int istate = 0; istate < nstate; ++istate) {
-                std::cout << "Error: Density passed to limiter is NaN - Aborting... " << std::endl;
+                std::cout << "Error: State Variable passed to limiter is NaN - Aborting... " << std::endl;
 
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
                     std::cout << soln_coeff[istate][iquad] << "    ";
                 }
-
                 std::cout << std::endl;
-
-                std::abort();
-            }  
+            } 
+            std::abort();
         }
 
 

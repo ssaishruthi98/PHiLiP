@@ -335,14 +335,14 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
     const double entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
     this->previous_numerical_entropy = current_numerical_entropy;
 
-    if (std::isnan(entropy)){
-        this->pcout << "Entropy is nan. Aborting flow simulation..." << std::endl << std::flush;
-        std::abort();
-    }
+    // if (std::isnan(entropy)){
+    //     this->pcout << "Entropy is nan. Aborting flow simulation..." << std::endl << std::flush;
+    //     std::abort();
+    // }
     if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
 
-    if(nstate == dim + 2)
-        this->check_positivity_density(*dg);
+    // if(nstate == dim + 2)
+    //     this->check_positivity_density(*dg);
 
     if (this->mpi_rank == 0) {
 

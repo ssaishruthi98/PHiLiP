@@ -306,14 +306,14 @@ void shock_diffraction_grid(
 
 
     // Set boundary type and design type
-    double left_y = 0.0;
-    double bottom_x = 0.0;
+    int left_y = 0.0;
+    int bottom_x = 0.0;
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
         for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
             if (cell->face(face)->at_boundary()) {
                 if (face == 0) {
-                    if (left_y < 6.0) {
-                        left_y += cell->extent_in_direction(1);
+                    if (left_y < n_cells_remove[1]) {
+                        left_y ++;
                         cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
                     }
                     else {
@@ -324,8 +324,8 @@ void shock_diffraction_grid(
                     cell->face(face)->set_boundary_id(1009); // x_right, Symmetry/Wall
                 }
                 else if (face == 2) {
-                    if (left_y >= 6.0 && bottom_x < 1.0) {
-                        bottom_x += cell->extent_in_direction(1);
+                    if (left_y >= n_cells_remove[1] && bottom_x < n_cells_remove[0]) {
+                        bottom_x ++;
                         cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
                     }
                     else {
