@@ -327,6 +327,7 @@ inline real Euler<dim,nstate,real>
 
     const real entropy = compute_entropy<real>(density, pressure);
 
+    // std::cout << "density:   " << density << "   pressure:   " << pressure << "    entropy:    " << entropy << std::endl;
     const real numerical_entropy_function = - density * entropy;
 
     return numerical_entropy_function;

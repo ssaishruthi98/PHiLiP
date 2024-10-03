@@ -518,7 +518,38 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         pcout<<"ERROR: Implicit does not currently work for strong form. Aborting..."<<std::endl;
         std::abort();
     }
+    
+    // // ************************* Adaptive Flux Reconstruction Steps ************************* //
+    // real current_jameson_sensor = 0.0;
+    // const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
+    // real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
 
+    // for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
+    //     //pcout << "get istate" << std::endl;
+    //     const int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
+    //     const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
+
+    //     if (ishape < n_shape_fns - 1 && ishape > 0 && istate == nstate - 1) {
+    //         //pcout << "calculating sensor value:   ";
+    //         f_j = solution(current_dofs_indices[idof]);
+    //         //pcout << "f_j   " << f_j;
+    //         f_jm1 = solution(current_dofs_indices[istate * n_shape_fns + (ishape - 1)]);
+    //         //pcout << "   f_jm1   " << f_jm1;
+    //         f_jp1 = solution(current_dofs_indices[istate * n_shape_fns + (ishape + 1)]);
+    //         //pcout << "   f_jp1   " << f_jp1 << std::endl;
+
+    //         real new_jameson_sensor = abs(f_jm1 - (2 * f_j) + f_jp1) / (abs(f_jm1) + abs(2 * f_j) + abs(f_jp1) + 1e-13);
+
+    //         if (new_jameson_sensor > current_jameson_sensor) {
+    //             current_jameson_sensor = new_jameson_sensor;
+    //         }
+    //     }
+    // }
+    
+
+    // this->jameson_sensor[current_cell_index] = current_jameson_sensor;
+    // if(current_jameson_sensor > 0.5)
+    //     pcout << "Jameson Sensor Value:   " << this->jameson_sensor[current_cell_index] << "   at cell index  " << current_cell_index << std::endl;
 
     assemble_volume_term_and_build_operators(
         current_cell,
@@ -855,6 +886,57 @@ template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::set_dual(const dealii::LinearAlgebra::distributed::Vector<real> &dual_input)
 {
     dual = dual_input;
+}
+
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::update_jameson_sensor()
+{
+    std::vector<dealii::types::global_dof_index> dof_indices;
+
+    for (auto cell = dof_handler.begin_active(); cell!=dof_handler.end(); ++cell) {
+
+        if (!cell->is_locally_owned()) continue;
+
+        const unsigned int fe_index_curr_cell = cell->active_fe_index();
+        const dealii::types::global_dof_index current_cell_index = cell->active_cell_index();
+        
+        // Current reference element related to this physical cell
+        const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[fe_index_curr_cell];
+        const unsigned int n_dofs_cell = current_fe_ref.n_dofs_per_cell();
+
+        dof_indices.resize(n_dofs_cell);
+        cell->get_dof_indices (dof_indices);
+
+        real current_jameson_sensor = 0.0;
+        const unsigned int n_shape_fns = n_dofs_cell / nstate;
+        real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
+
+        for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+            //pcout << "get istate" << std::endl;
+            const int istate = fe_collection[fe_index_curr_cell].system_to_component_index(idof).first;
+            const unsigned int ishape = fe_collection[fe_index_curr_cell].system_to_component_index(idof).second;
+
+            if (ishape < n_shape_fns - 1 && ishape > 0 && istate == nstate - 1) {
+                //pcout << "calculating sensor value:   ";
+                f_j = solution(dof_indices[idof]);
+                //pcout << "f_j   " << f_j;
+                f_jm1 = solution(dof_indices[istate * n_shape_fns + (ishape - 1)]);
+                //pcout << "   f_jm1   " << f_jm1;
+                f_jp1 = solution(dof_indices[istate * n_shape_fns + (ishape + 1)]);
+                //pcout << "   f_jp1   " << f_jp1 << std::endl;
+
+                real new_jameson_sensor = abs(f_jm1 - (2 * f_j) + f_jp1) / (abs(f_jm1) + abs(2 * f_j) + abs(f_jp1) + 1e-13);
+
+                if (new_jameson_sensor > current_jameson_sensor) {
+                    current_jameson_sensor = new_jameson_sensor;
+                }
+            }
+        }
+
+        this->jameson_sensor[current_cell_index] = current_jameson_sensor;
+        // if(current_jameson_sensor > 0.5)
+        //     pcout << "Jameson Sensor Value:   " << this->jameson_sensor[current_cell_index] << "   at cell index  " << current_cell_index << std::endl;
+    }
 }
 
 template <int dim, typename real, typename MeshType>

@@ -930,6 +930,8 @@ public:
     double max_artificial_dissipation_coeff;
     /// Update discontinuity sensor.
     void update_artificial_dissipation_discontinuity_sensor();
+    /// Update jameson sensor.
+    void update_jameson_sensor();
     /// Allocate the necessary variables declared in src/physics/model.h
     virtual void allocate_model_variables() = 0;
     /// Update the necessary variables declared in src/physics/model.h

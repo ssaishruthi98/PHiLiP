@@ -263,8 +263,18 @@ double PositivityPreservingTests<dim, nstate>::compute_integrated_entropy(DGBase
         for(int istate=0; istate<nstate; istate++){
             soln_at_q_vect[istate].resize(n_quad_pts);
             // Interpolate soln coeff to volume cubature nodes.
+            // for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            //     std::cout << soln_coeff[istate][iquad] << "   ";
+            // }
+            // std::cout << std::endl;
+
             soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q_vect[istate],
                                              soln_basis.oneD_vol_operator);
+
+            // for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            //     std::cout << soln_at_q_vect[istate][iquad] << "   ";
+            // }
+            // std::cout << std::endl << std::endl;
             // We need to first compute the reference gradient of the solution, then transform that to a physical gradient.
             dealii::Tensor<1,dim,std::vector<double>> ref_gradient_basis_fns_times_soln;
             for(int idim=0; idim<dim; idim++){
@@ -306,7 +316,10 @@ double PositivityPreservingTests<dim, nstate>::compute_integrated_entropy(DGBase
             //#####################################################################
             const double quadrature_entropy = this->euler_physics->compute_numerical_entropy_function(soln_at_q);
             //Using std::cout because of cell->is_locally_owned check 
-            if (isnan(quadrature_entropy))  std::cout << "WARNING: NaN entropy detected at a node!"  << std::endl;
+            if (isnan(quadrature_entropy)){
+                std::cout << "WARNING: NaN entropy detected at a node!"  << std::endl;
+                // sleep(5);
+            }
             integrated_quantity += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             //#####################################################################
         }
