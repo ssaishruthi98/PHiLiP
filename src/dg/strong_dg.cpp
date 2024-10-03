@@ -1483,7 +1483,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
 
         // Evaluate physical convective flux
         std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux;
-        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+        if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
             conv_phys_flux = this->pde_physics_double->convective_flux (soln_state);
         }
 
@@ -1496,7 +1496,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             dealii::Tensor<1,dim,real> conv_ref_flux;
             dealii::Tensor<1,dim,real> diffusive_ref_flux;
             // transform the conservative convective physical flux to reference space
-            if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+            if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
                 metric_oper.transform_physical_to_reference(
                     conv_phys_flux[istate],
                     metric_cofactor_vol,
@@ -1518,7 +1518,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                     diffusive_ref_flux_at_vol_q[istate][idim].resize(n_quad_pts_vol);
                 }
                 //write data
-                if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+                if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
                     conv_ref_flux_at_vol_q[istate][idim][iquad] = conv_ref_flux[idim];
                 }
 
@@ -1546,7 +1546,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         //Note, since the normal is zero in all other reference directions, we only have to interpolate one given reference direction to the facet
 
         //interpolate reference volume convective flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
-        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+        if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
             flux_basis.matrix_vector_mult_surface_1D(iface, 
                                                      conv_ref_flux_at_vol_q[istate][dim_not_zero],
                                                      conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
@@ -1771,7 +1771,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         soln_state_int = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face_int);
 
 
-        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+        if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
             for(int istate=0; istate<nstate; istate++){
                 soln_state_int[istate] = soln_at_surf_q[istate][iquad];
             }
@@ -2035,7 +2035,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // Evaluate physical convective flux
         std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux;
         //Only for conservtive DG do we interpolate volume fluxes to the facet
-        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+        if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
             conv_phys_flux = this->pde_physics_double->convective_flux (soln_state);
         }
 
@@ -2048,7 +2048,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             dealii::Tensor<1,dim,real> conv_ref_flux;
             dealii::Tensor<1,dim,real> diffusive_ref_flux;
             // transform the conservative convective physical flux to reference space
-            if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+            if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
                 metric_oper_int.transform_physical_to_reference(
                     conv_phys_flux[istate],
                     metric_cofactor_vol_int,
@@ -2070,7 +2070,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                     diffusive_ref_flux_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
                 }
                 // write data
-                if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+                if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
                     conv_ref_flux_at_vol_q_int[istate][idim][iquad] = conv_ref_flux[idim];
                 }
                 diffusive_ref_flux_at_vol_q_int[istate][idim][iquad] = diffusive_ref_flux[idim];
@@ -2103,7 +2103,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
 
         // Evaluate physical convective flux
         std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux;
-        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+        if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
             conv_phys_flux = this->pde_physics_double->convective_flux (soln_state);
         }
 
@@ -2116,7 +2116,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             dealii::Tensor<1,dim,real> conv_ref_flux;
             dealii::Tensor<1,dim,real> diffusive_ref_flux;
             // transform the conservative convective physical flux to reference space
-            if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+            if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
                 metric_oper_ext.transform_physical_to_reference(
                     conv_phys_flux[istate],
                     metric_cofactor_vol_ext,
@@ -2138,7 +2138,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                     diffusive_ref_flux_at_vol_q_ext[istate][idim].resize(n_quad_pts_vol_ext);
                 }
                 // write data
-                if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+                if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
                     conv_ref_flux_at_vol_q_ext[istate][idim][iquad] = conv_ref_flux[idim];
                 }
                 diffusive_ref_flux_at_vol_q_ext[istate][idim][iquad] = diffusive_ref_flux[idim];
@@ -2172,7 +2172,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // Note, since the normal is zero in all other reference directions, we only have to interpolate one given reference direction to the facet
         
         // interpolate reference volume convective flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
-        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+        if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
             flux_basis_int.matrix_vector_mult_surface_1D(iface, 
                                                          conv_ref_flux_at_vol_q_int[istate][dim_not_zero_int],
                                                          conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
@@ -2520,7 +2520,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_state_ext = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face_ext);
 
 
-        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+        if((!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form) || this->jameson_sensor[current_cell_index] > 0.5){
             for(int istate=0; istate<nstate; istate++){
                 soln_state_int[istate] = soln_at_surf_q_int[istate][iquad];
                 soln_state_ext[istate] = soln_at_surf_q_ext[istate][iquad];

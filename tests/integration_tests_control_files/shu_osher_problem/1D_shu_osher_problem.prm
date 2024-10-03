@@ -12,7 +12,7 @@ set flux_nodes_type = GL
 
 # Strong DG - LaxF
 #set use_split_form = false
-#set conv_num_flux = lax_friedrichs
+set conv_num_flux = lax_friedrichs
 
 # NSFR
 set use_split_form = true
@@ -55,7 +55,7 @@ subsection flow_solver
     subsection positivity_preserving_tests
       set grid_xmin = -5.0
       set grid_xmax = 5.0
-      set number_of_grid_elements_x = 100
+      set number_of_grid_elements_x = 128
 	end
   end
 end
