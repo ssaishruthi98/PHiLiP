@@ -968,60 +968,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         cell_volume_estimate += metric_oper.det_Jac_vol[iquad] * vol_quad_weights[iquad];
     }
 
-    // // ************************* Adaptive Flux Reconstruction Steps ************************* //
-    // real current_jameson_sensor = 0.0;
-    // //const unsigned int n_shape_fns = n_dofs_cell / nstate;
-    // real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
-
-    // for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-    //     //pcout << "get istate" << std::endl;
-    //     const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
-    //     const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
-
-    //     if (ishape < n_shape_fns - 1 && ishape > 0 && istate == nstate - 1) {
-    //         //pcout << "calculating sensor value:   ";
-    //         f_j = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[idof]);
-    //         //pcout << "f_j   " << f_j;
-    //         f_jm1 = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[istate * n_shape_fns + (ishape - 1)]);
-    //         //pcout << "   f_jm1   " << f_jm1;
-    //         f_jp1 = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[istate * n_shape_fns + (ishape + 1)]);
-    //         //pcout << "   f_jp1   " << f_jp1 << std::endl;
-
-    //         real new_jameson_sensor = abs(f_jm1 - (2 * f_j) + f_jp1) / (abs(f_jm1) + abs(2 * f_j) + abs(f_jp1) + 1e-13);
-
-    //         if (new_jameson_sensor > current_jameson_sensor) {
-    //             current_jameson_sensor = new_jameson_sensor;
-    //         }
-    //     }
-    // }
-    
-
-    // // for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
-    // //     pcout << "get istate" << std::endl;
-    // //     const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
-    // //     //const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
-
-    // //     if (idof > 0 && idof < n_dofs_cell && istate == nstate - 1) {
-    // //         pcout << "calculating sensor value:   ";
-    // //         f_j = soln_coeff[istate][idof];
-    // //         pcout << "f_j   " << f_j;
-    // //         f_jm1 = soln_coeff[istate][idof-1];
-    // //         pcout << "   f_jm1   " << f_jm1;
-    // //         f_jp1 = soln_coeff[istate][idof+1];
-    // //         pcout << "   f_jp1   " << f_jp1 << std::endl;
-
-    // //         real new_jameson_sensor = abs(f_jm1 - (2 * f_j) + f_jp1) / (abs(f_jm1) + abs(2 * f_j) + abs(f_jp1) + 1e-13);
-
-    // //         if (new_jameson_sensor > current_jameson_sensor) {
-    // //             current_jameson_sensor = new_jameson_sensor;
-    // //         }
-    // //     }
-    // // }
-
-    // this->jameson_sensor[current_cell_index] = current_jameson_sensor;
-    // if(current_jameson_sensor > 0.5)
-    //     pcout << "Jameson Sensor Value:   " << this->jameson_sensor[current_cell_index] << "   at cell index  " << current_cell_index << std::endl;
-    // ************************* Adaptive Flux Reconstruction Steps ************************* //
 
     const real cell_volume = cell_volume_estimate;
     const real diameter = cell->diameter();
@@ -1033,7 +979,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     //get entropy projected variables
     std::array<std::vector<real>,nstate> entropy_var_at_q;
     std::array<std::vector<real>,nstate> projected_entropy_var_at_q;
-    if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+    if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
         for(int istate=0; istate<nstate; istate++){
             entropy_var_at_q[istate].resize(n_quad_pts);
             projected_entropy_var_at_q[istate].resize(n_quad_pts);
@@ -1050,13 +996,32 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             }
         }
         for(int istate=0; istate<nstate; istate++){
-            std::vector<real> entropy_var_coeff(n_shape_fns);;
-            soln_basis_projection_oper.matrix_vector_mult_1D(entropy_var_at_q[istate],
-                                                             entropy_var_coeff,
-                                                             soln_basis_projection_oper.oneD_vol_operator);
-            soln_basis.matrix_vector_mult_1D(entropy_var_coeff,
-                                             projected_entropy_var_at_q[istate],
-                                             soln_basis.oneD_vol_operator);
+            std::vector<real> entropy_var_coeff(n_shape_fns);
+
+            if(this->jameson_sensor[current_cell_index] < 0.3) {
+                soln_basis_projection_oper.matrix_vector_mult_1D(entropy_var_at_q[istate],
+                                                                entropy_var_coeff,
+                                                                soln_basis_projection_oper.oneD_vol_operator);
+                soln_basis.matrix_vector_mult_1D(entropy_var_coeff,
+                                                projected_entropy_var_at_q[istate],
+                                                soln_basis.oneD_vol_operator);
+            } else {
+                dealii::QGaussLobatto<1> oneD_quad_GLL(this->max_degree + 1);
+
+                // Constructor for the operators
+                //  - GLL Operators
+                OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GLL(1, this->max_degree, this->high_order_grid->fe_system.tensor_degree());
+                soln_basis_GLL.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], oneD_quad_GLL);
+                OPERATOR::vol_projection_operator<dim, 2 * dim, real> soln_basis_GLL_projection_oper(1, this->max_degree, this->high_order_grid->fe_system.tensor_degree());
+                soln_basis_GLL_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], oneD_quad_GLL);
+
+                soln_basis_GLL_projection_oper.matrix_vector_mult_1D(entropy_var_at_q[istate],
+                                                                entropy_var_coeff,
+                                                                soln_basis_GLL_projection_oper.oneD_vol_operator);
+                soln_basis_GLL.matrix_vector_mult_1D(entropy_var_coeff,
+                                                projected_entropy_var_at_q[istate],
+                                                soln_basis_GLL.oneD_vol_operator);
+            }
         }
     }
 
@@ -1076,7 +1041,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     std::vector<std::array<unsigned int,dim>> Hadamard_rows_sparsity(n_quad_pts * n_quad_pts_1D);//size n^{d+1}
     std::vector<std::array<unsigned int,dim>> Hadamard_columns_sparsity(n_quad_pts * n_quad_pts_1D);
     //allocate reference 2pt flux for Hadamard product
-    if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+    if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
         for(int istate=0; istate<nstate; istate++){
             for(int idim=0; idim<dim; idim++){
                 conv_ref_2pt_flux_at_q[istate][idim].reinit(n_quad_pts, n_quad_pts_1D);//size n^d x n
@@ -1113,7 +1078,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         // If 2pt flux, transform to reference at construction to improve performance.
         // We technically use a REFERENCE 2pt flux for all entropy stable schemes.
         std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux;
-        if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+        if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             //get the soln for iquad from projected entropy variables
             std::array<real,nstate> entropy_var;
             for(int istate=0; istate<nstate; istate++){
@@ -1206,7 +1171,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
             dealii::Tensor<1,dim,real> conv_ref_flux;
             dealii::Tensor<1,dim,real> diffusive_ref_flux;
             //Trnasform to reference fluxes
-            if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+            if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
                 //Do Nothing. 
                 //I am leaving this block here so the diligent reader
                 //remembers that, for entropy stable schemes, we construct
@@ -1236,7 +1201,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
                     diffusive_ref_flux_at_q[istate][idim].resize(n_quad_pts);
                 }
                 //write data
-                if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+                if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
                     //Do nothing because written in a Hadamard product sum-factorized form above.
                 }
                 else{
@@ -1262,7 +1227,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
 
     // Get a flux basis reference gradient operator in a sum-factorized Hadamard product sparse form. Then apply the divergence.
     std::array<dealii::FullMatrix<real>,dim> flux_basis_stiffness_skew_symm_oper_sparse;
-    if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+    if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
         for(int idim=0; idim<dim; idim++){
             flux_basis_stiffness_skew_symm_oper_sparse[idim].reinit(n_quad_pts, n_quad_pts_1D);
         }
@@ -1282,7 +1247,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         std::vector<real> conv_flux_divergence(n_quad_pts); 
         std::vector<real> diffusive_flux_divergence(n_quad_pts); 
 
-        if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+        if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             //2pt flux Hadamard Product, and then multiply by vector of ones scaled by 1.
             // Same as the volume term in Eq. (15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485. but, 
             // where we use the reference skew-symmetric stiffness operator of the flux basis for the Q operator and the reference two-point flux as to make use of Alex's Hadamard product
@@ -1326,7 +1291,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         std::vector<real> rhs(n_shape_fns);
 
         // Convective
-        if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+        if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones(n_quad_pts, 1.0);
             soln_basis.inner_product_1D(conv_flux_divergence, ones, rhs, soln_basis.oneD_vol_operator, false, -1.0);
         }
@@ -1594,20 +1559,65 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         // allocate
         projected_entropy_var_vol[istate].resize(n_quad_pts_vol);
         projected_entropy_var_surf[istate].resize(n_face_quad_pts);
-
-        //interior
         std::vector<real> entropy_var_coeff(n_shape_fns);
-        soln_basis_projection_oper.matrix_vector_mult_1D(entropy_var_vol[istate],
-                                                         entropy_var_coeff,
-                                                         soln_basis_projection_oper.oneD_vol_operator);
-        soln_basis.matrix_vector_mult_1D(entropy_var_coeff,
-                                         projected_entropy_var_vol[istate],
-                                         soln_basis.oneD_vol_operator);
-        soln_basis.matrix_vector_mult_surface_1D(iface,
-                                                 entropy_var_coeff, 
-                                                 projected_entropy_var_surf[istate],
-                                                 soln_basis.oneD_surf_operator,
-                                                 soln_basis.oneD_vol_operator);
+
+        if(this->jameson_sensor[current_cell_index] < 0.3){
+            soln_basis_projection_oper.matrix_vector_mult_1D(entropy_var_vol[istate],
+                                                            entropy_var_coeff,
+                                                            soln_basis_projection_oper.oneD_vol_operator);
+            soln_basis.matrix_vector_mult_1D(entropy_var_coeff,
+                                            projected_entropy_var_vol[istate],
+                                            soln_basis.oneD_vol_operator);
+            soln_basis.matrix_vector_mult_surface_1D(iface,
+                                                    entropy_var_coeff, 
+                                                    projected_entropy_var_surf[istate],
+                                                    soln_basis.oneD_surf_operator,
+                                                    soln_basis.oneD_vol_operator);
+        } else {
+            dealii::QGaussLobatto<1> oneD_quad_GLL(this->max_degree + 1);
+            dealii::QGaussLobatto<0> oneD_face_GLL(this->max_degree + 1);
+
+            // Constructor for the operators
+            //  - GLL Operators
+            OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GLL(1, this->max_degree, this->high_order_grid->fe_system.tensor_degree());
+            soln_basis_GLL.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], oneD_quad_GLL);
+            OPERATOR::vol_projection_operator<dim, 2 * dim, real> soln_basis_GLL_projection_oper(1, this->max_degree, this->high_order_grid->fe_system.tensor_degree());
+            soln_basis_GLL_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], oneD_quad_GLL);
+            soln_basis_GLL.build_1D_surface_operator(this->oneD_fe_collection_1state[this->max_degree], oneD_face_GLL);
+
+            soln_basis_GLL_projection_oper.matrix_vector_mult_1D(entropy_var_vol[istate],
+                                                            entropy_var_coeff,
+                                                            soln_basis_GLL_projection_oper.oneD_vol_operator);
+            soln_basis_GLL.matrix_vector_mult_1D(entropy_var_coeff,
+                                            projected_entropy_var_vol[istate],
+                                            soln_basis_GLL.oneD_vol_operator);
+            soln_basis_GLL.matrix_vector_mult_surface_1D(iface,
+                                                    entropy_var_coeff, 
+                                                    projected_entropy_var_surf[istate],
+                                                    soln_basis_GLL.oneD_surf_operator,
+                                                    soln_basis_GLL.oneD_vol_operator);
+        }
+
+        
+        // if(this->jameson_sensor[current_cell_index] > 0.5) {
+        //     for(unsigned int iquad_vol=0; iquad_vol<n_quad_pts_vol; iquad_vol++){
+        //         std::cout << entropy_var_vol[istate][iquad_vol] << "   " << entropy_var_coeff[iquad_vol] << std::endl;
+        //     }
+        //     std::cout << std::endl;
+
+        //     for(unsigned int iquad_vol=0; iquad_vol<n_quad_pts_vol; iquad_vol++){
+        //         std::cout << projected_entropy_var_vol[istate][iquad_vol] << "   ";
+        //     }
+
+        //     std::cout << std::endl << std::endl;
+
+        //     for(unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++){
+        //         std::cout << projected_entropy_var_surf[istate][iquad_face] << "   ";
+        //     }
+
+        //     std::cout << std::endl << std::endl;
+        //     sleep(5);
+        // }
     }
 
     //get the surface-volume sparsity pattern for a "sum-factorized" Hadamard product only computing terms needed for the operation.
@@ -1615,13 +1625,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     const unsigned int col_size = n_face_quad_pts * n_quad_pts_1D;
     std::vector<unsigned int> Hadamard_rows_sparsity(row_size);
     std::vector<unsigned int> Hadamard_columns_sparsity(col_size);
-    if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+    if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
         flux_basis.sum_factorized_Hadamard_surface_sparsity_pattern(n_face_quad_pts, n_quad_pts_1D, Hadamard_rows_sparsity, Hadamard_columns_sparsity, dim_not_zero);
     }
 
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_surf;
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_vol;
-    if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+    if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
         //get surface-volume hybrid 2pt flux from Eq.(15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
         std::array<dealii::FullMatrix<real>,nstate> surface_ref_2pt_flux;
         //make use of the sparsity pattern from above to assemble only n^d non-zero entries without ever allocating not computing zeros.
@@ -1819,7 +1829,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     for(int istate=0; istate<nstate; istate++){
         std::vector<real> rhs(n_shape_fns);
         //Convective flux on the facet
-        if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+        if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
             soln_basis.inner_product_surface_1D(iface, 
                                                 surf_vol_ref_2pt_flux_interp_surf[istate], 
@@ -2247,40 +2257,82 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     std::array<std::vector<real>,nstate> projected_entropy_var_surf_int;
     std::array<std::vector<real>,nstate> projected_entropy_var_surf_ext;
     for(int istate=0; istate<nstate; istate++){
+        dealii::QGaussLobatto<1> oneD_quad_GLL(this->max_degree + 1);
+        dealii::QGaussLobatto<0> oneD_face_GLL(this->max_degree + 1);
+
+        // Constructor for the operators
+        //  - GLL Operators
+        OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GLL(1, this->max_degree, this->high_order_grid->fe_system.tensor_degree());
+        soln_basis_GLL.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], oneD_quad_GLL);
+        OPERATOR::vol_projection_operator<dim, 2 * dim, real> soln_basis_GLL_projection_oper(1, this->max_degree, this->high_order_grid->fe_system.tensor_degree());
+        soln_basis_GLL_projection_oper.build_1D_volume_operator(this->oneD_fe_collection_1state[this->max_degree], oneD_quad_GLL);
+        soln_basis_GLL.build_1D_surface_operator(this->oneD_fe_collection_1state[this->max_degree], oneD_face_GLL);
+
         // allocate
         projected_entropy_var_vol_int[istate].resize(n_quad_pts_vol_int);
         projected_entropy_var_vol_ext[istate].resize(n_quad_pts_vol_ext);
         projected_entropy_var_surf_int[istate].resize(n_face_quad_pts);
         projected_entropy_var_surf_ext[istate].resize(n_face_quad_pts);
+        
+        if(this->jameson_sensor[current_cell_index] < 0.3) {
+            //interior
+            std::vector<real> entropy_var_coeff_int(n_shape_fns_int);
+            soln_basis_projection_oper_int.matrix_vector_mult_1D(entropy_var_vol_int[istate],
+                                                                entropy_var_coeff_int,
+                                                                soln_basis_projection_oper_int.oneD_vol_operator);
+            soln_basis_int.matrix_vector_mult_1D(entropy_var_coeff_int,
+                                                projected_entropy_var_vol_int[istate],
+                                                soln_basis_int.oneD_vol_operator);
+            soln_basis_int.matrix_vector_mult_surface_1D(iface,
+                                                        entropy_var_coeff_int, 
+                                                        projected_entropy_var_surf_int[istate],
+                                                        soln_basis_int.oneD_surf_operator,
+                                                        soln_basis_int.oneD_vol_operator);
 
-        //interior
-        std::vector<real> entropy_var_coeff_int(n_shape_fns_int);
-        soln_basis_projection_oper_int.matrix_vector_mult_1D(entropy_var_vol_int[istate],
-                                                             entropy_var_coeff_int,
-                                                             soln_basis_projection_oper_int.oneD_vol_operator);
-        soln_basis_int.matrix_vector_mult_1D(entropy_var_coeff_int,
-                                             projected_entropy_var_vol_int[istate],
-                                             soln_basis_int.oneD_vol_operator);
-        soln_basis_int.matrix_vector_mult_surface_1D(iface,
-                                                     entropy_var_coeff_int, 
-                                                     projected_entropy_var_surf_int[istate],
-                                                     soln_basis_int.oneD_surf_operator,
-                                                     soln_basis_int.oneD_vol_operator);
+            //exterior
+            std::vector<real> entropy_var_coeff_ext(n_shape_fns_ext);
+            soln_basis_projection_oper_ext.matrix_vector_mult_1D(entropy_var_vol_ext[istate],
+                                                                entropy_var_coeff_ext,
+                                                                soln_basis_projection_oper_ext.oneD_vol_operator);
 
-        //exterior
-        std::vector<real> entropy_var_coeff_ext(n_shape_fns_ext);
-        soln_basis_projection_oper_ext.matrix_vector_mult_1D(entropy_var_vol_ext[istate],
-                                                             entropy_var_coeff_ext,
-                                                             soln_basis_projection_oper_ext.oneD_vol_operator);
+            soln_basis_ext.matrix_vector_mult_1D(entropy_var_coeff_ext,
+                                                projected_entropy_var_vol_ext[istate],
+                                                soln_basis_ext.oneD_vol_operator);
+            soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface,
+                                                        entropy_var_coeff_ext, 
+                                                        projected_entropy_var_surf_ext[istate],
+                                                        soln_basis_ext.oneD_surf_operator,
+                                                        soln_basis_ext.oneD_vol_operator);
+        } else {
+            //interior
+            std::vector<real> entropy_var_coeff_int(n_shape_fns_int);
+            soln_basis_GLL_projection_oper.matrix_vector_mult_1D(entropy_var_vol_int[istate],
+                                                                entropy_var_coeff_int,
+                                                                soln_basis_GLL_projection_oper.oneD_vol_operator);
+            soln_basis_GLL.matrix_vector_mult_1D(entropy_var_coeff_int,
+                                                projected_entropy_var_vol_int[istate],
+                                                soln_basis_GLL.oneD_vol_operator);
+            soln_basis_GLL.matrix_vector_mult_surface_1D(iface,
+                                                        entropy_var_coeff_int, 
+                                                        projected_entropy_var_surf_int[istate],
+                                                        soln_basis_GLL.oneD_surf_operator,
+                                                        soln_basis_GLL.oneD_vol_operator);
 
-        soln_basis_ext.matrix_vector_mult_1D(entropy_var_coeff_ext,
-                                             projected_entropy_var_vol_ext[istate],
-                                             soln_basis_ext.oneD_vol_operator);
-        soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface,
-                                                     entropy_var_coeff_ext, 
-                                                     projected_entropy_var_surf_ext[istate],
-                                                     soln_basis_ext.oneD_surf_operator,
-                                                     soln_basis_ext.oneD_vol_operator);
+            //exterior
+            std::vector<real> entropy_var_coeff_ext(n_shape_fns_ext);
+            soln_basis_GLL_projection_oper.matrix_vector_mult_1D(entropy_var_vol_ext[istate],
+                                                                entropy_var_coeff_ext,
+                                                                soln_basis_GLL_projection_oper.oneD_vol_operator);
+
+            soln_basis_GLL.matrix_vector_mult_1D(entropy_var_coeff_ext,
+                                                projected_entropy_var_vol_ext[istate],
+                                                soln_basis_GLL.oneD_vol_operator);
+            soln_basis_GLL.matrix_vector_mult_surface_1D(neighbor_iface,
+                                                        entropy_var_coeff_ext, 
+                                                        projected_entropy_var_surf_ext[istate],
+                                                        soln_basis_GLL.oneD_surf_operator,
+                                                        soln_basis_GLL.oneD_vol_operator);
+        }
     }
 
     //get the surface-volume sparsity pattern for a "sum-factorized" Hadamard product only computing terms needed for the operation.
@@ -2292,7 +2344,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     const unsigned int col_size_ext = n_face_quad_pts * n_quad_pts_1D_ext;
     std::vector<unsigned int> Hadamard_rows_sparsity_ext(row_size_ext);
     std::vector<unsigned int> Hadamard_columns_sparsity_ext(col_size_ext);
-    if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+    if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
         flux_basis_int.sum_factorized_Hadamard_surface_sparsity_pattern(n_face_quad_pts, n_quad_pts_1D_int, Hadamard_rows_sparsity_int, Hadamard_columns_sparsity_int, dim_not_zero_int);
         flux_basis_ext.sum_factorized_Hadamard_surface_sparsity_pattern(n_face_quad_pts, n_quad_pts_1D_ext, Hadamard_rows_sparsity_ext, Hadamard_columns_sparsity_ext, dim_not_zero_ext);
     }
@@ -2301,7 +2353,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_surf_ext;
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_vol_int;
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_vol_ext;
-    if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+    if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
         //get surface-volume hybrid 2pt flux from Eq.(15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
         std::array<dealii::FullMatrix<real>,nstate> surface_ref_2pt_flux_int;
         std::array<dealii::FullMatrix<real>,nstate> surface_ref_2pt_flux_ext;
@@ -2574,7 +2626,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         std::vector<real> rhs_int(n_shape_fns_int);
 
         // convective flux
-        if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+        if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
             soln_basis_int.inner_product_surface_1D(iface, 
                                                     surf_vol_ref_2pt_flux_interp_surf_int[istate], 
@@ -2626,7 +2678,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         std::vector<real> rhs_ext(n_shape_fns_ext);
 
         // convective flux
-        if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->jameson_sensor[current_cell_index] < 0.5){
+        if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
             soln_basis_ext.inner_product_surface_1D(neighbor_iface, 
                                                     surf_vol_ref_2pt_flux_interp_surf_ext[istate], 
