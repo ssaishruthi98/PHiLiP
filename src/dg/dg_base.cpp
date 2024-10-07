@@ -519,38 +519,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         std::abort();
     }
     
-    // // ************************* Adaptive Flux Reconstruction Steps ************************* //
-    // real current_jameson_sensor = 0.0;
-    // const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
-    // real f_j = 0.0, f_jm1 = 0.0, f_jp1 = 0.0;
-
-    // for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
-    //     //pcout << "get istate" << std::endl;
-    //     const int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
-    //     const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
-
-    //     if (ishape < n_shape_fns - 1 && ishape > 0 && istate == nstate - 1) {
-    //         //pcout << "calculating sensor value:   ";
-    //         f_j = solution(current_dofs_indices[idof]);
-    //         //pcout << "f_j   " << f_j;
-    //         f_jm1 = solution(current_dofs_indices[istate * n_shape_fns + (ishape - 1)]);
-    //         //pcout << "   f_jm1   " << f_jm1;
-    //         f_jp1 = solution(current_dofs_indices[istate * n_shape_fns + (ishape + 1)]);
-    //         //pcout << "   f_jp1   " << f_jp1 << std::endl;
-
-    //         real new_jameson_sensor = abs(f_jm1 - (2 * f_j) + f_jp1) / (abs(f_jm1) + abs(2 * f_j) + abs(f_jp1) + 1e-13);
-
-    //         if (new_jameson_sensor > current_jameson_sensor) {
-    //             current_jameson_sensor = new_jameson_sensor;
-    //         }
-    //     }
-    // }
-    
-
-    // this->jameson_sensor[current_cell_index] = current_jameson_sensor;
-    // if(current_jameson_sensor > 0.5)
-    //     pcout << "Jameson Sensor Value:   " << this->jameson_sensor[current_cell_index] << "   at cell index  " << current_cell_index << std::endl;
-
     assemble_volume_term_and_build_operators(
         current_cell,
         current_cell_index,

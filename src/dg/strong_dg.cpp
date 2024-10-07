@@ -998,7 +998,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         for(int istate=0; istate<nstate; istate++){
             std::vector<real> entropy_var_coeff(n_shape_fns);
 
-            if(this->jameson_sensor[current_cell_index] < 0.3) {
+            if(this->jameson_sensor[current_cell_index] < this->all_parameters->shock_sensor_threshold) {
                 soln_basis_projection_oper.matrix_vector_mult_1D(entropy_var_at_q[istate],
                                                                 entropy_var_coeff,
                                                                 soln_basis_projection_oper.oneD_vol_operator);
@@ -1561,7 +1561,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         projected_entropy_var_surf[istate].resize(n_face_quad_pts);
         std::vector<real> entropy_var_coeff(n_shape_fns);
 
-        if(this->jameson_sensor[current_cell_index] < 0.3){
+        if(this->jameson_sensor[current_cell_index] < this->all_parameters->shock_sensor_threshold){
             soln_basis_projection_oper.matrix_vector_mult_1D(entropy_var_vol[istate],
                                                             entropy_var_coeff,
                                                             soln_basis_projection_oper.oneD_vol_operator);
@@ -2274,7 +2274,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         projected_entropy_var_surf_int[istate].resize(n_face_quad_pts);
         projected_entropy_var_surf_ext[istate].resize(n_face_quad_pts);
         
-        if(this->jameson_sensor[current_cell_index] < 0.3) {
+        if(this->jameson_sensor[current_cell_index] < this->all_parameters->shock_sensor_threshold) {
             //interior
             std::vector<real> entropy_var_coeff_int(n_shape_fns_int);
             soln_basis_projection_oper_int.matrix_vector_mult_1D(entropy_var_vol_int[istate],

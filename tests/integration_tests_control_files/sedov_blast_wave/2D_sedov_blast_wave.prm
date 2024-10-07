@@ -8,7 +8,7 @@ set pde_type = euler
 
 # DG formulation
 set use_weak_form = false
-set flux_nodes_type = GLL
+set flux_nodes_type = GL
 
 # Strong DG - LaxF
 #set use_split_form = false
@@ -18,7 +18,7 @@ set flux_nodes_type = GLL
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cPlus
+set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
 subsection limiter
@@ -47,17 +47,17 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 1.0
   #set constant_time_step = 0.0001
-  set courant_friedrichs_lewy_number = 0.5
+  set courant_friedrichs_lewy_number = 0.25
   set adaptive_time_step = true
   set unsteady_data_table_filename = sedov_blast_wave_energy
   subsection grid
     subsection positivity_preserving_tests
-      set grid_xmin = -1.5
-      set grid_xmax = 1.5
-      set grid_ymin = -1.5
-      set grid_ymax = 1.5
-      set number_of_grid_elements_x = 100
-      set number_of_grid_elements_y = 100
+      set grid_xmin = 0
+      set grid_xmax = 1.1
+      set grid_ymin = 0
+      set grid_ymax = 1.1
+      set number_of_grid_elements_x = 79
+      set number_of_grid_elements_y = 79
     end
   end
 end

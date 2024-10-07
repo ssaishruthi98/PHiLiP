@@ -5,6 +5,7 @@
 set dimension = 2
 set run_type = flow_simulation
 set pde_type = euler
+set shock_sensor_threshold = 0.2
 
 # DG formulation
 set use_weak_form = false
@@ -18,7 +19,7 @@ set flux_nodes_type = GL
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cDG
+set flux_reconstruction = cHU
 set use_inverse_mass_on_the_fly = true
 
 subsection limiter
@@ -31,10 +32,10 @@ subsection ODE solver
   set ode_output = verbose
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.00000001
-  set output_solution_every_x_steps = 1
+  #set output_solution_every_x_steps = 1
   set runge_kutta_method = ssprk3_ex
   set print_iteration_modulo = 1
-  #set output_solution_every_dt_time_intervals = 0.01
+  set output_solution_every_dt_time_intervals = 0.01
 end
 
 # freestream Mach number
@@ -58,8 +59,8 @@ subsection flow_solver
       set grid_ymin = 0.0
       set grid_ymax = 11.0
 
-      set number_of_grid_elements_x = 171
-      set number_of_grid_elements_y = 110
+      set number_of_grid_elements_x = 117
+      set number_of_grid_elements_y = 99
     end
   end
 end

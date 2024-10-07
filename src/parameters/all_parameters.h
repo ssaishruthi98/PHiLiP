@@ -143,6 +143,9 @@ public:
     /// Scaling of Symmetric Interior Penalty term to ensure coercivity.
     double sipg_penalty_factor;
 
+    /// Shock Sensor Threshold value
+    double shock_sensor_threshold;
+
     /// Flag to use invariant curl form for metric cofactor operator.
     bool use_invariant_curl_form;
 

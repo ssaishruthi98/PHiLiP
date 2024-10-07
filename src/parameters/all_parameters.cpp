@@ -133,6 +133,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
 
+    prm.declare_entry("shock_sensor_threshold", "1.1",
+                      dealii::Patterns::Double(0.0,1.1),
+                      "Shock sensor threshold value. Cells with shock sensor greater than this will skip entropy projection step.");
+
     prm.declare_entry("use_invariant_curl_form", "false",
                       dealii::Patterns::Bool(),
                       "Use conservative curl form for metric cofactor by default. If true, then use invariant curl form.");
@@ -442,6 +446,7 @@ const std::string test_string = prm.get("test_type");
     use_L2_norm = prm.get_bool("use_L2_norm");
     use_classical_FR = prm.get_bool("use_classical_FR");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
+    shock_sensor_threshold = prm.get_double("shock_sensor_threshold");
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
     check_valid_metric_Jacobian = prm.get_bool("check_valid_metric_Jacobian");
