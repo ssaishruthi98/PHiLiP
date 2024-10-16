@@ -1575,7 +1575,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                     soln_basis.oneD_vol_operator);
         } else {
             dealii::QGaussLobatto<1> oneD_quad_GLL(this->max_degree + 1);
-            dealii::QGaussLobatto<0> oneD_face_GLL(this->max_degree + 1);
+            dealii::QGauss<0> oneD_face_GLL(this->max_degree + 1);
 
             // Constructor for the operators
             //  - GLL Operators
@@ -2258,7 +2258,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     std::array<std::vector<real>,nstate> projected_entropy_var_surf_ext;
     for(int istate=0; istate<nstate; istate++){
         dealii::QGaussLobatto<1> oneD_quad_GLL(this->max_degree + 1);
-        dealii::QGaussLobatto<0> oneD_face_GLL(this->max_degree + 1);
+        dealii::QGauss<0> oneD_face_GLL(this->max_degree + 1);
 
         // Constructor for the operators
         //  - GLL Operators
