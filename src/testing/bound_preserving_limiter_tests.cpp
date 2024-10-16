@@ -31,7 +31,7 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::
 
     double uexact = 1.0;
     if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density && dim == 2) {
-        uexact = 1.0 + 0.999 * sin((qpoint[0] + qpoint[1] - (2.00 * final_time)));
+        uexact = 1.0 + 0.99 * sin((qpoint[0] + qpoint[1] - (2.00 * final_time)));
     }
     if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density && dim == 1) {
         uexact = 1.0 + 0.999 * sin((qpoint[0] - (final_time)));

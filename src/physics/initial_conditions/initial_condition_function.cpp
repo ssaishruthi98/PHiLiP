@@ -820,7 +820,7 @@ real InitialConditionFunction_LowDensity<dim, nstate, real>
 
         if (istate == 0) {
             // density
-            value = 1.0 + 0.999 * sin((x + y));
+            value = 1.0 + 0.99 * sin((x + y));
         }
         if (istate == 1) {
             // x-velocity
