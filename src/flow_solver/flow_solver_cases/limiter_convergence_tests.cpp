@@ -19,14 +19,17 @@ LimiterConvergenceTests<dim, nstate>::LimiterConvergenceTests(const PHiLiP::Para
     : FlowSolverCaseBase<dim, nstate>(parameters_input)
     , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
+    std::cout << "Reaches making physics ptr part" << std::endl;
     //create the Physics object
     this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nstate,double>>(
                 Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input));
+    std::cout << "makes physics ptr part" << std::endl;
 }
 
 template <int dim, int nstate>
 std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_grid() const
 {
+    std::cout << "grid 1" << std::endl;
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     using Triangulation = dealii::Triangulation<dim>;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
@@ -41,10 +44,10 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_gri
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
-
+std::cout << "grid 2" << std::endl;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
-
+std::cout << "grid 3" << std::endl;
     double left = 0.0; double right = 0.0;
 
     if (flow_case == flow_case_enum::nonsmooth_case) {
@@ -54,9 +57,9 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_gri
         left = this->all_param.flow_solver_param.grid_left_bound;
         right = this->all_param.flow_solver_param.grid_right_bound;
     }
-
+std::cout << "grid 4" << std::endl;
     const unsigned int number_of_refinements = this->all_param.flow_solver_param.number_of_mesh_refinements;
-
+std::cout << "grid 5" << std::endl;
     PHiLiP::Grids::straight_periodic_cube<dim, Triangulation>(grid, left, right, pow(2.0, number_of_refinements));
 
     std::cout << "Grid generated and refined" << std::endl;
