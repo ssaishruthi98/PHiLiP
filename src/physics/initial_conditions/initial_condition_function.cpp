@@ -781,7 +781,7 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
         else {
             if (istate == 0) {
                 // density
-                value = 1 + 0.2 * sin(5 * x);
+                value = 1 + 0.2 * sin(5.0 * x);
             }
             else if (istate == 1) {
                 // x-velocity
