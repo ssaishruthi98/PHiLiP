@@ -529,19 +529,13 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         // std::cout << "Density HAT Values are:   ";
         // Apply limiter on density values
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
-            soln_at_quad[0][ishape] = theta*(soln_at_quad[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
+            soln_coeff[0][ishape] = theta*(soln_coeff[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
             // std::cout << soln_at_quad[0][ishape] << "   ";
 
             if(flux_nodes_GL) {
                 for (int istate = 0; istate < 1; istate++) {
-                    soln_basis_GL_projection_oper.matrix_vector_mult_1D(soln_at_quad[istate], soln_coeff[istate],
-                      soln_basis_GL_projection_oper.oneD_vol_operator);
-                }
-            } else {
-                for (unsigned int istate = 0; istate < 1; ++istate) {
-                    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                        soln_coeff[istate][iquad] = soln_at_quad[istate][iquad];
-                    }
+                    soln_basis_GL.matrix_vector_mult_1D(soln_coeff[istate],soln_at_quad[istate], soln_basis_GL.oneD_vol_operator);
+
                 }
             }
         }
@@ -591,7 +585,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    soln_at_quad[istate][iquad] = theta2 * (soln_at_quad[istate][iquad] - soln_cell_avg[istate])
+                    soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
                             + soln_cell_avg[istate];
                 }
             }
@@ -652,18 +646,18 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             std::abort();
         }
 
-        if(flux_nodes_GL) {
-            for (int istate = 0; istate < nstate; istate++) {
-                soln_basis_GL_projection_oper.matrix_vector_mult_1D(soln_at_quad[istate], soln_coeff[istate],
-                  soln_basis_GL_projection_oper.oneD_vol_operator);
-            }
-        } else {
-            for (unsigned int istate = 0; istate < nstate; ++istate) {
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    soln_coeff[istate][iquad] = soln_at_quad[istate][iquad];
-                }
-            }
-        }
+        // if(flux_nodes_GL) {
+        //     for (int istate = 0; istate < nstate; istate++) {
+        //         soln_basis_GL_projection_oper.matrix_vector_mult_1D(soln_at_quad[istate], soln_coeff[istate],
+        //           soln_basis_GL_projection_oper.oneD_vol_operator);
+        //     }
+        // } else {
+        //     for (unsigned int istate = 0; istate < nstate; ++istate) {
+        //         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        //             soln_coeff[istate][iquad] = soln_at_quad[istate][iquad];
+        //         }
+        //     }
+        // }
 
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
