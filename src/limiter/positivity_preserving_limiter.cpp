@@ -496,10 +496,15 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
                 // std::cout << soln_coeff[0][iquad] << "   " << soln_at_q[idim][0][iquad] << "   " << soln_at_quad[0][iquad] << std::endl;
                 if (soln_coeff[0][iquad] < local_min_density)
                     local_min_density = soln_coeff[0][iquad];
-                if (flux_nodes_GL && soln_at_quad[0][iquad] < local_min_density)
-                    local_min_density = soln_at_quad[0][iquad];
                 if (soln_at_q[idim][0][iquad] < local_min_density)
                     local_min_density = soln_at_q[idim][0][iquad];
+                if (flux_nodes_GL && soln_at_quad[0][iquad] < local_min_density){
+                    local_min_density = soln_at_quad[0][iquad];
+                    if(soln_at_quad[0][iquad] < 0){
+                        std::cout << "min density based on GL nodes   " << local_min_density << "   " << soln_at_quad[0][iquad] << std::endl;
+                        sleep(5);
+                    }
+                }
             }
         }
 
@@ -572,16 +577,18 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
                     theta2 = theta2_quad[idim];
             }
 
-            if(flux_nodes_GL){
-                real theta2_GL = get_theta2_Wang2012(soln_at_quad, n_quad_pts, p_avg);
-                if(theta2_GL < theta2)
-                        theta2 = theta2_GL;
-            }
-
             real theta2_soln = get_theta2_Wang2012(soln_coeff, n_quad_pts, p_avg);
             if(theta2_soln < theta2)
                     theta2 = theta2_soln;
 
+            if(flux_nodes_GL){
+                real theta2_GL = get_theta2_Wang2012(soln_at_quad, n_quad_pts, p_avg);
+                if(theta2_GL < theta2){
+                    std::cout << "scaling based on GL" << std::endl;
+                    sleep(5);
+                    theta2 = theta2_GL;
+                }
+            }
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
@@ -664,7 +671,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         if(theta < 1.0 || theta2 < 1.0) {
             std::cout << "Limiter Turned On" << std::endl;
-            // sleep(5);
+            //sleep(5);
         }
     }
 }
