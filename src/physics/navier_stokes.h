@@ -244,6 +244,36 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
+    /** Evaluate the solenoidal dissipation integrand
+     *  -- Reference: Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+     *     Eq.(10)
+     * */
+    real compute_solenoidal_dissipation_integrand (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Evaluate the dilatational dissipation integrand
+     *  -- Reference: Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+     *     Eq.(11)
+     * */
+    real compute_dilatational_dissipation_integrand (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Evaluate the dilatational dissipation from the integrand
+     *  -- Reference: Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+     *     Eq.(11)
+     * */
+    real compute_dilatational_dissipation_from_integrand (
+        const real dilatational_dissipation_integrand) const;
+
+    /** Evaluate the solenoidal dissipation from the integrand
+     *  -- Reference: Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+     *     Eq.(10)
+     * */
+    real compute_solenoidal_dissipation_from_integrand (
+        const real solenoidal_dissipation_integrand) const;
+
     /** Evaluate density gradient magnitude from conservative variables and gradient of conservative variables 
      * */
     real compute_density_gradient_magnitude (

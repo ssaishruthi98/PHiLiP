@@ -127,6 +127,7 @@ public:
     const double pressure_inf; ///< Non-dimensionalized pressure* at infinity
     const double entropy_inf; ///< Entropy measure at infinity
     const two_point_num_flux_enum two_point_num_flux_type; ///< Two point numerical flux type (for split form)
+    const bool using_positivity_preserving_limiter; ///< Flag if using positivity preserving limiter
     double temperature_inf; ///< Non-dimensionalized temperature* at infinity. Should equal 1/density*(inf)
     double dynamic_pressure_inf; ///< Non-dimensionalized dynamic pressure* at infinity
 
@@ -136,6 +137,10 @@ public:
      */
     dealii::Tensor<1,dim,double> velocities_inf; // should be const
 
+    /// Primitive values for custom boundary state
+    std::array<real, nstate> custom_boundary_state_primitive_boundary_values; // should be const
+    /// Conservative values for custom boundary state
+    std::array<real, nstate> custom_boundary_state_conservative_boundary_values; // should be const
 
     // dealii::Tensor<1,dim,double> compute_velocities_inf() const;
 
@@ -454,6 +459,10 @@ protected:
 
     /// Simple farfield boundary conditions based on freestream values
     void boundary_farfield (
+        std::array<real,nstate> &soln_bc) const;
+
+    /// Boundary conditions based on user-defined values
+    void boundary_custom (
         std::array<real,nstate> &soln_bc) const;
 
     /// Get manufactured solution value

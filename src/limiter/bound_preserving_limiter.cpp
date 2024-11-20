@@ -15,6 +15,7 @@ template <int dim, int nstate, typename real>
 BoundPreservingLimiterState<dim, nstate, real>::BoundPreservingLimiterState(
     const Parameters::AllParameters* const parameters_input)
     : BoundPreservingLimiter<dim, real>::BoundPreservingLimiter(nstate, parameters_input)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {}
 
 template <int dim, int nstate, typename real>

@@ -276,7 +276,9 @@ inline real2 NavierStokes<dim,nstate,real>
      */
      
     const real2 temperature = this->template compute_temperature<real2>(primitive_soln); // from Euler
-
+    if(temperature < 0.0){
+        std::cout << "\n====================\nTEMPERATURE IS NEGATIVE\n====================\n";
+    }
     const real2 viscosity_coefficient = compute_viscosity_coefficient_sutherlands_law_from_temperature<real2>(temperature);
     
     return viscosity_coefficient;
@@ -555,6 +557,68 @@ real NavierStokes<dim,nstate,real>
     }
 
     return dilatation;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_solenoidal_dissipation_integrand (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute viscosity coefficient
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(conservative_soln); // from Euler
+    const real viscosity_coefficient = compute_viscosity_coefficient (primitive_soln);
+    // Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+    // --> Eq.(10)
+    const real solenoidal_dissipation_integrand = viscosity_coefficient*compute_vorticity_magnitude_sqr(conservative_soln, conservative_soln_gradient);
+    return solenoidal_dissipation_integrand;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_dilatational_dissipation_integrand (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute viscosity coefficient
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(conservative_soln); // from Euler
+    const real viscosity_coefficient = compute_viscosity_coefficient (primitive_soln);
+
+    // Get velocity gradient
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln, conservative_soln_gradient);
+    const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
+
+    // Compute the dilatation
+    real dilatation = 0.0;
+    for(int d=0; d<dim; ++d) {
+        dilatation += velocities_gradient[d][d]; // divergence
+    }
+
+    // Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+    // --> Eq.(11)
+    const real dilatational_dissipation_integrand = viscosity_coefficient*dilatation*dilatation;
+
+    return dilatational_dissipation_integrand;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_dilatational_dissipation_from_integrand (
+    const real dilatational_dissipation_integrand) const
+{
+    // Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+    // --> Eq.(11)
+    return (4.0/3.0)*dilatational_dissipation_integrand/this->reynolds_number_inf;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_solenoidal_dissipation_from_integrand (
+    const real solenoidal_dissipation_integrand) const
+{
+    // Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+    // --> Eq.(10)
+    return solenoidal_dissipation_integrand/this->reynolds_number_inf;
 }
 
 template <int dim, int nstate, typename real>

@@ -16,8 +16,7 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
     /** Number of different computed quantities
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
-    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 9;
-
+    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 11;
 public:
     /// Constructor.
     explicit PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
@@ -30,7 +29,7 @@ public:
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */
-    void compute_and_update_integrated_quantities(DGBase<dim, double> &dg);
+    void compute_and_update_integrated_quantities(DGBase<dim, double> &dg, const bool using_limiter);
 
     /** Gets the nondimensional integrated kinetic energy given a DG object from dg->solution
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
@@ -87,6 +86,16 @@ public:
      * */
     double get_strain_rate_tensor_based_dissipation_rate() const;
 
+    /** Gets non-dimensional solenoidal dissipation rate from integrand.
+     *  -- Reference: Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+     * */
+    double get_solenoidal_dissipation_rate() const;
+
+    /** Gets non-dimensional dilatational dissipation rate from integrand.
+     *  -- Reference: Chapelier et al., "Comparison of high-order numerical methodologies for the simulation of the supersonic Taylor–Green vortex flow", Physics of Fluids, 2024. 
+     * */
+    double get_dilatational_dissipation_rate() const;
+    
     /// Get the number of degrees of freedom per state from a given poly degree
     virtual unsigned int get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const;
 
@@ -95,6 +104,13 @@ public:
             std::shared_ptr<DGBase<dim,double>> dg,
             const unsigned int output_file_index,
             const double current_time) const;
+
+    /// Output the Mach number field to file
+    void output_mach_number_field(
+            std::shared_ptr<DGBase<dim,double>> dg,
+            const unsigned int output_file_index,
+            const double current_time,
+            const bool using_limiter) const;
 
     /// Calculate numerical entropy by matrix-vector product
     double compute_current_integrated_numerical_entropy(
@@ -132,6 +148,7 @@ protected:
     const std::string output_flow_field_files_directory_name;
 
     const bool output_solution_at_exact_fixed_times;///< Flag for outputting the solution at exact fixed times by decreasing the time step on the fly
+    const bool output_mach_number_field_in_place_of_velocity_field; // Flag for outputting the Mach number field in place of the velocity field
 
     const unsigned int output_velocity_number_of_subvisions; ///< Number of subdivisions to apply when writting the velocity field at equidistant nodes
 
@@ -183,7 +200,9 @@ protected:
         incompressible_kinetic_energy,
         incompressible_enstrophy,
         incompressible_palinstrophy,
-        angular_momentum
+        angular_momentum,
+        solenoidal_dissipation,
+        dilatational_dissipation
     };
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;
@@ -211,6 +230,26 @@ protected:
 
     /// Data table storing the exact output times for the velocity field files
     std::shared_ptr<dealii::TableHandler> exact_output_times_of_velocity_field_files_table;
+
+    /// Corrected pressure dilatation based dissipation rate
+    double corrected_pressure_dilatation_based_dissipation_rate;
+    
+    /// Corrected dilatational dissipation rate
+    double corrected_dilatational_dissipation_rate;
+
+    /// Uncorrected pressure dilatation based dissipation rate
+    double uncorrected_pressure_dilatation_based_dissipation_rate;
+    
+    /// Uncorrected dilatational dissipation rate
+    double uncorrected_dilatational_dissipation_rate;
+protected:
+    /// Compute viscosity coefficient from conservative solution
+    double compute_viscosity_coefficient_from_conservative_solution(const std::array<double,nstate> &conservative_soln) const;
+    
+    /** Computes and updates the corrected dilatation (i.e. velocity divergence) based dissipation rate components.
+     *  The correction subtracts the contribution of the surface (i.e. area) integral that should vanish theoretically (i.e. on paper)
+     *  from the volume integral */
+    void compute_and_update_corrected_dilatation_based_dissipation_rate_components(const std::shared_ptr <DGBase<dim, double>> &dg);
 };
 
 } // FlowSolver namespace

@@ -6,7 +6,9 @@ namespace ODE{
 
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : dg(dg_input)
+        : use_limiter(dg_input->all_parameters->limiter_param.bound_preserving_limiter != Parameters::LimiterParam::LimiterType::none 
+                      || dg_input->all_parameters->limiter_param.use_tvb_limiter == true) 
+        , dg(dg_input)
         , limiter(BoundPreservingLimiterFactory<dim, 6, real>::create_limiter(dg->all_parameters))
         , all_parameters(dg->all_parameters)
         , ode_param(all_parameters->ode_solver_param)

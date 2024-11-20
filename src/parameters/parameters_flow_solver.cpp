@@ -41,7 +41,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
-                          " burgers_limiter "),
+                          " burgers_limiter | "
+                          " double_mach_reflection | "
+                          " sedov_blast_wave | "
+                          " mach_3_wind_tunnel | "
+                          " shock_diffraction | "
+                          " explosion_problem | "
+                          " astrophysical_jet "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -65,7 +71,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
-                          " burgers_limiter >. ");
+                          " burgers_limiter | "
+                          " double_mach_reflection | "
+                          " sedov_blast_wave | "
+                          " mach_3_wind_tunnel | "
+                          " shock_diffraction | "
+                          " explosion_problem | "
+                          " astrophysical_jet >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -240,6 +252,47 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                                   "Number of subdivisions in the z direction for gaussian bump meshes.");
             }
             prm.leave_subsection();
+
+          prm.enter_subsection("positivity_preserving_tests");
+          {
+              prm.declare_entry("grid_xmin", "0.0",
+                            dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                            "Left bound of domain for hyper_cube mesh based cases.");
+
+              prm.declare_entry("grid_xmax", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Right bound of domain for hyper_cube mesh based cases.");
+
+              prm.declare_entry("grid_ymin", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Left bound of domain for hyper_cube mesh based cases.");
+
+              prm.declare_entry("grid_ymax", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Right bound of domain for hyper_cube mesh based cases.");
+
+              prm.declare_entry("grid_zmin", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Left bound of domain for hyper_cube mesh based cases.");
+
+              prm.declare_entry("grid_zmax", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Right bound of domain for hyper_cube mesh based cases.");
+
+              prm.declare_entry("number_of_grid_elements_x", "1",
+                                dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                "Number of grid elements in the x-direction for 2/3D positivity-preserving limiter cases.");
+
+              prm.declare_entry("number_of_grid_elements_y", "1",
+                                dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                "Number of grid elements in the y-direction for 2/3D positivity-preserving limiter cases.");
+
+              prm.declare_entry("number_of_grid_elements_z", "1",
+                                dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                "Number of grid elements in the z-direction for 2/3D positivity-preserving limiter cases.");
+          }
+          prm.leave_subsection();
+
         }
         prm.leave_subsection();
 
@@ -395,6 +448,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "Name of directory for writing flow field files. Current directory by default.");
 
+            prm.declare_entry("output_mach_number_field_in_place_of_velocity_field", "false",
+                              dealii::Patterns::Bool(),
+                              "Output Mach number field in instead of the velocity field. False by default.");
+
             prm.declare_entry("output_velocity_number_of_subvisions","2",
                               dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                               "Number of subdivisions to apply when writting the velocity field at equidistant nodes.");
@@ -436,17 +493,24 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
+        // Positivity Preserving Tests
         else if (flow_case_type_string == "sod_shock_tube")             {flow_case_type = sod_shock_tube;}
         else if (flow_case_type_string == "low_density_2d")             {flow_case_type = low_density_2d;}
         else if (flow_case_type_string == "leblanc_shock_tube")         {flow_case_type = leblanc_shock_tube;}
         else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
         else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
         else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
+        else if (flow_case_type_string == "double_mach_reflection")     {flow_case_type = double_mach_reflection;}
+        else if (flow_case_type_string == "sedov_blast_wave")           {flow_case_type = sedov_blast_wave;}
+        else if (flow_case_type_string == "mach_3_wind_tunnel")         {flow_case_type = mach_3_wind_tunnel;}
+        else if (flow_case_type_string == "shock_diffraction")          {flow_case_type = shock_diffraction;}
+        else if (flow_case_type_string == "explosion_problem")          {flow_case_type = explosion_problem;}
+        else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
         else if (flow_case_type_string == "dipole_wall_collision_normal")     
                                                                         {flow_case_type = dipole_wall_collision_normal;}
         else if (flow_case_type_string == "dipole_wall_collision_oblique")
                                                                         {flow_case_type = dipole_wall_collision_oblique;}
-
+        
         poly_degree = prm.get_integer("poly_degree");
         
         // get max poly degree for adaptation
@@ -512,6 +576,21 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
                 channel_length = prm.get_double("channel_length");
                 channel_height = prm.get_double("channel_height");
                 bump_height = prm.get_double("bump_height");
+            }
+            prm.leave_subsection();
+
+            prm.enter_subsection("positivity_preserving_tests");
+            {
+                grid_xmax = prm.get_double("grid_xmax");
+                grid_xmin = prm.get_double("grid_xmin");
+                grid_ymax = prm.get_double("grid_ymax");
+                grid_ymin = prm.get_double("grid_ymin");
+                grid_zmax = prm.get_double("grid_zmax");
+                grid_zmin = prm.get_double("grid_zmin");
+
+                number_of_grid_elements_x = prm.get_integer("number_of_grid_elements_x");
+                number_of_grid_elements_y = prm.get_integer("number_of_grid_elements_y");
+                number_of_grid_elements_z = prm.get_integer("number_of_grid_elements_z");
             }
             prm.leave_subsection();
         }       
@@ -592,6 +671,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             }
           }
           output_velocity_number_of_subvisions = prm.get_integer("output_velocity_number_of_subvisions");
+          output_mach_number_field_in_place_of_velocity_field = prm.get_bool("output_mach_number_field_in_place_of_velocity_field");
         }
         prm.leave_subsection();
 

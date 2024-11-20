@@ -497,6 +497,11 @@ int FlowSolver<dim,nstate>::run() const
                 pcout << "Writing unsteady data computed at initial time... " << std::endl;
                 flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table, true);
                 pcout << "done." << std::endl;
+            } else {
+                // Print basic info to console
+                this->pcout << "    Iter: " << ode_solver->current_iteration
+                            << "    Time: " << ode_solver->current_time;
+                this->pcout << std::endl;
             }
         }
         //----------------------------------------------------
@@ -547,6 +552,11 @@ int FlowSolver<dim,nstate>::run() const
             // Compute the unsteady quantities, write to the dealii table, and output to file
             if(do_compute_unsteady_data_and_write_to_table){
                 flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table, do_write_unsteady_data_table_file);
+            } else {
+                // Print basic info to console
+                this->pcout << "    Iter: " << ode_solver->current_iteration
+                            << "    Time: " << ode_solver->current_time;
+                this->pcout << std::endl;
             }
             // update next time step
             if(flow_solver_param.adaptive_time_step == true) {

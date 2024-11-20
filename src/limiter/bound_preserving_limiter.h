@@ -46,7 +46,8 @@ public:
         const unsigned int                                      grid_degree,
         const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection) = 0;
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
+        double                                                  dt) = 0;
 }; // End of BoundPreservingLimiter Class
 
 /// Base Class for bound preserving limiters templated on state
@@ -64,6 +65,13 @@ public:
     /// Destructor
     ~BoundPreservingLimiterState() = default;
 
+protected:
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
+
+public:
     /// Function to limit the solution
     virtual void limit(
         dealii::LinearAlgebra::distributed::Vector<double>&     solution,
@@ -73,7 +81,8 @@ public:
         const unsigned int                                      grid_degree,
         const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection) = 0;
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
+        double                                                  dt) = 0;
 
     /// Function to obtain the solution cell average
     std::array<real, nstate> get_soln_cell_avg(
