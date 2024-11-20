@@ -1567,7 +1567,8 @@ double PeriodicTurbulence<dim, nstate>::compute_current_integrated_numerical_ent
 template <int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::output_velocity_field_if_current_time_is_output_time(
         const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg)
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const bool using_limiter)
 {
     // Output velocity field for spectra obtaining kinetic energy spectra
     if(output_velocity_field_at_fixed_times) {
@@ -1584,7 +1585,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field_if_current_time_is_o
         if(is_output_time) {
             if(output_mach_number_field_in_place_of_velocity_field){
                 // Output Mach number field for current index
-                this->output_mach_number_field(dg, this->index_of_current_desired_time_to_output_velocity_field, current_time, ode_solver->use_limiter);
+                this->output_mach_number_field(dg, this->index_of_current_desired_time_to_output_velocity_field, current_time, using_limiter);
             } else {
                 // Output velocity field for current index
                 this->output_velocity_field(dg, this->index_of_current_desired_time_to_output_velocity_field, current_time);
@@ -1721,7 +1722,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         }
     }    
     // Output velocity field if current time is output file
-    output_velocity_field_if_current_time_is_output_time(current_time, dg);
+    output_velocity_field_if_current_time_is_output_time(current_time, dg, ode_solver->use_limiter);
 }
 
 #if PHILIP_DIM!=1

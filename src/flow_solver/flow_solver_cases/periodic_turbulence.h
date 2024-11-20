@@ -24,7 +24,8 @@ public:
     /// Outputs the velocity field if the current time is an output time for the velocity field
     void output_velocity_field_if_current_time_is_output_time(
         const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg);
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const bool using_limiter);
     
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
