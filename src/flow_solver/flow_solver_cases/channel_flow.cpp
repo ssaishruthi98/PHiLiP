@@ -103,7 +103,7 @@ void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
     }
 
     // Output velocity field if current time is output file
-    this->output_velocity_field_if_current_time_is_output_time(current_time, dg);
+    this->output_velocity_field_if_current_time_is_output_time(current_time, dg, ode_solver->use_limiter);
 }
 
 template <int dim, int nstate>
