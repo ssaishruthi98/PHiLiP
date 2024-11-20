@@ -200,7 +200,8 @@ public:
         khi_robustness,
         naca0012_unsteady_check_quick,
         homogeneous_isotropic_turbulence_initialization_check,
-        low_density
+        low_density,
+        viscous_shock_tube
     };
     /// Store selected TestType from the input file.
     TestType test_type;

@@ -1085,6 +1085,70 @@ real InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
     return value;
 }
 
+// ========================================================
+// Viscous Shock Tube -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ViscousShockTube<dim, nstate, real>
+::InitialConditionFunction_ViscousShockTube(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    , gamma_gas(param->euler_param.gamma_gas)
+    , rho_0(param->flow_solver_param.vst_rho_0)
+    , v_0(param->flow_solver_param.vst_v_0)
+    , v_inf(param->flow_solver_param.vst_v_inf)
+    , mach_inf(param->euler_param.mach_inf)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_ViscousShockTube<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    real x = point[0];
+
+    real m_0 = rho_0*v_0;
+    real v_1 = (gamma_gas-1.0 + (2.0/pow(mach_inf,2.0)))/(gamma_gas + 1.0);
+    real v_01 = sqrt(v_0*v_1);
+
+    if constexpr (dim == 1 && nstate == (dim + 2)) {
+        if(x < 0.0) {
+            if (istate == 0) {
+                // density
+                value = m_0/v_0;
+                // std::cout << "DENSITY:  " << value << std::endl;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = v_0 + v_inf;
+                // std::cout << "VELOCITY:  " << value << std::endl;
+            }
+            else if (istate == 2) {
+                // pressure
+                real internal_energy = (1.0/(2.0*gamma_gas))*(((gamma_gas+1)/(gamma_gas-1))*pow(v_01,2.0)-pow(v_0,2.0));
+                value = (gamma_gas-1.0)*(m_0/v_0)*internal_energy;
+                // std::cout << "PRESSURE:  " << value << std::endl;
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = m_0/v_1;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = v_1 + v_inf;
+            }
+            else if (istate == 2) {
+                // pressure
+                real internal_energy = (1.0/(2.0*gamma_gas))*(((gamma_gas+1)/(gamma_gas-1))*pow(v_01,2.0)-pow(v_1,2.0));
+                value = (gamma_gas-1.0)*(m_0/v_1)*internal_energy;
+            }
+        }
+    }
+    return value;
+}
 
 // ========================================================
 // Strong Vortex Shock Wave Interaction (2D) -- Initial Condition
@@ -1310,6 +1374,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::sod_shock_tube) {
         if constexpr (dim >= 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
+    } else if (flow_type == FlowCaseEnum::viscous_shock_tube) {
+        if constexpr (dim >= 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_ViscousShockTube<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::explosion_problem) {
         if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_ExplosionProblem<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::low_density) {

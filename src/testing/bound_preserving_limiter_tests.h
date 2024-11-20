@@ -36,12 +36,23 @@ private:
     int run_convergence_test() const;
 
     /// Calculate and return the exact value at the point depending on the case being run
+    double bisection_solve_vst(const dealii::Point<dim> qpoint,
+        double final_time) const;
+
+    /// Calculate and return the exact value at the point depending on the case being run
     double calculate_uexact(const dealii::Point<dim> qpoint,
         const dealii::Tensor<1, 3, double> adv_speeds,
         double final_time) const;
 
     /// Calculate and return the L2 Error
     std::array<double,3> calculate_l_n_error(std::shared_ptr<DGBase<dim, double>> flow_solver_dg, const int poly_degree, const double final_time) const;
+
+    double rho_0;
+    double v_0;
+    double v_inf;
+    double mach_inf;
+    double mu;
+    double Pr;
 };
 
 } // End of Tests namespace

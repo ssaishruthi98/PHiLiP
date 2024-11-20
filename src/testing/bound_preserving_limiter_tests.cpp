@@ -19,8 +19,66 @@ BoundPreservingLimiterTests<dim, nstate>::BoundPreservingLimiterTests(
     :
     TestsBase::TestsBase(parameters_input)
     , parameter_handler(parameter_handler_input)
+    , rho_0(1.0)
+    , v_0(1.0)
+    , v_inf(0.2)
+    , mach_inf(20.0)
+    , mu(0.001)
+    , Pr(0.75)
 {}
+template <int dim, int nstate>
+double BoundPreservingLimiterTests<dim, nstate>::bisection_solve_vst(const dealii::Point<dim> qpoint, double final_time) const
+{
+    PHiLiP::Parameters::AllParameters param = *all_parameters;
+    
+    const double rho_0 = this->rho_0;
+    const double v_0 = this->v_0;
+    const double v_inf = this->v_inf;
+    const double gam = 1.4;
+    const double mach_inf = this->mach_inf;
+    const double mu = this->mu;
+    const double Pr = this->Pr;
 
+    const double m_0 = rho_0*v_0;
+    const double v_1 = (gam-1.0 + (2.0/pow(mach_inf,2.0)))/(gam + 1);
+    const double v_01 = sqrt(v_0*v_1);
+    const double cp = gam/(gam-1.0);
+    const double cv = 1/(gam-1.0);
+    const double kappa = (mu*cp)/Pr;
+    const double L_k = kappa/m_0/cv;
+    const double x = qpoint[0] - (v_inf*final_time);
+
+    double v_L = v_1;
+    double v_R = v_0;
+    int num_iter = 0;
+    int max_iter = 10000;
+    double tol = 1e-14;
+
+    double v_new = (v_L+v_R)/2.0;
+    // std::cout << "v_L:   " << v_L
+    //           << "   v_R:   " << v_R
+    //           << "   v_new:   " << v_new << std::endl;
+    while(num_iter < max_iter) {
+        v_new = (v_L+v_R)/2.0;
+        double f_v_new = (L_k/(gam+1.0)*(v_0/(v_0-v_1)*log((v_0-v_new)/(v_0-v_01))-v_1/(v_0-v_1)*log((v_new-v_1)/(v_01-v_1)))) - x;
+        // std::cout << "f_v_new:   " << f_v_new << std::endl;
+        // sleep(5);
+        if(abs(f_v_new) < tol){
+            // std::cout << "BISECTION SOLVE:  " << v_new << std::endl;
+            return v_new;
+        }
+        else {
+            double f_v_L = (L_k/(gam+1.0)*(v_0/(v_0-v_1)*log((v_0-v_L)/(v_0-v_01))-v_1/(v_0-v_1)*log((v_L-v_1)/(v_01-v_1)))) - x;
+            if(signbit(f_v_L) == signbit(f_v_new))
+                v_L = v_new;
+            else
+                v_R = v_new;
+        }
+        num_iter++;
+    }
+    // std::cout << "BISECTION SOLVE:  " << v_new << std::endl;
+    return v_new;
+}
 template <int dim, int nstate>
 double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::Point<dim> qpoint, const dealii::Tensor<1, 3, double> adv_speeds, double final_time) const
 {
@@ -35,6 +93,11 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::
     }
     if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density && dim == 1) {
         uexact = 1.0 + 0.999 * sin((qpoint[0] - (final_time)));
+    }
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::viscous_shock_tube && dim == 1) {
+        double vel_exact = bisection_solve_vst(qpoint,final_time);
+        uexact = (this->rho_0*this->v_0)/vel_exact;
+        //std::cout << qpoint[0] << "   " << uexact << std::endl;
     }
     else {
         for (int idim = 0; idim < dim; idim++) {
@@ -191,6 +254,26 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
 
             param.flow_solver_param.number_of_grid_elements_x = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
             param.flow_solver_param.number_of_grid_elements_y = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
+        }
+
+        if (flow_case == Parameters::FlowSolverParam::FlowCaseType::viscous_shock_tube) {
+            param.flow_solver_param.grid_left_bound = -1.0;
+            param.flow_solver_param.grid_right_bound = 1.5;
+
+            // To ensure PPL can be used
+            param.flow_solver_param.grid_xmin = param.flow_solver_param.grid_left_bound;
+            param.flow_solver_param.grid_xmax = param.flow_solver_param.grid_right_bound;
+
+            param.flow_solver_param.number_of_grid_elements_x = 50*pow(2,(igrid-2));
+
+            param.flow_solver_param.vst_rho_0 = this->rho_0;
+            param.flow_solver_param.vst_v_0 = this->v_0;
+            param.flow_solver_param.vst_v_inf = this->v_inf;
+            
+            param.euler_param.mach_inf = this->mach_inf;
+            param.navier_stokes_param.nondimensionalized_constant_viscosity = this->mu;
+            param.navier_stokes_param.use_constant_viscosity = true;
+            param.navier_stokes_param.prandtl_number = this->Pr;
         }
 
         std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);

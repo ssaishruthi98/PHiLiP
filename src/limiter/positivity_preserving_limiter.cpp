@@ -22,7 +22,7 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
     std::shared_ptr< ManufacturedSolutionFunction<dim, real> >  manufactured_solution_function
         = ManufacturedSolutionFactory<dim, real>::create_ManufacturedSolution(parameters_input, nstate);
 
-    if (pde_type == PDE_enum::euler && nstate == dim + 2) {
+    if ((pde_type == PDE_enum::euler && nstate == dim + 2) || (pde_type == PDE_enum::navier_stokes && nstate == dim + 2)) {
         euler_physics = std::make_shared < Physics::Euler<dim, nstate, real> >(
             parameters_input,
             parameters_input->euler_param.ref_length,

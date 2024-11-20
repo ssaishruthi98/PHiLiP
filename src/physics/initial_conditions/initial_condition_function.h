@@ -570,6 +570,31 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+/// Initial Condition Function: 1D Viscous Shock Tube
+/** See lin & chan
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_ViscousShockTube : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for InitialConditionFunction_ViscousShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_ViscousShockTube(
+        Parameters::AllParameters const* const param);
+
+
+    /// Value of initial condition
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+    const double gamma_gas;
+    const double rho_0;
+    const double v_0;
+    const double v_inf;
+    const double mach_inf;
+};
 
 /// Initial Condition Function: 2D Strong Vortex Shock Wave Interaction
 /** See Xu & Shu, Third order maximum-principle-satisfying 

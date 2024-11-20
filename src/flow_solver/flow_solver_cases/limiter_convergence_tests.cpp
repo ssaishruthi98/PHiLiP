@@ -9,6 +9,7 @@
 #include <deal.II/grid/grid_tools.h>
 
 #include "mesh/grids/straight_periodic_cube.hpp"
+#include "mesh/grids/positivity_preserving_tests_grid.h"
 
 
 namespace PHiLiP{
@@ -55,6 +56,10 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_gri
         right = this->all_param.flow_solver_param.grid_right_bound;
     }
 
+    if(flow_case == flow_case_enum::viscous_shock_tube) {
+        PHiLiP::Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param);
+        return grid;
+    }
     const unsigned int number_of_refinements = this->all_param.flow_solver_param.number_of_mesh_refinements;
 
     PHiLiP::Grids::straight_periodic_cube<dim, Triangulation>(grid, left, right, pow(2.0, number_of_refinements));
@@ -93,7 +98,7 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_
     if(flow_case == flow_case_enum::burgers_limiter)
         time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * delta_x : (1.0 / 24.0) * delta_x;
 
-    if (flow_case == flow_case_enum::low_density){
+    if (flow_case == flow_case_enum::low_density || flow_case == flow_case_enum::viscous_shock_tube){
         const double approximate_grid_spacing = (this->all_param.flow_solver_param.grid_xmax-this->all_param.flow_solver_param.grid_xmin)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
         const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
         time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
@@ -232,7 +237,7 @@ void LimiterConvergenceTests<dim, nstate>::check_limiter_principle(DGBase<dim, d
                     } 
                 }
             }
-        } else if (flow_case == flow_case_enum::low_density) {
+        } else if (flow_case == flow_case_enum::low_density || flow_case == flow_case_enum::viscous_shock_tube) {
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                     // Verify that positivity of density is preserved
                     if (soln_at_q[0][iquad] < 0 || (isnan(soln_at_q[0][iquad])) ) {

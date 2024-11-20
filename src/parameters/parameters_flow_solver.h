@@ -41,7 +41,8 @@ public:
         explosion_problem,
         astrophysical_jet,
         nonsmooth_case,
-        svsw
+        svsw,
+        viscous_shock_tube
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -116,6 +117,9 @@ public:
     double grid_ymin; ///< Minimum y bound of domain for positivity_preserving_tests
     double grid_zmax; ///< Maximum z bound of domain for positivity_preserving_tests
     double grid_zmin; ///< Minimum z bound of domain for positivity_preserving_tests
+    double vst_rho_0; ///< Initial density value for vst case
+    double vst_v_0; ///< Initial velocity (left) value for vst case
+    double vst_v_inf; ///< Freestream velocity value for vst case
 
     unsigned int number_of_grid_elements_x; ///< Number of subdivisions in x direction for positivity_preserving_tests
     unsigned int number_of_grid_elements_y; ///< Number of subdivisions in y direction for positivity_preserving_tests
