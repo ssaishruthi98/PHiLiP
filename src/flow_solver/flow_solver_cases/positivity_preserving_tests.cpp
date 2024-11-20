@@ -188,8 +188,10 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
 
 
         // Write to file
-        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-        unsteady_data_table->write_text(unsteady_data_table_file);
+        if(do_write_unsteady_data_table_file){
+            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+            unsteady_data_table->write_text(unsteady_data_table_file);    
+        }
     }
 
     if (current_iteration % this->all_param.ode_solver_param.print_iteration_modulo == 0) {
