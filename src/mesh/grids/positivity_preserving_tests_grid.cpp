@@ -355,6 +355,47 @@ void astrophysical_jet_grid(
     }
 }
 
+template<int dim, typename TriangulationType>
+void daru_tenaud_grid(
+    TriangulationType&  grid,
+    const Parameters::AllParameters *const parameters_input) 
+{
+    double xmax = parameters_input->flow_solver_param.grid_xmax;
+    double xmin = parameters_input->flow_solver_param.grid_xmin;
+    double ymax = parameters_input->flow_solver_param.grid_ymax;
+    double ymin = parameters_input->flow_solver_param.grid_ymin;
+
+    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
+    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
+    
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    p1[0] = xmin; p1[1] = ymin;
+    p2[0] = xmax; p2[1] = ymax;
+    
+    std::vector<unsigned int> n_subdivisions(2);
+
+    n_subdivisions[0] = n_subdivisions_x;//log2(128);
+    n_subdivisions[1] = n_subdivisions_y;//log2(64);
+
+    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
+
+    // Set boundary type and design type
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                unsigned int current_id = cell->face(face)->boundary_id();
+                if (current_id == 3) {
+                    cell->face(face)->set_boundary_id(1006); // top bc, slip wall
+                }
+                else {
+                    cell->face(face)->set_boundary_id(1001); // left, right, bottom, no-slip adiabatic
+                }
+            }
+        }
+    }
+}
+
 #if PHILIP_DIM==1
 template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
@@ -376,6 +417,9 @@ template void shock_diffraction_grid<2, dealii::parallel::distributed::Triangula
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::AllParameters *const parameters_input);
 template void astrophysical_jet_grid<2, dealii::parallel::distributed::Triangulation<2>>(
+    dealii::parallel::distributed::Triangulation<2>&    grid,
+    const Parameters::AllParameters *const parameters_input);
+template void daru_tenaud_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::AllParameters *const parameters_input);
 #endif

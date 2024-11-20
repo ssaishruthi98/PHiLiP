@@ -41,6 +41,7 @@ public:
         shock_diffraction,
         explosion_problem,
         astrophysical_jet,
+        daru_tenaud,
         dipole_wall_collision_normal,
         dipole_wall_collision_oblique,
         };

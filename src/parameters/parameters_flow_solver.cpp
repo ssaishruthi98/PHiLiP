@@ -47,7 +47,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " mach_3_wind_tunnel | "
                           " shock_diffraction | "
                           " explosion_problem | "
-                          " astrophysical_jet "),
+                          " astrophysical_jet | "
+                          " daru_tenaud "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -77,7 +78,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " mach_3_wind_tunnel | "
                           " shock_diffraction | "
                           " explosion_problem | "
-                          " astrophysical_jet >. ");
+                          " astrophysical_jet | "
+                          " daru_tenaud >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -506,6 +508,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "shock_diffraction")          {flow_case_type = shock_diffraction;}
         else if (flow_case_type_string == "explosion_problem")          {flow_case_type = explosion_problem;}
         else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
+        else if (flow_case_type_string == "daru_tenaud")                {flow_case_type = daru_tenaud;}
         else if (flow_case_type_string == "dipole_wall_collision_normal")     
                                                                         {flow_case_type = dipole_wall_collision_normal;}
         else if (flow_case_type_string == "dipole_wall_collision_oblique")

@@ -75,6 +75,9 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
     else if (dim==2 && flow_case_type == flow_case_enum::astrophysical_jet) {
         Grids::astrophysical_jet_grid<dim>(*grid, &this->all_param);
     }
+    else if (dim==2 && flow_case_type == flow_case_enum::daru_tenaud) {
+        Grids::daru_tenaud_grid<dim>(*grid, &this->all_param);
+    }
     else if (dim==2 && flow_case_type == flow_case_enum::double_mach_reflection) {
         if(this->all_param.flow_solver_param.use_gmsh_mesh) {
             const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
