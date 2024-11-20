@@ -48,6 +48,8 @@ subsection navier_stokes
   set prandtl_number = 0.73
   set reynolds_number_inf = 1000.0
   set thermal_boundary_condition_type = adiabatic
+  set use_constant_viscosity = true
+  set nondimensionalized_constant_viscosity = 1.0
 end
 
 subsection flow_solver
@@ -55,7 +57,7 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 1.0
   #set constant_time_step = 0.0005
-  set courant_friedrichs_lewy_number = 0.2
+  set courant_friedrichs_lewy_number = 0.01
   set adaptive_time_step = true
   set unsteady_data_table_filename = daru_tenaud_energy
   subsection grid
@@ -65,8 +67,8 @@ subsection flow_solver
       set grid_ymin = 0.0
       set grid_ymax = 0.5
 
-      set number_of_grid_elements_x = 80
-      set number_of_grid_elements_y = 40
+      set number_of_grid_elements_x = 50
+      set number_of_grid_elements_y = 25
     end
   end
 end
