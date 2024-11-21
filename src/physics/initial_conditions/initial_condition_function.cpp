@@ -1361,7 +1361,7 @@ real InitialConditionFunction_DaruTenaudShockTube<dim, nstate, real>
                 value = 0;
             }
             else if (istate == 3) {
-                value = 1.2/gamma_gas;
+                value = 1.2/this->gamma_gas;
             }
         }
     }
