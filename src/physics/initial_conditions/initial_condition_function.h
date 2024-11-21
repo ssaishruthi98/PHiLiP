@@ -701,7 +701,6 @@ public:
     explicit InitialConditionFunction_DaruTenaudShockTube(
         Parameters::AllParameters const* const param);
 
-    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
 };
 
 /// Initial condition 0.
