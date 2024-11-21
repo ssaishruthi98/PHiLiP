@@ -687,7 +687,9 @@ public:
 };
 
 /// Initial Condition Function: 2D Daru-Tenaud Shock Tube
-/** INCLUDE REFERENCE LATER
+/** Reference: Daru, Virginie, and Christian Tenaud. "Numerical simulation of the viscous
+     shock tube problem by using a high resolution monotonicity-preserving scheme." 
+     Computers & Fluids 38.3 (2009): 664-676.
 */
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_DaruTenaudShockTube : public InitialConditionFunction_NavierStokesBase<dim, nstate, real>
