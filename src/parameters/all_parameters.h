@@ -158,6 +158,9 @@ public:
     /// Number of state variables. Will depend on PDE
     int nstate;
 
+    /// Shock Sensor Threshold value
+    double shock_sensor_threshold;
+
     /// Possible integration tests to run
     enum TestType {
         run_control,
@@ -268,12 +271,12 @@ public:
     DissipativeNumericalFlux diss_num_flux_type;
 
     /// Type of correction in Flux Reconstruction
-    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand, cHULumped};
+    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand, cHULumped, cAdaptive};
     /// Store flux reconstruction type
     Flux_Reconstruction flux_reconstruction_type;
 
     /// Type of correction in Flux Reconstruction for the auxiliary variables
-    enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus, k10Thousand};
+    enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus, k10Thousand, kAdaptive};
     /// Store flux reconstruction type for the auxiliary variables
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 

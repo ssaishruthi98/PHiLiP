@@ -9,41 +9,56 @@ set pde_type = navier_stokes
 # DG formulation
 set use_weak_form = false
 set flux_nodes_type = GLL
+set shock_sensor_threshold = 0.5
 
-# Strong DG - LaxF
+# Strong DG - Roe
 #set use_split_form = false
-#set conv_num_flux = lax_friedrichs
+#set overintegration = 4
+#set conv_num_flux = roe
 
 # NSFR - Ra
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cDG
+set flux_reconstruction = cAdaptive
 set use_inverse_mass_on_the_fly = true
+
+# - additional parameters that do not ever change for this case
+set use_curvilinear_split_form = false
+set use_weight_adjusted_mass = false
+set flux_reconstruction_aux = kAdaptive
+set all_boundaries_are_periodic = false
+set diss_num_flux = symm_internal_penalty
+set do_renumber_dofs = false
 
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
   set min_density = 1e-13
 end
 
+# additional parameters for vtk files
+set output_high_order_grid = false
+set enable_higher_order_vtk_output = true
+
 # ODE solver
 subsection ODE solver
-  set ode_output = verbose
+  set ode_output = quiet
   set ode_solver_type = runge_kutta
-  set initial_time_step = 0.00000001
-  #set output_solution_every_x_steps = 5
   set runge_kutta_method = ssprk3_ex
-  set print_iteration_modulo = 1
-  set output_solution_every_dt_time_intervals = 0.01
+  set output_solution_every_dt_time_intervals = 0.0
+  set output_solution_at_fixed_times = true
+  set output_solution_fixed_times_string = 0.25 0.4 0.45 0.5 0.55 0.6 0.65 0.7 0.75 0.8 0.85 0.9 0.95 1.0
+  set output_solution_at_exact_fixed_times = true
 end
 
-# freestream Mach number
+# Euler; freestream Mach number
 subsection euler
-  set mach_infinity = 0.1
+  set reference_length = 1.0
+  set mach_infinity = 1.0
   set gamma_gas = 1.4
 end
 
-# freestream Reynolds number and Prandtl number
+# Navier-Stokes; freestream Reynolds number and Prandtl number
 subsection navier_stokes
   set prandtl_number = 0.73
   set reynolds_number_inf = 1000.0
@@ -55,20 +70,22 @@ end
 subsection flow_solver
   set flow_case_type = daru_tenaud
   set poly_degree = 3
-  set final_time = 1.0
-  #set constant_time_step = 0.0005
-  set courant_friedrichs_lewy_number = 0.01
+  set final_time = 1.001
+  set courant_friedrichs_lewy_number = 0.1
   set adaptive_time_step = true
   set unsteady_data_table_filename = daru_tenaud_energy
   subsection grid
+    set grid_degree = 1
     subsection positivity_preserving_tests
       set grid_xmin = 0.0
       set grid_xmax = 1.0
       set grid_ymin = 0.0
       set grid_ymax = 0.5
-
       set number_of_grid_elements_x = 50
       set number_of_grid_elements_y = 25
     end
   end
+  set apply_initial_condition_method = project_initial_condition_function
+  set do_compute_unsteady_data_and_write_to_table = true
+  set write_unsteady_data_table_file_every_dt_time_intervals = 0.05
 end
