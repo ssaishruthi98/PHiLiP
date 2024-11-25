@@ -20,13 +20,13 @@ set shock_sensor_threshold = 0.5
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cAdaptive
+set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
 # - additional parameters that do not ever change for this case
 set use_curvilinear_split_form = false
 set use_weight_adjusted_mass = false
-set flux_reconstruction_aux = kAdaptive
+set flux_reconstruction_aux = kDG
 set all_boundaries_are_periodic = false
 set diss_num_flux = symm_internal_penalty
 set do_renumber_dofs = false
@@ -45,10 +45,10 @@ subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
-  set output_solution_every_dt_time_intervals = 0.0
-  set output_solution_at_fixed_times = true
-  set output_solution_fixed_times_string = 0.25 0.4 0.45 0.5 0.55 0.6 0.65 0.7 0.75 0.8 0.85 0.9 0.95 1.0
-  set output_solution_at_exact_fixed_times = true
+  set output_solution_every_dt_time_intervals = 0.01
+  #set output_solution_at_fixed_times = true
+  #set output_solution_fixed_times_string = 0.25 0.4 0.45 0.5 0.55 0.6 0.65 0.7 0.75 0.8 0.85 0.9 0.95 1.0
+  #set output_solution_at_exact_fixed_times = true
 end
 
 # Euler; freestream Mach number
@@ -71,7 +71,7 @@ subsection flow_solver
   set flow_case_type = daru_tenaud
   set poly_degree = 3
   set final_time = 1.001
-  set courant_friedrichs_lewy_number = 0.1
+  set courant_friedrichs_lewy_number = 0.05
   set adaptive_time_step = true
   set unsteady_data_table_filename = daru_tenaud_energy
   subsection grid

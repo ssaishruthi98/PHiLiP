@@ -704,6 +704,19 @@ public:
     const double gamma_gas; ///< Constant heat capacity ratio of fluid.
 };
 
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_SVSW : public InitialConditionFunction_NavierStokesBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+public:
+    /// Constructor for InitialConditionFunction_AstrophysicalJet
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_SVSW(
+        Parameters::AllParameters const* const param);
+};
+
 /// Initial condition 0.
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nstate,real>

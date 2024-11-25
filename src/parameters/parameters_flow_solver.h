@@ -44,6 +44,7 @@ public:
         daru_tenaud,
         dipole_wall_collision_normal,
         dipole_wall_collision_oblique,
+        svsw
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
