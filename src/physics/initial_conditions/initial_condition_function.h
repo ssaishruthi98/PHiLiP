@@ -686,6 +686,29 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+/// Initial Condition Function: 1D Viscous Shock Tube
+/** Reference: Guermond, Jean-Luc, et al. "Second-order invariant 
+    domain preserving approximation of the compressible Navier–Stokes equations."
+    Computer Methods in Applied Mechanics and Engineering 375 (2021): 113608.
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_ViscousShockTube : public InitialConditionFunction_NavierStokesBase<dim, nstate, real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+public:
+    /// Constructor for InitialConditionFunction_ViscousShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_ViscousShockTube(
+        Parameters::AllParameters const* const param);
+    /// Value of initial condition
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+    const double rho_0;
+    const double v_0;
+    const double v_inf;
+};
+
 /// Initial Condition Function: 2D Daru-Tenaud Shock Tube
 /** Reference: Daru, Virginie, and Christian Tenaud. "Numerical simulation of the viscous
      shock tube problem by using a high resolution monotonicity-preserving scheme." 

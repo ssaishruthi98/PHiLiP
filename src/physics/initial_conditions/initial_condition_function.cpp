@@ -1312,15 +1312,77 @@ real InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
 }
 
 // ========================================================
+// Viscous Shock Tube -- Initial Condition
+/** Reference: Guermond, Jean-Luc, et al. "Second-order invariant 
+    domain preserving approximation of the compressible Navier–Stokes equations."
+    Computer Methods in Applied Mechanics and Engineering 375 (2021): 113608.
+    */
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ViscousShockTube<dim, nstate, real>
+::InitialConditionFunction_ViscousShockTube(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_NavierStokesBase<dim, nstate, real>(param)
+    , rho_0(param->flow_solver_param.vst_rho_0)
+    , v_0(param->flow_solver_param.vst_v_0)
+    , v_inf(param->flow_solver_param.vst_v_inf)
+{}
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_ViscousShockTube<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    real x = point[0];
+    real m_0 = rho_0*v_0;
+    real v_1 = (this->gamma_gas-1.0 + (2.0/pow(this->mach_inf,2.0)))/(this->gamma_gas + 1.0);
+    real v_01 = sqrt(v_0*v_1);
+    if constexpr (dim == 1 && nstate == (dim + 2)) {
+        if(x < 0.0) {
+            if (istate == 0) {
+                // density
+                value = m_0/v_0;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = v_0 + v_inf;
+            }
+            else if (istate == 2) {
+                // pressure
+                real internal_energy = (1.0/(2.0*this->gamma_gas))*(((this->gamma_gas+1)/(this->gamma_gas-1))*pow(v_01,2.0)-pow(v_0,2.0));
+                value = (this->gamma_gas-1.0)*(m_0/v_0)*internal_energy;
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = m_0/v_1;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = v_1 + v_inf;
+            }
+            else if (istate == 2) {
+                // pressure
+                real internal_energy = (1.0/(2.0*this->gamma_gas))*(((this->gamma_gas+1)/(this->gamma_gas-1))*pow(v_01,2.0)-pow(v_1,2.0));
+                value = (this->gamma_gas-1.0)*(m_0/v_1)*internal_energy;
+            }
+        }
+    }
+    return value;
+}
+
+// ========================================================
 // 2D Daru-Tenaud Problem -- Initial Condition
-// INCLUDE REFERENCE LATER
+/** Reference: Daru, Virginie, and Christian Tenaud. "Numerical simulation of the viscous
+     shock tube problem by using a high resolution monotonicity-preserving scheme." 
+     Computers & Fluids 38.3 (2009): 664-676.
+*/
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_DaruTenaudShockTube<dim, nstate, real>
 ::InitialConditionFunction_DaruTenaudShockTube(
     Parameters::AllParameters const* const param)
     : InitialConditionFunction_NavierStokesBase<dim, nstate, real>(param)
-    , gamma_gas(param->euler_param.gamma_gas)
 {}
 
 template <int dim, int nstate, typename real>
@@ -1518,6 +1580,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_AstrophysicalJet<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::viscous_shock_tube) {
+        if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ViscousShockTube<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::daru_tenaud) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DaruTenaudShockTube<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
@@ -1548,6 +1612,7 @@ template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_DIM + 2, double>;
+template class InitialConditionFunction_ViscousShockTube<PHILIP_DIM, PHILIP_DIM + 2, double>;
 #endif
 
 #if PHILIP_DIM==3

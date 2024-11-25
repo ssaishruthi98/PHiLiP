@@ -17,6 +17,7 @@ void shock_tube_1D_grid(
     dealii::GridGenerator::subdivided_hyper_cube(grid, n_subdivisions_x, xmin, xmax, true);
 
     int left_boundary_id = 9999;
+    int right_boundary_id = 1001;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = parameters_input->flow_solver_param.flow_case_type;
 
@@ -25,14 +26,20 @@ void shock_tube_1D_grid(
         left_boundary_id = 1001;
     } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
         left_boundary_id = 1007;
+    } else if (flow_case_type == flow_case_enum::viscous_shock_tube) {
+        /* Currently using custom inflow and p0 outflow since 
+           Dirichlet boundary conditions don't seem to work for NS eqns*/
+        left_boundary_id = 1007;
+        right_boundary_id = 1008;
     } 
+
 
     if (left_boundary_id != 9999 && dim == 1) {
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
             // Set a dummy material ID
             cell->set_material_id(9002);
             if (cell->face(0)->at_boundary()) cell->face(0)->set_boundary_id(left_boundary_id);
-            if (cell->face(1)->at_boundary()) cell->face(1)->set_boundary_id(1001);
+            if (cell->face(1)->at_boundary()) cell->face(1)->set_boundary_id(right_boundary_id);
         }
     }
 }
