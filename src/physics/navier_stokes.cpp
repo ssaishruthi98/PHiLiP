@@ -1578,7 +1578,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
     interpretation.push_back (DCI::component_is_scalar); // Temperature
     interpretation.push_back (DCI::component_is_scalar); // Entropy generation
     interpretation.push_back (DCI::component_is_scalar); // Mach number
-    if constexpr(dim==3) {
+    if constexpr(dim>1) {
         for (unsigned int d=0; d<3; ++d) {
             interpretation.push_back (DCI::component_is_part_of_vector); // Vorticity
         }
@@ -1616,7 +1616,7 @@ std::vector<std::string> NavierStokes<dim,nstate,real>
 
     names.push_back ("entropy_generation");
     names.push_back ("mach_number");
-    if constexpr(dim==3) {
+    if constexpr(dim>1) {
         for (unsigned int d=0; d<3; ++d) {
             names.push_back ("vorticity");
         }
