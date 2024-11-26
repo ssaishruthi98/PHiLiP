@@ -1538,6 +1538,11 @@ dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quant
                 computed_quantities(++current_data_index) = vorticity[d];
             }
         }
+        if constexpr(dim==2) {
+            // Vorticity z-component
+            dealii::Tensor<1,3,double> vorticity = compute_vorticity<double>(conservative_soln,conservative_soln_gradient);
+            computed_quantities(++current_data_index) = vorticity[2];
+        }
         // Vorticity magnitude
         computed_quantities(++current_data_index) = compute_vorticity_magnitude(conservative_soln,conservative_soln_gradient);
         // Enstrophy
@@ -1583,6 +1588,9 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
             interpretation.push_back (DCI::component_is_part_of_vector); // Vorticity
         }
     }
+    if constexpr(dim==2) {
+        interpretation.push_back (DCI::component_is_scalar); // Vorticity z-component
+    }
     interpretation.push_back (DCI::component_is_scalar); // Vorticity magnitude
     interpretation.push_back (DCI::component_is_scalar); // Enstrophy
     interpretation.push_back (DCI::component_is_scalar); // Second-invariant Q
@@ -1620,6 +1628,9 @@ std::vector<std::string> NavierStokes<dim,nstate,real>
         for (unsigned int d=0; d<3; ++d) {
             names.push_back ("vorticity");
         }
+    }
+    if constexpr(dim==2) {
+        names.push_back ("vorticity_z");
     }
     names.push_back ("vorticity_magnitude");
     names.push_back ("enstrophy");
