@@ -1531,7 +1531,7 @@ dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quant
         computed_quantities(++current_data_index) = this->compute_entropy_measure(conservative_soln) - this->entropy_inf;
         // Mach Number
         computed_quantities(++current_data_index) = this->compute_mach_number(conservative_soln);
-        if constexpr(dim==3) {
+        if constexpr(dim>1) {
             // Vorticity
             dealii::Tensor<1,3,double> vorticity = compute_vorticity<double>(conservative_soln,conservative_soln_gradient);
             for (unsigned int d=0; d<3; ++d) {
