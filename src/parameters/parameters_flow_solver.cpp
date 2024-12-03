@@ -294,19 +294,23 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
               prm.declare_entry("number_of_grid_elements_z", "1",
                                 dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                                 "Number of grid elements in the z-direction for 2/3D positivity-preserving limiter cases.");
-              
-              prm.declare_entry("vst_rho_0", "1.0",
-                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
-                                "Initial Density Value for Viscous Shock Tube Case");
-              prm.declare_entry("vst_v_0", "1.0",
-                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
-                                "Initial Velocity (left) Value for Viscous Shock Tube Case");
-              prm.declare_entry("vst_v_inf", "0.2",
-                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
-                                "Velocity Freestream Value for Viscous Shock Tube Case");
           }
           prm.leave_subsection();
 
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("viscous_shock_tube");
+        {       
+            prm.declare_entry("vst_rho_0", "1.0",
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                              "Initial Density Value for Viscous Shock Tube Case");
+            prm.declare_entry("vst_v_0", "1.0",
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                              "Initial Velocity (left) Value for Viscous Shock Tube Case");
+            prm.declare_entry("vst_v_inf", "0.2",
+                              dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                              "Velocity Freestream Value for Viscous Shock Tube Case");
         }
         prm.leave_subsection();
 
@@ -612,6 +616,14 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         }       
         prm.leave_subsection();
 
+        prm.enter_subsection("viscous_shock_tube");
+        {
+          vst_rho_0 = prm.get_double("vst_rho_0");
+          vst_v_0 = prm.get_double("vst_v_0");
+          vst_v_inf = prm.get_double("vst_v_inf");
+        }
+        prm.leave_subsection();
+        
         prm.enter_subsection("taylor_green_vortex");
         {
             expected_kinetic_energy_at_final_time = prm.get_double("expected_kinetic_energy_at_final_time");

@@ -1333,14 +1333,14 @@ real InitialConditionFunction_ViscousShockTube<dim, nstate, real>
 {
     real value = 0.0;
     real x = point[0];
-    real m_0 = rho_0*v_0;
-    real v_1 = (this->gamma_gas-1.0 + (2.0/pow(this->mach_inf,2.0)))/(this->gamma_gas + 1.0);
-    real v_01 = sqrt(v_0*v_1);
+    // real m_0 = rho_0*v_0;
+    real v_rhJump = (this->gamma_gas-1.0 + (2.0/this->mach_inf_sqr))/(this->gamma_gas + 1.0);
+    // real v_01 = sqrt(v_0*v_1);
     if constexpr (dim == 1 && nstate == (dim + 2)) {
         if(x < 0.0) {
             if (istate == 0) {
                 // density
-                value = m_0/v_0;
+                value = rho_0;
             }
             else if (istate == 1) {
                 // x-velocity
@@ -1348,23 +1348,22 @@ real InitialConditionFunction_ViscousShockTube<dim, nstate, real>
             }
             else if (istate == 2) {
                 // pressure
-                real internal_energy = (1.0/(2.0*this->gamma_gas))*(((this->gamma_gas+1)/(this->gamma_gas-1))*pow(v_01,2.0)-pow(v_0,2.0));
-                value = (this->gamma_gas-1.0)*(m_0/v_0)*internal_energy;
+                value = rho_0*(1.0/this->gamma_gas)*pow(v_0,2.0)*(1.0/this->mach_inf_sqr);
             }
         }
         else {
             if (istate == 0) {
                 // density
-                value = m_0/v_1;
+                value = pow(v_rhJump,-1.0);
             }
             else if (istate == 1) {
                 // x-velocity
-                value = v_1 + v_inf;
+                value = v_rhJump + v_inf;
             }
             else if (istate == 2) {
                 // pressure
-                real internal_energy = (1.0/(2.0*this->gamma_gas))*(((this->gamma_gas+1)/(this->gamma_gas-1))*pow(v_01,2.0)-pow(v_1,2.0));
-                value = (this->gamma_gas-1.0)*(m_0/v_1)*internal_energy;
+                real coeff = (1.0 + (2.0/((this->gamma_gas - 1)*this->mach_inf_sqr)) - pow(v_rhJump, 2.0));
+                value = (this->gamma_gas-1.0)*pow(v_rhJump,-1.0)*(coeff/(2.0*this->gamma_gas));
             }
         }
     }

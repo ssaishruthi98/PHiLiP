@@ -45,7 +45,7 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_gri
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
 
-    if(flow_case == flow_case_enum::viscous_shock_tube) {
+    if(dim == 1 && flow_case == flow_case_enum::viscous_shock_tube) {
         PHiLiP::Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param);
         return grid;
     }
@@ -93,6 +93,9 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_
     if (flow_case == flow_case_enum::low_density_2d || flow_case == flow_case_enum::viscous_shock_tube){
         const double approximate_grid_spacing = (this->all_param.flow_solver_param.grid_xmax-this->all_param.flow_solver_param.grid_xmin)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
         const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
+        // std::cout << "cfl_number:  " << cfl_number 
+        //           << "   approximate_grid_spacing:   " << approximate_grid_spacing 
+        //           << "   maximum_local_wave_speed:   " << this->maximum_local_wave_speed << std::endl;
         time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
     }
 
