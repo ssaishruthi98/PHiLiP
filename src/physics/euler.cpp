@@ -1470,6 +1470,16 @@ void Euler<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
+void Euler<dim, nstate, real>
+::boundary_vst(
+    std::array<real, nstate>& soln_bc) const
+{
+    soln_bc[0] = 1.0;
+    soln_bc[1] = 1.2;
+    soln_bc[nstate-1] = 0.918412698412698;
+}
+
+template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
@@ -1520,6 +1530,10 @@ void Euler<dim,nstate,real>
     else if (boundary_type == 1008) {
         // Do nothing boundary condition (subsonic_outflow_p0 in FUN3D reference)
         boundary_do_nothing (soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    }
+    else if (boundary_type == 1009) {
+        // Custom boundary condition
+        boundary_vst (soln_bc);
     }
     else {
         this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;

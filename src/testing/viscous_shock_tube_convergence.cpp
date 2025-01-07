@@ -125,36 +125,37 @@ std::array<double,3> VSTConvergenceTest<dim, nstate>::calculate_l_n_error(
     }
     // Integrate every cell and compute L2
     std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
-    for (auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell) {
-        if (!cell->is_locally_owned()) continue;
+    for(unsigned int istate = 0; istate < 1; ++istate){
+    std::cout << "STATE:      " << istate << std::endl;
+        for (auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell) {
+            if (!cell->is_locally_owned()) continue;
 
-        fe_values_extra.reinit(cell);
-        cell->get_dof_indices(dofs_indices);
+            fe_values_extra.reinit(cell);
+            cell->get_dof_indices(dofs_indices);
+                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
 
-        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                    std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+                    for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
+                        const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                        soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                    }
 
-            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
-            for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
-                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
-                soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
-            }
+                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                    std::array<double,3> uexact = calculate_uexact(qpoint, final_time);   
 
-            const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-            std::array<double,3> uexact = calculate_uexact(qpoint, final_time);   
+                        std::cout << "u:   " << soln_at_q[istate] << "   uexact:   " << uexact[istate] << std::endl;       
+                        l1error[istate] += pow(abs(soln_at_q[istate] - uexact[istate]), 1.0) * fe_values_extra.JxW(iquad);
+                        l2error[istate] += pow(abs(soln_at_q[istate] - uexact[istate]), 2.0) * fe_values_extra.JxW(iquad);
+                        //L-infinity norm
+                        linferror[istate] = std::max(abs(soln_at_q[istate]-uexact[istate]), linferror[istate]);
 
-            for(unsigned int istate = 0; istate < 3; ++istate){
-                std::cout << "u:   " << soln_at_q[0] << "   uexact:   " << uexact[0] << std::endl;       
-                l1error[istate] += pow(abs(soln_at_q[istate] - uexact[istate]), 1.0) * fe_values_extra.JxW(iquad);
-                l2error[istate] += pow(abs(soln_at_q[istate] - uexact[istate]), 2.0) * fe_values_extra.JxW(iquad);
-                //L-infinity norm
-                linferror[istate] = std::max(abs(soln_at_q[istate]-uexact[istate]), linferror[istate]);
-
-                exact_l1[istate] += abs(uexact[istate]) * fe_values_extra.JxW(iquad);
-                exact_l2[istate] += pow(abs(uexact[istate]),2.0) * fe_values_extra.JxW(iquad);
-                exact_linf[istate] = std::max(abs(uexact[istate]), exact_linf[istate]); 
+                        exact_l1[istate] += abs(uexact[istate]) * fe_values_extra.JxW(iquad);
+                        exact_l2[istate] += pow(abs(uexact[istate]),2.0) * fe_values_extra.JxW(iquad);
+                        exact_linf[istate] = std::max(abs(uexact[istate]), exact_linf[istate]); 
             }
         }
     }
+    
     //MPI sum
     double exact_l1_mpi = 0.0;
     double exact_l2_mpi = 0.0;
@@ -164,7 +165,7 @@ std::array<double,3> VSTConvergenceTest<dim, nstate>::calculate_l_n_error(
     double l2error_mpi = 0.0;
     double linferror_mpi = 0.0;
 
-    for(unsigned int istate = 0; istate < 3; ++istate){ 
+    for(unsigned int istate = 0; istate < 1; ++istate){ 
         exact_l1_mpi = dealii::Utilities::MPI::sum(exact_l1[istate], this->mpi_communicator);
         exact_l2_mpi = dealii::Utilities::MPI::sum(exact_l2[istate], this->mpi_communicator);
         exact_linf_mpi = dealii::Utilities::MPI::max(exact_linf[istate], this->mpi_communicator);

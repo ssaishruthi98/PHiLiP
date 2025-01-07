@@ -241,6 +241,8 @@ real InitialConditionFunction_NavierStokesBase<dim,nstate,real>
     }
     const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
     value = soln_conservative[istate];
+    // if(istate == nstate-1)
+    //     std::cout << std::setprecision(15) << soln_conservative[istate] << std::endl;
 
     return value;
 }
