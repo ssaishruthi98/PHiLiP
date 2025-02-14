@@ -458,6 +458,7 @@ public:
 
     // ************************* Adaptive Flux Reconstruction Steps ************************* //
     dealii::Vector<double> jameson_sensor_cell;
+    dealii::Vector<double> modal_sensor_cell;
     dealii::Vector<double> c_value_cell;
 
 
@@ -469,12 +470,18 @@ public:
 
     template <typename real2>
     /** Discontinuity sensor with 4 parameters, based on projecting to p-1. */
-    real2 discontinuity_sensor(
+    real2 modal_sensor(
         const dealii::Quadrature<dim> &volume_quadrature,
         const std::vector< real2 > &soln_coeff_high,
         const dealii::FiniteElement<dim,dim> &fe_high,
         const std::vector<real2> &jac_det);
 
+
+    /** Discontinuity sensor with 3 parameters, based on averaging */
+    double jameson_sensor(
+            dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
+            const dealii::FiniteElement<dim,dim> &fe_collection,
+            std::vector<dealii::types::global_dof_index> &current_dof_indices);
     /// Current optimization dual variables corresponding to the residual constraints also known as the adjoint
     /** This is used to evaluate the dot-product between the dual and the 2nd derivatives of the residual
      *  since storing the 2nd order partials of the residual is a very large 3rd order tensor.

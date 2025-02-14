@@ -28,6 +28,11 @@ subsection limiter
   set min_density = 1e-13
 end
 
+subsection artificial dissipation
+  set mu_artificial_dissipation = 40.0
+  set kappa_artificial_dissipation = 1.0
+end
+
 # ODE solver
 subsection ODE solver
   set ode_output = verbose
@@ -50,7 +55,7 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 0.2
   #set constant_time_step = 0.0001
-  set courant_friedrichs_lewy_number = 0.15
+  set courant_friedrichs_lewy_number = 0.7
   set adaptive_time_step = true
   set unsteady_data_table_filename = double_mach_shock_energy
   subsection grid
@@ -59,8 +64,8 @@ subsection flow_solver
       set grid_xmax = 4.0
       set grid_ymax = 3.0
       set grid_ymin = 0.0
-      set number_of_grid_elements_x = 280
-      set number_of_grid_elements_y = 145
+      set number_of_grid_elements_x = 120
+      set number_of_grid_elements_y = 90
     end
   end
 end

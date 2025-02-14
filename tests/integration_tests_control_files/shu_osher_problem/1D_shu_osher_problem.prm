@@ -22,6 +22,11 @@ set flux_reconstruction = cAdaptive
 set use_inverse_mass_on_the_fly = true
 set shock_sensor_threshold = 0.5
 
+subsection artificial dissipation
+  set mu_artificial_dissipation = 40.0
+  set kappa_artificial_dissipation = 1.0
+end
+
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
   set min_density = 1e-13
