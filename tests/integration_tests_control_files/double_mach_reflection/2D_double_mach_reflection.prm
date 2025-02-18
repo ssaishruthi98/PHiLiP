@@ -29,7 +29,7 @@ subsection limiter
 end
 
 subsection artificial dissipation
-  set mu_artificial_dissipation = 40.0
+  set mu_artificial_dissipation = 1.0
   set kappa_artificial_dissipation = 1.0
 end
 
@@ -55,7 +55,7 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 0.2
   #set constant_time_step = 0.0001
-  set courant_friedrichs_lewy_number = 0.7
+  set courant_friedrichs_lewy_number = 0.75
   set adaptive_time_step = true
   set unsteady_data_table_filename = double_mach_shock_energy
   subsection grid

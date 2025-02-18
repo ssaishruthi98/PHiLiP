@@ -2626,7 +2626,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                     // ************************* Adaptive Flux Reconstruction Steps ************************* //
                     if (FR_Type == FR_enum::cAdaptive) {
                         //if (jameson_sensor_value > this->all_parameters->shock_sensor_threshold) {
-                        if (modal_sensor_value > 0.0) {
+                        if (modal_sensor_value >= this->all_parameters->shock_sensor_threshold) {
                             mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                 mass_inv_cPlus.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
@@ -3064,6 +3064,7 @@ real2 DGBase<dim,real,MeshType>::modal_sensor(
 
     const real2 S_e = sqrt(error / soln_norm);
     const real2 s_e = log10(S_e);
+    //std::cout << s_e << std::endl;
 
     const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation;
     const double s_0 = -0.00 - 4.00*log10(degree);
@@ -3083,7 +3084,14 @@ real2 DGBase<dim,real,MeshType>::modal_sensor(
 
     const double PI = 4*atan(1);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
-    eps *= eps_0 * 0.5;
+
+    if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
+        eps *= eps_0 * 0.5;
+        return eps;
+    }
+
+    eps /= abs(s_0);
+    
     return eps;
 }
 
