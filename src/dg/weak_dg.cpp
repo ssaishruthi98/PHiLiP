@@ -881,7 +881,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
 
     //const real2 cell_diameter = fe_values_boundary.get_cell()->diameter();
     //const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-    //                                       this->discontinuity_sensor(cell_diameter, soln_coeff, fe_values_boundary.get_fe())
+    //                                       this->modal_sensor(cell_diameter, soln_coeff, fe_values_boundary.get_fe())
     //                                       : 0.0;
     const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                          this->artificial_dissipation_coeffs[current_cell_index]
@@ -1571,10 +1571,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     //const real2 cell_diameter_int = fe_values_int.get_cell()->diameter();
     //const real2 cell_diameter_ext = fe_values_ext.get_cell()->diameter();
     //const real2 artificial_diss_coeff_int = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-    //                                        this->discontinuity_sensor(cell_diameter_int, soln_int.coefficients, fe_values_int.get_fe())
+    //                                        this->modal_sensor(cell_diameter_int, soln_int.coefficients, fe_values_int.get_fe())
     //                                        : 0.0;
     //const real2 artificial_diss_coeff_ext = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-    //                                        this->discontinuity_sensor(cell_diameter_ext, soln_ext.coefficients, fe_values_ext.get_fe())
+    //                                        this->modal_sensor(cell_diameter_ext, soln_ext.coefficients, fe_values_ext.get_fe())
     //                                        : 0.0;
     const real2 artificial_diss_coeff_int = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                             this->artificial_dissipation_coeffs[current_cell_index]
@@ -2929,7 +2929,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     // }
     //const real2 cell_diameter = pow(cell_volume,1.0/dim);
     //const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
-    //                                    this->discontinuity_sensor(cell_diameter, soln_coeff, fe_soln)
+    //                                    this->modal_sensor(cell_diameter, soln_coeff, fe_soln)
     //                                    : 0.0;
     const real2 artificial_diss_coeff = this->all_parameters->artificial_dissipation_param.add_artificial_dissipation ?
                                         this->artificial_dissipation_coeffs[current_cell_index]
@@ -2958,7 +2958,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
 */
 
     std::vector<real2> artificial_diss_coeff_at_q(n_quad_pts);
-    real2 arti_diss = this->discontinuity_sensor(quadrature, local_solution.coefficients, local_solution.finite_element, jac_det);
+    real2 arti_diss = this->modal_sensor(quadrature, local_solution.coefficients, local_solution.finite_element, jac_det);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad)
     {
         artificial_diss_coeff_at_q[iquad] = arti_diss;

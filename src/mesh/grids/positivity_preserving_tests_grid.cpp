@@ -221,7 +221,7 @@ void mach_3_wind_tunnel_grid(
                         cell->face(face)->set_boundary_id(1001); // x_right, Symmetry/Wall 
                     }
                     else {
-                        cell->face(face)->set_boundary_id(1002); // x_right, Outflow
+                        cell->face(face)->set_boundary_id(1009); // x_right, Outflow
                     }
                 }
                 else if (face == 2 || face == 3) {
@@ -277,7 +277,7 @@ void shock_diffraction_grid(
                     }
                 }
                 else if (face == 1) {
-                    cell->face(face)->set_boundary_id(1002); // x_right, Symmetry/Wall
+                    cell->face(face)->set_boundary_id(1009); // x_right, Symmetry/Wall
                 }
                 else if (face == 2) {
                     if (left_y >= 6.0 && bottom_x < 1.0) {
@@ -285,7 +285,7 @@ void shock_diffraction_grid(
                         cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
                     }
                     else {
-                        cell->face(face)->set_boundary_id(1002); // x_right, Symmetry/Wall
+                        cell->face(face)->set_boundary_id(1009); // x_right, Symmetry/Wall
                     }
                 }
                 else if (face == 3) {
@@ -342,13 +342,13 @@ void astrophysical_jet_grid(
                     }
                 }
                 else if (current_id == 1) {
-                    cell->face(face)->set_boundary_id(1002); // x_right, Symmetry/Wall
+                    cell->face(face)->set_boundary_id(1009); // x_right, Symmetry/Wall
                 }
                 else if (current_id == 2) {
-                    cell->face(face)->set_boundary_id(1002); // y_bottom, Symmetry/Wall
+                    cell->face(face)->set_boundary_id(1009); // y_bottom, Symmetry/Wall
                 }
                 else if (current_id == 3) {
-                    cell->face(face)->set_boundary_id(1002);
+                    cell->face(face)->set_boundary_id(1009);
                 }
             }
         }
