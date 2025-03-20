@@ -28,21 +28,26 @@ public:
     /// it is meant to preserve is satisfied at each node.
     int run_test() const override;
 
+    // double domain_volume; ///< Domain volume
+
 private:
 
     /// Runs convergence test and prints out results in console
     int run_convergence_test() const;
 
     /// Calculate and return the exact value at the point depending on the case being run
-    double bisection_solve_vst(const dealii::Point<dim> qpoint,
+    double bisection_solve_vst(std::shared_ptr<DGBase<dim, double>> flow_solver_dg, const dealii::Point<dim> qpoint,
         double final_time) const;
 
     /// Calculate and return the exact value at the point depending on the case being run
-    std::array<double,3> calculate_uexact(const dealii::Point<dim> qpoint,
+    std::array<double,3> calculate_uexact(std::shared_ptr<DGBase<dim, double>> flow_solver_dg, const dealii::Point<dim> qpoint,
         double final_time) const;
 
     /// Calculate and return the L2 Error
     std::array<double,3> calculate_l_n_error(std::shared_ptr<DGBase<dim, double>> flow_solver_dg, const int poly_degree, const double final_time) const;
+    
+    /// Calculate mass flow rate
+    double calculate_mass_flow_rate(std::shared_ptr<DGBase<dim, double>> flow_solver_dg) const;
 
     /// Parameters for Viscous Shock Tube initialization/exact solution solve
     double gam, rho_0, v_0, v_inf, mach_inf, mu, Pr, v_1;

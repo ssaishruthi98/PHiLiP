@@ -1338,7 +1338,7 @@ real InitialConditionFunction_ViscousShockTube<dim, nstate, real>
     // real m_0 = rho_0*v_0;
     real v_rhJump = (this->gamma_gas-1.0 + (2.0/this->mach_inf_sqr))/(this->gamma_gas + 1.0);
     // real v_01 = sqrt(v_0*v_1);
-    if constexpr (dim == 1 && nstate == (dim + 2)) {
+    if constexpr (dim < 3 && nstate == (dim + 2)) {
         if(x < 0.0) {
             if (istate == 0) {
                 // density
@@ -1349,7 +1349,12 @@ real InitialConditionFunction_ViscousShockTube<dim, nstate, real>
                 value = v_0 + v_inf;
             }
             else if (istate == 2) {
-                // pressure
+                if(dim == 1) // pressure
+                    value = rho_0*(1.0/this->gamma_gas)*pow(v_0,2.0)*(1.0/this->mach_inf_sqr);
+                else
+                    value = 0.0;
+            }
+            else if (dim == 2 & istate == 3) {
                 value = rho_0*(1.0/this->gamma_gas)*pow(v_0,2.0)*(1.0/this->mach_inf_sqr);
             }
         }
@@ -1363,7 +1368,14 @@ real InitialConditionFunction_ViscousShockTube<dim, nstate, real>
                 value = v_rhJump + v_inf;
             }
             else if (istate == 2) {
-                // pressure
+                if(dim == 1) { // pressure
+                    real coeff = (1.0 + (2.0/((this->gamma_gas - 1)*this->mach_inf_sqr)) - pow(v_rhJump, 2.0));
+                    value = (this->gamma_gas-1.0)*pow(v_rhJump,-1.0)*(coeff/(2.0*this->gamma_gas));
+                }
+                else
+                    value = 0.0;
+            }
+            else if (dim == 2 & istate == 3) {
                 real coeff = (1.0 + (2.0/((this->gamma_gas - 1)*this->mach_inf_sqr)) - pow(v_rhJump, 2.0));
                 value = (this->gamma_gas-1.0)*pow(v_rhJump,-1.0)*(coeff/(2.0*this->gamma_gas));
             }
@@ -1582,7 +1594,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_AstrophysicalJet<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::viscous_shock_tube) {
-        if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ViscousShockTube<dim, nstate, real> >(param);
+        if constexpr (dim < 3 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ViscousShockTube<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::daru_tenaud) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DaruTenaudShockTube<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
@@ -1613,7 +1625,6 @@ template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_DIM + 2, double>;
-template class InitialConditionFunction_ViscousShockTube<PHILIP_DIM, PHILIP_DIM + 2, double>;
 #endif
 
 #if PHILIP_DIM==3
@@ -1643,6 +1654,7 @@ template class InitialConditionFunction_DipoleWallCollision_Oblique <PHILIP_DIM,
 #endif
 
 #if PHILIP_DIM < 3
+template class InitialConditionFunction_ViscousShockTube<PHILIP_DIM, PHILIP_DIM + 2, double>;
 template class InitialConditionFunction_LeblancShockTube<PHILIP_DIM,PHILIP_DIM+2,double>;
 #endif
 

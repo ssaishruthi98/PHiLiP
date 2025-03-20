@@ -415,6 +415,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             soln_coeff[istate][ishape] = solution[current_dofs_indices[idof]];
 
             if (isnan(soln_coeff[istate][ishape])) {
+                std::cout << soln_coeff[istate][ishape] << std::endl;
                 nan_check = true;
             }
         }

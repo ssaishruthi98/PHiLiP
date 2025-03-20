@@ -30,64 +30,122 @@ VSTConvergenceTest<dim, nstate>::VSTConvergenceTest(
 {}
 
 template <int dim, int nstate>
-double VSTConvergenceTest<dim, nstate>::bisection_solve_vst(const dealii::Point<dim> qpoint, double final_time) const
+double VSTConvergenceTest<dim, nstate>::calculate_mass_flow_rate(std::shared_ptr<DGBase<dim, double>> dg) const
+{
+    PHiLiP::Parameters::AllParameters param = *all_parameters;
+
+    double total_mass_flow_rate, mass_flow_rate = 0.0;
+
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 10; // TO DO: could reduce this to reduce computational cost
+    dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+    dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[dg->max_degree], quad_extra,
+                                              dealii::update_values /*| dealii::update_gradients*/ | dealii::update_JxW_values | dealii::update_quadrature_points);
+
+    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+    std::array<double,nstate> soln_at_q;
+    // std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+    for (auto cell : dg->dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+        fe_values_extra.reinit (cell);
+        cell->get_dof_indices (dofs_indices);
+
+        // double cellwise_integrand_value = 0.0;
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+
+            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+            }
+
+            double x_momentum = soln_at_q[1];
+            mass_flow_rate += x_momentum * fe_values_extra.JxW(iquad);
+        }
+    }
+
+    total_mass_flow_rate = dealii::Utilities::MPI::sum(mass_flow_rate, this->mpi_communicator);
+
+    
+    double domain_length_x = param.flow_solver_param.grid_xmax - param.flow_solver_param.grid_xmin;
+    double domain_length_y = param.flow_solver_param.grid_ymax - param.flow_solver_param.grid_ymin;
+    double domain_volume = domain_length_x*domain_length_y;
+
+    total_mass_flow_rate /= domain_volume;
+
+    return total_mass_flow_rate;
+}
+
+template <int dim, int nstate>
+double VSTConvergenceTest<dim, nstate>::bisection_solve_vst(std::shared_ptr<DGBase<dim, double>> dg, const dealii::Point<dim> qpoint, double final_time) const
 {
     PHiLiP::Parameters::AllParameters param = *all_parameters;
     
-    const double rho_0 = this->rho_0;
+    //const double rho_0 = this->rho_0;
     const double v_0 = this->v_0;
     const double v_1 = this->v_1;
     const double v_inf = this->v_inf;
     const double gam = this->gam;
     const double mu = this->mu;
-    const double Pr = this->Pr;
+    //const double Pr = this->Pr;
 
-    const double m_0 = rho_0*v_0;
-    const double v_01 = sqrt(v_0*v_1);
-    const double cp = gam/(gam-1.0);
-    const double cv = 1/(gam-1.0);
-    const double kappa = (mu*cp)/Pr;
-    const double L_k = kappa/m_0/cv;
+    //const double m_0 = rho_0*v_0;
+    //const double v_01 = sqrt(v_0*v_1);
+    // const double cp = gam/(gam-1.0);
+    // const double cv = 1/(gam-1.0);
+    // const double kappa = (mu*cp)/Pr;
+    // const double L_k = kappa/m_0/cv;
+    double m_dot = calculate_mass_flow_rate(dg);
+    const double alpha = ((0.75*mu)/m_dot)*((gam+1.0)/(2.0*gam));
     const double x = qpoint[0] - (v_inf*final_time);
 
     double v_L = v_1;
     double v_R = v_0;
+    double v_F = v_R/v_L;
+
     int num_iter = 0;
     int max_iter = 10000;
     double tol = 1e-14;
 
-    double v_new = (v_L+v_R)/2.0;
+    //double v_new = (v_L+v_R)/2.0;
     // std::cout << "v_L:   " << v_L
     //           << "   v_R:   " << v_R
     //           << "   v_new:   " << v_new << std::endl;
     while(num_iter < max_iter) {
-        v_new = (v_L+v_R)/2.0;
-        double f_v_new = (L_k/(gam+1.0)*(v_0/(v_0-v_1)*log((v_0-v_new)/(v_0-v_01))-v_1/(v_0-v_1)*log((v_new-v_1)/(v_01-v_1)))) - x;
+        //v_new = (v_L+v_R)/2.0;
+        v_F = v_R/v_L;
+        //double f_v_new = (L_k/(gam+1.0)*(v_0/(v_0-v_1)*log((v_0-v_new)/(v_0-v_01))-v_1/(v_0-v_1)*log((v_new-v_1)/(v_01-v_1)))) - x;
+        double f_v_new = (alpha/2.0)*(log((v_0-1.0)/(v_0-v_F))+((1.0+v_F)/(1.0-v_F))*log((v_F-1.0)/(v_0-v_F))) - x;
+        
         // std::cout << "f_v_new:   " << f_v_new << std::endl;
         // sleep(5);
         if(abs(f_v_new) < tol){
             // std::cout << "BISECTION SOLVE:  " << v_new << std::endl;
-            return v_new;
+            return v_F;
         }
         else {
-            double f_v_L = (L_k/(gam+1.0)*(v_0/(v_0-v_1)*log((v_0-v_L)/(v_0-v_01))-v_1/(v_0-v_1)*log((v_L-v_1)/(v_01-v_1)))) - x;
+            //double f_v_L = (L_k/(gam+1.0)*(v_0/(v_0-v_1)*log((v_0-v_L)/(v_0-v_01))-v_1/(v_0-v_1)*log((v_L-v_1)/(v_01-v_1)))) - x;
+            double f_v_L = (alpha/2.0)*(log((v_0-1.0)/(v_0-v_L))+((1.0+v_L)/(1.0-v_L))*log((v_L-1.0)/(v_0-v_L))) - x;
             if(signbit(f_v_L) == signbit(f_v_new))
-                v_L = v_new;
+                v_L = v_F;
             else
-                v_R = v_new;
+                v_R = v_F;
         }
         num_iter++;
     }
     // std::cout << "BISECTION SOLVE:  " << v_new << std::endl;
-    return v_new;
+    return v_F;
 }
 
 template <int dim, int nstate>
-std::array<double,3> VSTConvergenceTest<dim, nstate>::calculate_uexact(const dealii::Point<dim> qpoint, double final_time) const
+std::array<double,3> VSTConvergenceTest<dim, nstate>::calculate_uexact(std::shared_ptr<DGBase<dim, double>> dg, const dealii::Point<dim> qpoint, double final_time) const
 {
     std::array<double,3> exact_sol;
 
-    double v_exact = bisection_solve_vst(qpoint,final_time);
+    double v_exact = bisection_solve_vst(dg, qpoint,final_time);
     double rho_exact = (this->rho_0*this->v_0)/v_exact;
     double mom_exact = rho_exact*(this->v_inf + v_exact);
 
@@ -141,7 +199,7 @@ std::array<double,3> VSTConvergenceTest<dim, nstate>::calculate_l_n_error(
                     }
 
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    std::array<double,3> uexact = calculate_uexact(qpoint, final_time);   
+                    std::array<double,3> uexact = calculate_uexact(dg, qpoint, final_time);   
 
                         std::cout << "u:   " << soln_at_q[istate] << "   uexact:   " << uexact[istate] << std::endl;       
                         l1error[istate] += pow(abs(soln_at_q[istate] - uexact[istate]), 1.0) * fe_values_extra.JxW(iquad);
@@ -187,7 +245,7 @@ std::array<double,3> VSTConvergenceTest<dim, nstate>::calculate_l_n_error(
 template <int dim, int nstate>
 int VSTConvergenceTest<dim, nstate>::run_test() const
 {
-    pcout << " Running 1D Viscous Shock Tube Convergence test. " << std::endl;
+    pcout << " Running Viscous Shock Tube Convergence test. " << std::endl;
     pcout << dim << "    " << nstate << std::endl;
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
 
@@ -216,23 +274,23 @@ int VSTConvergenceTest<dim, nstate>::run_convergence_test() const
         Parameters::AllParameters param = *(TestsBase::all_parameters);
         param.flow_solver_param.number_of_mesh_refinements = igrid;
 
-        using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
-        flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
 
-        if (flow_case == Parameters::FlowSolverParam::FlowCaseType::viscous_shock_tube) {
-            param.flow_solver_param.grid_left_bound = -1.0;
-            param.flow_solver_param.grid_right_bound = 1.5;
+        param.flow_solver_param.grid_left_bound = -2.0;
+        param.flow_solver_param.grid_right_bound = 2.0;
 
-            // To ensure PPL can be used
-            param.flow_solver_param.grid_xmin = param.flow_solver_param.grid_left_bound;
-            param.flow_solver_param.grid_xmax = param.flow_solver_param.grid_right_bound;
+        // To ensure PPL can be used
+        param.flow_solver_param.grid_xmin = param.flow_solver_param.grid_left_bound;
+        param.flow_solver_param.grid_xmax = param.flow_solver_param.grid_right_bound;
+        param.flow_solver_param.grid_ymin = param.flow_solver_param.grid_left_bound;
+        param.flow_solver_param.grid_ymax = param.flow_solver_param.grid_right_bound;
 
-            param.flow_solver_param.number_of_grid_elements_x = 50*pow(2,(igrid-2));
+        param.flow_solver_param.number_of_grid_elements_x = 50*pow(2,(igrid-2));
+        param.flow_solver_param.number_of_grid_elements_y = 50*pow(2,(igrid-2));
 
-            param.flow_solver_param.vst_rho_0 = this->rho_0;
-            param.flow_solver_param.vst_v_0 = this->v_0;
-            param.flow_solver_param.vst_v_inf = this->v_inf;
-        }
+        param.flow_solver_param.vst_rho_0 = this->rho_0;
+        param.flow_solver_param.vst_v_0 = this->v_0;
+        param.flow_solver_param.vst_v_inf = this->v_inf;
+    
 
         std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
         const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
@@ -307,7 +365,7 @@ int VSTConvergenceTest<dim, nstate>::run_convergence_test() const
     return 0;
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==2
 template class VSTConvergenceTest<PHILIP_DIM, PHILIP_DIM + 2>;
 #endif
 

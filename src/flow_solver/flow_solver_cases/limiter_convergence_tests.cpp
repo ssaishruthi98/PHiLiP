@@ -45,9 +45,15 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_gri
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
 
-    if(dim == 1 && flow_case == flow_case_enum::viscous_shock_tube) {
-        PHiLiP::Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param);
-        return grid;
+    if(flow_case == flow_case_enum::viscous_shock_tube) {
+        if(dim==1){
+            PHiLiP::Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param);
+            return grid;
+        }
+        else {
+            PHiLiP::Grids::vst_grid<dim>(*grid, &this->all_param);
+            return grid;
+        }
     }
 
     double left = this->all_param.flow_solver_param.grid_left_bound;
