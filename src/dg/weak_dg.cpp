@@ -2958,7 +2958,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
 */
 
     std::vector<real2> artificial_diss_coeff_at_q(n_quad_pts);
-    real2 arti_diss = this->discontinuity_sensor(quadrature, local_solution.coefficients, local_solution.finite_element, jac_det);
+    real2 arti_diss = this->modal_sensor(quadrature, local_solution.coefficients, local_solution.finite_element, jac_det);
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad)
     {
         artificial_diss_coeff_at_q[iquad] = arti_diss;

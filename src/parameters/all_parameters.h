@@ -158,6 +158,9 @@ public:
     /// Energy file.
     std::string energy_file;
 
+    /// Shock Sensor Threshold value
+    double shock_sensor_threshold;
+    
     /// Number of state variables. Will depend on PDE
     int nstate;
 
@@ -274,7 +277,7 @@ public:
     DissipativeNumericalFlux diss_num_flux_type;
 
     /// Type of correction in Flux Reconstruction
-    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand, cHULumped, user_specified_value};
+    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand, cHULumped, user_specified_value, cAdaptive};
     /// Store flux reconstruction type
     Flux_Reconstruction flux_reconstruction_type;
 

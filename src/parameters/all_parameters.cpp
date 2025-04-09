@@ -119,10 +119,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("flux_reconstruction", "cDG",
                       dealii::Patterns::Selection(
-                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | user_specified_value"),
+                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | user_specified_value | cAdaptive"),
                       "Flux Reconstruction. "
                       "Choices are "
-                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | user_specified_value>.");
+                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | user_specified_value | cAdaptive>.");
 
     prm.declare_entry("FR_user_specified_correction_parameter_value", "0.0",
                       dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
@@ -140,6 +140,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("sipg_penalty_factor", "1.0",
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
+
+    prm.declare_entry("shock_sensor_threshold", "1.00",
+                      dealii::Patterns::Double(-1.00,1.00),
+                      "Value of shock_sensor for which it turns on (ie. higher c value is used instead of cDG).");
 
     prm.declare_entry("use_invariant_curl_form", "false",
                       dealii::Patterns::Bool(),
@@ -478,6 +482,8 @@ const std::string test_string = prm.get("test_type");
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
     check_valid_metric_Jacobian = prm.get_bool("check_valid_metric_Jacobian");
+    shock_sensor_threshold = prm.get_double("shock_sensor_threshold");
+    
     if(!use_weak_form){
         check_valid_metric_Jacobian = false;
     }
@@ -503,18 +509,20 @@ const std::string test_string = prm.get("test_type");
     if (diss_num_flux_string == "central_visc_flux") diss_num_flux_type = central_visc_flux;
 
     const std::string flux_reconstruction_string = prm.get("flux_reconstruction");
-    if (flux_reconstruction_string == "cDG")         { flux_reconstruction_type = cDG; }
-    if (flux_reconstruction_string == "cSD")         { flux_reconstruction_type = cSD; }
-    if (flux_reconstruction_string == "cHU")         { flux_reconstruction_type = cHU; }
-    if (flux_reconstruction_string == "cNegative")   { flux_reconstruction_type = cNegative; }
-    if (flux_reconstruction_string == "cNegative2")  { flux_reconstruction_type = cNegative2; }
-    if (flux_reconstruction_string == "cPlus")       { flux_reconstruction_type = cPlus; }
-    if (flux_reconstruction_string == "c10Thousand") { flux_reconstruction_type = c10Thousand; }
-    if (flux_reconstruction_string == "cHULumped")   { flux_reconstruction_type = cHULumped; }
-    if (flux_reconstruction_string == "user_specified_value") 
-                                                     { flux_reconstruction_type = user_specified_value; }
+    if (flux_reconstruction_string == "cDG")                  { flux_reconstruction_type = cDG; }
+    if (flux_reconstruction_string == "cSD")                  { flux_reconstruction_type = cSD; }
+    if (flux_reconstruction_string == "cHU")                  { flux_reconstruction_type = cHU; }
+    if (flux_reconstruction_string == "cNegative")            { flux_reconstruction_type = cNegative; }
+    if (flux_reconstruction_string == "cNegative2")           { flux_reconstruction_type = cNegative2; }
+    if (flux_reconstruction_string == "cPlus")                { flux_reconstruction_type = cPlus; }
+    if (flux_reconstruction_string == "c10Thousand")          { flux_reconstruction_type = c10Thousand; }
+    if (flux_reconstruction_string == "cHULumped")            { flux_reconstruction_type = cHULumped; }
+    if (flux_reconstruction_string == "user_specified_value") { flux_reconstruction_type = user_specified_value; }
+    if (flux_reconstruction_string == "cAdaptive")            { flux_reconstruction_type = cAdaptive; }
 
     FR_user_specified_correction_parameter_value = prm.get_double("FR_user_specified_correction_parameter_value");
+
+
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }
