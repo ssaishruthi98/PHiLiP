@@ -289,6 +289,11 @@ public:
     /// Store flux reconstruction type for the auxiliary variables
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
+    /// Type of shock sensor in Adaptive Flux Reconstruction
+    enum Shock_Sensor {jameson_sensor, modal_sensor};
+    /// Store shock sensor type
+    Shock_Sensor shock_sensor_type;
+
     /// Enum of nonphysical behavior
     enum NonPhysicalBehaviorEnum {return_big_number, abort_run, print_warning};
     /// Specify behavior on nonphysical results

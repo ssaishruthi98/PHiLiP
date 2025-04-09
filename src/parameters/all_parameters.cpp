@@ -141,9 +141,16 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Double(1.0,1e200),
                       "Scaling of Symmetric Interior Penalty term to ensure coercivity.");
 
+    prm.declare_entry("shock_sensor", "jameson_sensor",
+                      dealii::Patterns::Selection(
+                      "jameson_sensor | modal_sensor"),
+                      "Shock sensor choices for Adaptive Flux Reconstruction. "
+                      "Choices are "
+                      " <jameson_sensor | modal_sensor>.");
+
     prm.declare_entry("shock_sensor_threshold", "1.00",
                       dealii::Patterns::Double(-1.00,1.00),
-                      "Value of shock_sensor for which it turns on (ie. higher c value is used instead of cDG).");
+                      "Value of shock_sensor for which it turns on (ie. higher c value is used instead of cDG). Currently only applicable if using Jameson Sensor.");
 
     prm.declare_entry("use_invariant_curl_form", "false",
                       dealii::Patterns::Bool(),
@@ -522,7 +529,9 @@ const std::string test_string = prm.get("test_type");
 
     FR_user_specified_correction_parameter_value = prm.get_double("FR_user_specified_correction_parameter_value");
 
-
+    const std::string shock_sensor_string = prm.get("shock_sensor");
+    if (shock_sensor_string == "jameson_sensor")                { shock_sensor_type = jameson_sensor; }
+    if (shock_sensor_string == "modal_sensor")                  { shock_sensor_type = modal_sensor; }
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }

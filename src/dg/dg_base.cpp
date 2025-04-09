@@ -1784,7 +1784,6 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     // ************************* Adaptive Flux Reconstruction Steps ************************* //
     data_out.add_data_vector(jameson_sensor_cell, "jameson_sensor", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     data_out.add_data_vector(modal_sensor_cell, "modal_sensor", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-    
     data_out.add_data_vector(c_value_cell, "c_value", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
 
@@ -1904,7 +1903,6 @@ void DGBase<dim,real,MeshType>::allocate_system (
     // ************************* Adaptive Flux Reconstruction Steps ************************* //
     jameson_sensor_cell.reinit(triangulation->n_active_cells());
     modal_sensor_cell.reinit(triangulation->n_active_cells());
-
     c_value_cell.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
@@ -2465,9 +2463,11 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
 {
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
+    using Sensor_enum = Parameters::AllParameters::Shock_Sensor;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
     const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
+    const Sensor_enum sensor_type = this->all_parameters->shock_sensor_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, init_grid_degree, init_grid_degree);
@@ -2601,12 +2601,16 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
             }
         }
 
-        double jameson_sensor_value = jameson_sensor(output_vector, fe_collection[poly_degree], current_dofs_indices);
-        this->jameson_sensor_cell[cell_index] = jameson_sensor_value;
-    
+        double sensor_value = 0.0;
+        if(FR_Type == FR_enum::cAdaptive && sensor_type == Sensor_enum::jameson_sensor){
+            sensor_value = jameson_sensor(output_vector, fe_collection[poly_degree], current_dofs_indices);
+            this->jameson_sensor_cell[cell_index] = sensor_value;
+        } 
+        else if(FR_Type == FR_enum::cAdaptive && sensor_type == Sensor_enum::modal_sensor){
+            sensor_value = modal_sensor(volume_quadrature_collection[poly_degree], soln_dofs, fe_collection[poly_degree],metric_oper.det_Jac_vol);
+            this->modal_sensor_cell[cell_index] = sensor_value;
+        }
 
-        double modal_sensor_value = modal_sensor(volume_quadrature_collection[poly_degree], soln_dofs, fe_collection[poly_degree],metric_oper.det_Jac_vol);
-        this->modal_sensor_cell[cell_index] = modal_sensor_value;
         // ************************* Adaptive Flux Reconstruction Steps ************************* //
 
         //solve mass inverse times input vector for each state independently
@@ -2629,14 +2633,18 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                 else{
                     // ************************* Adaptive Flux Reconstruction Steps ************************* //
                     if (FR_Type == FR_enum::cAdaptive) {
-                        //if (jameson_sensor_value > this->all_parameters->shock_sensor_threshold) {
-                        if (modal_sensor_value >= this->all_parameters->shock_sensor_threshold) {
+                        if (sensor_type == Sensor_enum::jameson_sensor && sensor_value > this->all_parameters->shock_sensor_threshold) {
                             mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
                                 mass_inv_cPlus.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
                             this->c_value_cell[cell_index] = 1.0;
                         }
-                        
+                        else if (sensor_type == Sensor_enum::modal_sensor && sensor_value >= this->all_parameters->shock_sensor_threshold) {
+                            mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv_cPlus.oneD_vol_operator,
+                                false, 1.0 / metric_oper.det_Jac_vol[0]);
+                            this->c_value_cell[cell_index] = 1.0;
+                        }
                         else {
                             mass_inv_cDG.matrix_vector_mult_1D(
                                 local_input_vector, local_output_vector,
