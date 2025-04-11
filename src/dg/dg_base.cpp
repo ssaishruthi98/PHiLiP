@@ -2639,11 +2639,21 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
                             this->c_value_cell[cell_index] = 1.0;
                         }
-                        else if (sensor_type == Sensor_enum::modal_sensor && sensor_value >= this->all_parameters->shock_sensor_threshold) {
-                            mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                                mass_inv_cPlus.oneD_vol_operator,
+                        else if (sensor_type == Sensor_enum::modal_sensor) {// && sensor_value >= this->all_parameters->shock_sensor_threshold) {
+
+                            double c_sensor = sensor_value*3.67e-3;
+                            OPERATOR::FR_mass_inv<dim,2*dim,real> mass_inv_sensor(1, max_degree, init_grid_degree, FR_enum::user_specified_value, c_sensor);
+                            mass_inv_sensor.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+
+                            mass_inv_sensor.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                mass_inv_sensor.oneD_vol_operator,
                                 false, 1.0 / metric_oper.det_Jac_vol[0]);
-                            this->c_value_cell[cell_index] = 1.0;
+                            this->c_value_cell[cell_index] = c_sensor;
+
+                            // mass_inv_cPlus.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                            //     mass_inv_cPlus.oneD_vol_operator,
+                            //     false, 1.0 / metric_oper.det_Jac_vol[0]);
+                            // this->c_value_cell[cell_index] = 1.0;
                         }
                         else {
                             mass_inv_cDG.matrix_vector_mult_1D(
@@ -3098,10 +3108,10 @@ real2 DGBase<dim,real,MeshType>::modal_sensor(
     const double PI = 4*atan(1);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
 
-    if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
+    // if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
         eps *= eps_0 * 0.5;
-        return eps;
-    }
+        //return eps;
+    // }
 
     eps /= abs(s_0);
     
