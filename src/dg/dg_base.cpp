@@ -3096,8 +3096,11 @@ real2 DGBase<dim,real,MeshType>::modal_sensor(
     const double upp = s_0 + kappa;
 
     const real2 diameter = pow(element_volume, 1.0/dim);
-    const real2 eps_0 = mu_scale * diameter / (double)degree;
-
+    real2 eps_0 = 1.0;
+    if(all_parameters->artificial_dissipation_param.add_artificial_dissipation){
+        eps_0 = mu_scale * diameter / (double)degree;
+    }
+    
     if ( s_e < low) return 0.0;
 
     if ( s_e > upp) 
@@ -3108,10 +3111,7 @@ real2 DGBase<dim,real,MeshType>::modal_sensor(
     const double PI = 4*atan(1);
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
 
-    // if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-        eps *= eps_0 * 0.5;
-        //return eps;
-    // }
+    eps *= eps_0 * 0.5;
 
     eps /= abs(s_0);
     
