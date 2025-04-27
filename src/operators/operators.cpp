@@ -1517,11 +1517,12 @@ void local_Flux_Reconstruction_operator<dim,n_faces,real>::get_FR_correction_par
         c = 10000.0;
     }
     else if(FR_param_type == FR_enum::cPlus){ 
-        get_c_plus_parameter(curr_cell_degree, c); 
-    } else if(FR_param_type == FR_enum::user_specified_value) {
+        get_c_plus_parameter(curr_cell_degree, c);
+    } 
+    else if(FR_param_type == FR_enum::user_specified_value) {
         c = FR_user_specified_correction_parameter_value;
-        c/=2.0;//since orthonormal
-        c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
+        // c/=2.0;//since orthonormal
+        // c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
     }
 }
 template <int dim, int n_faces, typename real>  
@@ -1861,6 +1862,7 @@ void FR_mass_inv<dim,n_faces,real>::build_1D_volume_operator(
     local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
     local_Flux_Reconstruction_operator<dim,n_faces,real> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type, FR_user_specified_correction_parameter_value);
     local_FR_oper.build_1D_volume_operator(finite_element, quadrature);
+    this->FR_param = local_FR_oper.FR_param;
     dealii::FullMatrix<double> FR_mass_matrix(n_dofs);
     FR_mass_matrix.add(1.0, local_Mass_Matrix.oneD_vol_operator, 1.0, local_FR_oper.oneD_vol_operator);
     //allocate the volume operator

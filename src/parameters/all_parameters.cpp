@@ -131,6 +131,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Internally, the input c value is divided by 2 to account for the basis and adjusted for the deal.ii reference element. "
                       "Default value is 0.0. ");
 
+    prm.declare_entry("afr_type", "scale",
+                      dealii::Patterns::Selection(
+                      "scale | hard_switch"),
+                      "Type of adaptive flux recontruction."
+                      "Choices are "
+                      " <scale | hard_switch>.");
+
     prm.declare_entry("flux_reconstruction_aux", "kDG",
                       dealii::Patterns::Selection(
                       "kDG | kSD | kHU | kNegative | kNegative2 | kPlus | k10Thousand"),
@@ -528,6 +535,10 @@ const std::string test_string = prm.get("test_type");
     if (flux_reconstruction_string == "cAdaptive")            { flux_reconstruction_type = cAdaptive; }
 
     FR_user_specified_correction_parameter_value = prm.get_double("FR_user_specified_correction_parameter_value");
+
+      const std::string afr_type_string = prm.get("afr_type");
+    if (afr_type_string == "scale")                  { afr_type = scale; }
+    if (afr_type_string == "hard_switch")            { afr_type = hard_switch; }
 
     const std::string shock_sensor_string = prm.get("shock_sensor");
     if (shock_sensor_string == "jameson_sensor")                { shock_sensor_type = jameson_sensor; }

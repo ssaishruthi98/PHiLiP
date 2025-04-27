@@ -281,6 +281,11 @@ public:
     /// Store flux reconstruction type
     Flux_Reconstruction flux_reconstruction_type;
 
+    /// Type of Adaptive Flux Reconstruction
+    enum AFR_Type {scale, hard_switch};
+    /// Store Adaptive Flux Reconstruction type
+    AFR_Type afr_type;
+
     /// User specified flux recontruction correction parameter value
     double FR_user_specified_correction_parameter_value;
 

@@ -804,6 +804,9 @@ public:
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
 
+    ///Flux reconstruction paramater value.
+    double FR_param;
+
     /// User specified flux recontruction correction parameter value
     const double FR_user_specified_correction_parameter_value;
 
