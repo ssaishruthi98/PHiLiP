@@ -402,9 +402,28 @@ protected:
     real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
 
 public:
-    /// Constructor for InitialConditionFunction_SodShockTube
+    /// Constructor for InitialConditionFunction_LeblancShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_LeblancShockTube(
+        Parameters::AllParameters const* const param);
+};
+
+/// Initial Condition Function: 1D Blast Wave
+/** See Xu & Shu, Third order maximum-principle-satisfying 
+*   and positivity-preserving Lax-Wendroff discontinuous Galerkin 
+*   methods for hyperbolic conservation laws, 2022 Pg. 24
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_1DBlastWave : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_1DBlastWave
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_1DBlastWave(
         Parameters::AllParameters const* const param);
 };
 
@@ -421,7 +440,7 @@ protected:
     real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
 
 public:
-    /// Constructor for InitialConditionFunction_SodShockTube
+    /// Constructor for InitialConditionFunction_LowDensity
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_LowDensity(
         Parameters::AllParameters const* const param);
@@ -440,7 +459,7 @@ protected:
     real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
 
 public:
-    /// Constructor for InitialConditionFunction_SodShockTube
+    /// Constructor for InitialConditionFunction_ShuOsherProblem
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_ShuOsherProblem(
         Parameters::AllParameters const* const param);
@@ -478,7 +497,7 @@ protected:
     real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
 
 public:
-    /// Constructor for InitialConditionFunction_SodShockTube
+    /// Constructor for InitialConditionFunction_ShockDiffraction
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_ShockDiffraction(
         Parameters::AllParameters const* const param);
@@ -518,7 +537,7 @@ protected:
     real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
 
 public:
-    /// Constructor for InitialConditionFunction_AstrophysicalJet
+    /// Constructor for InitialConditionFunction_SVSW
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_SVSW(
         Parameters::AllParameters const* const param);

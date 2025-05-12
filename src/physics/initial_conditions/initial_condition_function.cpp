@@ -595,6 +595,70 @@ real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
 }
 
 // ========================================================
+// 1D Blast Wave
+// See Xu & Shu, Third order maximum-principle-satisfying..., 2022 Pg. 24
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_1DBlastWave<dim,nstate,real>
+::InitialConditionFunction_1DBlastWave(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_1DBlastWave<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 1 && nstate == (dim + 2)) {
+        const real x = point[0];
+        if (x >= 0 && x < 0.1) {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // pressure
+                value = pow(10.0, 3.0);
+            }
+        }
+        else if (x >= 0.1 && x < 0.9) {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // pressure
+                value = pow(10.0, -2.0);
+            }
+        }
+        else if (x >= 0.9 && x <= 1.0) {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // pressure
+                value = pow(10.0, 2.0);
+            }
+        }
+    }
+    return value;
+}
+
+// ========================================================
 // 1D Shu-Osher Problem -- Initial Condition
 // See Johnsen et al., Assessment of high-resolution..., 2010 Pg. 7
 // ========================================================
@@ -1064,6 +1128,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim < 3 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LowDensity<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube) {
         if constexpr (dim == 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > (param);
+    } else if (flow_type == FlowCaseEnum::blast_wave_1d) {
+        if constexpr (dim == 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_1DBlastWave<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::shu_osher_problem) {
         if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
@@ -1103,6 +1169,7 @@ template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_DIM + 2, double>;
+template class InitialConditionFunction_1DBlastWave <PHILIP_DIM, PHILIP_DIM + 2, double>;
 #endif
 
 #if PHILIP_DIM==3
