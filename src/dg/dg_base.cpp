@@ -2664,15 +2664,22 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
                         }
                         else if (sensor_type == Sensor_enum::modal_sensor) {// && sensor_value >= this->all_parameters->shock_sensor_threshold) {
                             if(afr_type == afr_enum::scale){
-                                //std::cout << "modal scaling" << std::endl; 
-                                double c_sensor = sensor_value*c_plus_value;
-                                OPERATOR::FR_mass_inv<dim,2*dim,real> mass_inv_sensor(1, max_degree, init_grid_degree, FR_enum::user_specified_value, c_sensor);
-                                mass_inv_sensor.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+                                //std::cout << "modal scaling" << std::endl;
+                                if(sensor_value == 0) {
+                                    mass_inv_cDG.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                        mass_inv_cDG.oneD_vol_operator,
+                                        false, 1.0 / metric_oper.det_Jac_vol[0]);
+                                    this->c_value_cell[cell_index] = 0.0;
+                                } else {
+                                    double c_sensor = sensor_value*c_plus_value;
+                                    OPERATOR::FR_mass_inv<dim,2*dim,real> mass_inv_sensor(1, max_degree, init_grid_degree, FR_enum::user_specified_value, c_sensor);
+                                    mass_inv_sensor.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
 
-                                mass_inv_sensor.matrix_vector_mult_1D(local_input_vector, local_output_vector,
-                                    mass_inv_sensor.oneD_vol_operator,
-                                    false, 1.0 / metric_oper.det_Jac_vol[0]);
-                                this->c_value_cell[cell_index] = c_sensor;
+                                    mass_inv_sensor.matrix_vector_mult_1D(local_input_vector, local_output_vector,
+                                        mass_inv_sensor.oneD_vol_operator,
+                                        false, 1.0 / metric_oper.det_Jac_vol[0]);
+                                    this->c_value_cell[cell_index] = c_sensor;
+                                }
                             } else if(afr_type == afr_enum::hard_switch){
                                 double c_sensor = sensor_value*c_plus_value;
                                 if(c_sensor > c_HU_value){//this->all_parameters->shock_sensor_threshold){
@@ -3141,9 +3148,10 @@ real2 DGBase<dim,real,MeshType>::modal_sensor(
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
 
     eps *= eps_0 * 0.5;
-
-    eps /= abs(s_0);
-    
+    // std::cout << "EPS VALUE BEFORE:  " << eps;
+    // eps /= abs(s_0);
+    // std::cout << "   EPS VALUE AFTER:   " << eps << std::endl;
+    // sleep(2);
     return eps;
 }
 
