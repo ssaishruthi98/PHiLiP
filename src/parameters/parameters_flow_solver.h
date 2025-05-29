@@ -38,7 +38,8 @@ public:
         shock_diffraction,
         astrophysical_jet,
         strong_vortex_shock_wave,
-        blast_wave_1d
+        blast_wave_1d,
+        shock_bubble
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

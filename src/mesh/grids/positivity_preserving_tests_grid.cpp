@@ -86,6 +86,45 @@ void double_mach_reflection_grid(
     } 
 }
 
+template<int dim, typename TriangulationType>
+void shock_bubble_grid(
+    TriangulationType&  grid,
+    const Parameters::FlowSolverParam *const flow_solver_param) 
+{
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    p1[0] = flow_solver_param->grid_xmin; p1[1] = flow_solver_param->grid_ymin;
+    p2[0] = flow_solver_param->grid_xmax; p2[1] = flow_solver_param->grid_ymax;
+    
+    std::vector<unsigned int> n_subdivisions(2);
+
+    n_subdivisions[0] = flow_solver_param->number_of_grid_elements_x;
+    n_subdivisions[1] = flow_solver_param->number_of_grid_elements_y;
+
+
+    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
+
+    // Set boundary type and design type
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                unsigned int current_id = cell->face(face)->boundary_id();
+                if (current_id == 0) {
+                    cell->face(face)->set_boundary_id(1008); // x_left, Post Shock (custom bc set in prm file)
+                }
+                else if (current_id == 1) {
+                    cell->face(face)->set_boundary_id(1007); // x_right,  Do Nothing Outflow 
+                }
+                else if (current_id == 2) {
+                    cell->face(face)->set_boundary_id(1001); // y_top, Symmetry/Wall
+                }
+                else if (current_id == 3) {
+                    cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                }
+            }
+        }
+    }
+}
 
 template<int dim, typename TriangulationType>
 void shock_diffraction_grid(
@@ -213,10 +252,6 @@ void svsw_grid(
     n_subdivisions[0] = flow_solver_param->number_of_grid_elements_x;
     n_subdivisions[1] = flow_solver_param->number_of_grid_elements_y;
 
-    std::vector<int> n_cells_remove(2);
-    n_cells_remove[0] = (1.0/13.0)*n_subdivisions[0];
-    n_cells_remove[1] = (6.0/11.0)*n_subdivisions[1];
-
 
     dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
 
@@ -257,6 +292,9 @@ template void astrophysical_jet_grid<2, dealii::parallel::distributed::Triangula
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
 template void svsw_grid<2, dealii::parallel::distributed::Triangulation<2>>(
+    dealii::parallel::distributed::Triangulation<2>&    grid,
+    const Parameters::FlowSolverParam *const flow_solver_param);
+template void shock_bubble_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
 #endif

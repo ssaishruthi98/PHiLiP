@@ -810,6 +810,84 @@ real InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
     return value;
 }
 
+// ==================================================================
+// Shock Bubble Interaction (2D) -- Initial Condition
+// See Hu, Adams, and Shu. "Positivity-Preserving Method for..." 2013, pg. 177
+// ==================================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ShockBubble<dim, nstate, real>
+::InitialConditionFunction_ShockBubble(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_ShockBubble<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        if (x < 0.05) {
+            if (istate == 0) {
+                // density
+                value = 5.268;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 2.752;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 41.83;
+            }
+        }
+        else if (pow((x-0.25),2.0)+pow(y,2.0) < 0.0225){
+            if (istate == 0) {
+                // density
+                value = 0.138;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = -3.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = -3.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+
+        }
+    }
+    return value;
+}
+
 // ========================================================
 // Shock Diffraction (backwards facing step) (2D) -- Initial Condition
 // See Zhang & Shu, On positivity-preserving..., 2010 Pg. 15
@@ -1134,6 +1212,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DoubleMachReflection<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::shock_bubble) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockBubble<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::shock_diffraction) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
@@ -1184,6 +1264,7 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 #if PHILIP_DIM==2
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_ShockBubble <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_SVSW <PHILIP_DIM, PHILIP_DIM+2, double>;

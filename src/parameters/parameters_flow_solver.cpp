@@ -43,7 +43,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave |"
-                          " blast_wave_1d |"),
+                          " blast_wave_1d |"
+                          " shock_bubble |"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -69,7 +70,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave |"
-                          " blast_wave_1d >. ");
+                          " blast_wave_1d |"
+                          " shock_bubble >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -422,6 +424,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
         else if (flow_case_type_string == "strong_vortex_shock_wave")   {flow_case_type = strong_vortex_shock_wave;}
         else if (flow_case_type_string == "blast_wave_1d")              {flow_case_type = blast_wave_1d;}
+        else if (flow_case_type_string == "shock_bubble")              {flow_case_type = shock_bubble;}
         
         poly_degree = prm.get_integer("poly_degree");
         

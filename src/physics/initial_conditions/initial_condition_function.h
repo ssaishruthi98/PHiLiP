@@ -484,6 +484,25 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+/// Initial Condition Function: 2D Shock Bubble Interaction
+/** See Hu, Adams & Shu, Positivity-preserving method for 
+ * high-order conservative schemes solving compressible 
+ * Euler equations, 2013 pg. 177
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_ShockBubble : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_ShockBubble
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_ShockBubble(
+        Parameters::AllParameters const* const param);
+};
+
 /// Initial Condition Function: 2D Shock Diffraction Problem
 /** See Xu & Shu, Third order maximum-principle-satisfying 
  *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 

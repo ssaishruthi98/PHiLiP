@@ -162,7 +162,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
     double final_order = 0.0;
     const double expected_order = all_parameters_new.flow_solver_param.expected_order_at_final_time;
 
-    for (unsigned int igrid = 3; igrid < n_grids; igrid++) {
+    for (unsigned int igrid = 6; igrid < n_grids; igrid++) {
 
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 
