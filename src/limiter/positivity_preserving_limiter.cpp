@@ -222,13 +222,6 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
     // Obtain solution cell average
     if (dim == 1) {
         soln_cell_avg = get_soln_cell_avg(soln_at_q[0], n_quad_pts, quad_weights_GLL);
-
-        this->max_ranocha_cfl_condition = 0.0;
-
-        const real soln_cell_avg_wavespeed = this->euler_physics->max_convective_eigenvalue(soln_cell_avg);
-
-        this->max_ranocha_cfl_condition = soln_cell_avg_wavespeed;
-
         // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         //     std::array<real,nstate> local_soln_at_q_1;
 
@@ -512,6 +505,12 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         std::array<real, nstate> soln_cell_avg;
         // Obtain solution cell average
         soln_cell_avg = get_soln_cell_avg_PPL(soln_at_q, n_quad_pts, oneD_quad_GLL.get_weights(), oneD_quad_GL.get_weights(), dt);
+
+        this->max_ranocha_cfl_condition = 0.0;
+        const real soln_cell_avg_wavespeed = this->euler_physics->max_convective_eigenvalue(soln_cell_avg);
+        this->max_ranocha_cfl_condition = soln_cell_avg_wavespeed;
+
+
         avg_density[cell_num] = soln_cell_avg[0];
         ranocha_cfl_condition[cell_num] = this->max_ranocha_cfl_condition;
 
