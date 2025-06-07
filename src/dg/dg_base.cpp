@@ -1782,6 +1782,10 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
+    data_out.add_data_vector(avg_density, "avg_density", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(avg_pressure, "avg_pressure", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    data_out.add_data_vector(ranocha_cfl_condition, "ranocha_cfl_condition", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
 
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
@@ -1895,7 +1899,10 @@ void DGBase<dim,real,MeshType>::allocate_system (
     
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
-
+    avg_density.reinit(triangulation->n_active_cells());
+    avg_pressure.reinit(triangulation->n_active_cells());
+    ranocha_cfl_condition.reinit(triangulation->n_active_cells());
+    
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
 

@@ -3,6 +3,7 @@
 #include "mesh/grids/straight_periodic_cube.hpp"
 #include <deal.II/grid/grid_generator.h>
 #include "physics/physics_factory.h"
+#include <deal.II/base/geometry_info.h>
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -45,6 +46,7 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
             std::abort();
         }
     }
+
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
 
@@ -303,6 +305,92 @@ double PositivityPreservingTests<dim, nstate>::compute_integrated_entropy(DGBase
     return integrated_quantity;
 }
 
+
+// template<int dim, int nstate>
+// double PositivityPreservingTests<dim, nstate>::compute_ranocha_cfl_condition(DGBase<dim, double> &dg) const
+// {
+//     double ranocha_cfl_condition = 0.0;
+
+//     const unsigned int number_of_degrees_of_freedom_per_state = dg.dof_handler.n_dofs()/nstate;
+//     double approximate_grid_spacing = (this->all_param.flow_solver_param.grid_right_bound-this->all_param.flow_solver_param.grid_left_bound)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
+//     double time_step = this->all_param.flow_solver_param.constant_time_step;
+
+//     const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
+//     const unsigned int poly_degree = dg.max_degree;
+
+//     // Set the quadrature of size dim and 1D for sum-factorization.
+//     dealii::Quadrature<1> quad_1D = dg.oneD_quadrature_collection[poly_degree];
+//     std::vector<double> quad_weights = dg.volume_quadrature_collection[poly_degree].get_weights();
+//     //unsigned int n_quad_pts = dg.volume_quadrature_collection[poly_degree].size();
+
+//     // Construct the basis functions and mapping shape functions.
+//     OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, grid_degree); 
+
+//     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
+//     soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_1D);
+//     soln_basis.build_1D_surface_operator(dg.oneD_fe_collection_1state[poly_degree], dg.oneD_face_quadrature);
+
+//     unsigned int n_face_quad_pts = dg.face_quadrature_collection[poly_degree].size();
+//     // const unsigned int n_quad_pts_vol  = dg.volume_quadrature_collection[poly_degree].size();
+//     const unsigned int n_dofs          = dg.fe_collection[poly_degree].dofs_per_cell;
+//     const unsigned int n_shape_fns     = n_dofs / nstate;
+//     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs);
+//     auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
+//     int cell_index = 0;
+
+//     for (auto cell = dg.dof_handler.begin_active(); cell!= dg.dof_handler.end(); ++cell, ++metric_cell, ++cell_index) {
+//         if (!cell->is_locally_owned()) continue;
+//         cell->get_dof_indices (dofs_indices);
+//         double current_cell_cfl_condition = 0.0;
+
+//         //Extract interior modal coefficients of solution
+//         std::array<std::vector<double>,nstate> soln_coeff;
+//         for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+//             const unsigned int istate = dg.fe_collection[poly_degree].system_to_component_index(idof).first;
+//             const unsigned int ishape = dg.fe_collection[poly_degree].system_to_component_index(idof).second;
+//             //allocate
+//             if(ishape == 0)
+//                 soln_coeff[istate].resize(n_shape_fns);
+//             //solve
+//             soln_coeff[istate][ishape] = dg.solution(dofs_indices[idof]);
+//         }
+
+//         //Interpolate soln to facet
+//         std::array<std::vector<double>,nstate> soln_at_surf_q;
+
+//         for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
+//             for(int istate=0; istate<nstate; ++istate){
+//                 //allocate
+//                 soln_at_surf_q[istate].resize(n_face_quad_pts);
+//                 //solve soln at facet cubature nodes
+//                 soln_basis.matrix_vector_mult_surface_1D(iface, soln_coeff[istate], soln_at_surf_q[istate],
+//                                                          soln_basis.oneD_surf_operator,
+//                                                          soln_basis.oneD_vol_operator);
+//             }
+
+//             std::array<double,nstate> soln_to_compute_sound;
+
+//             for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+//                 for(unsigned int istate=0; istate<nstate; ++istate){
+//                     soln_to_compute_sound[istate] = soln_coeff[istate][iquad];
+//                 }
+//                 double sound = this->euler_physics->compute_sound(soln_to_compute_sound);
+//                 double vel_x = soln_to_compute_sound[1]/soln_to_compute_sound[0];
+//                 double rho = soln_to_compute_sound[0];
+//                 double current_face_cfl_condition = std::max({vel_x+(sound/rho), vel_x-(sound/rho)});
+//                 if(current_face_cfl_condition > ranocha_cfl_condition)
+//                     ranocha_cfl_condition = current_face_cfl_condition;
+//                 if(current_face_cfl_condition > ranocha_cfl_condition)
+//                     current_cell_cfl_condition = current_face_cfl_condition;
+//             }
+//         }
+//         dg.ranocha_cfl_condition[cell_index] = current_cell_cfl_condition;
+//     }
+
+//     ranocha_cfl_condition = ranocha_cfl_condition*(time_step/approximate_grid_spacing);
+//     return ranocha_cfl_condition;
+// }
+
 template <int dim, int nstate>
 void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver,
@@ -316,6 +404,8 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
     // All discrete proofs use solution nodes, therefore it is best to report 
     // entropy on the solution nodes rather than by overintegrating.
     const double current_numerical_entropy = this->compute_integrated_entropy(*dg); // no overintegration
+    //const double max_interface_value = this->compute_ranocha_cfl_condition(*dg);
+
     if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
     const double entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
     this->previous_numerical_entropy = current_numerical_entropy;
@@ -338,8 +428,10 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
         unsteady_data_table->set_scientific("entropy", false);
         this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
         unsteady_data_table->set_scientific("current_numerical_entropy", false);
-        this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
-        unsteady_data_table->set_scientific("U/Uo", false);
+        // this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
+        // unsteady_data_table->set_scientific("U/Uo", false);
+        // this->add_value_to_data_table(max_interface_value,"CFL Condition",unsteady_data_table);
+        // unsteady_data_table->set_scientific("CFL Condition", false);
 
 
         // Write to file
@@ -354,6 +446,7 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
                     << "    Current Numerical Entropy:  " << current_numerical_entropy
                     << "    Entropy: " << entropy
                     << "    (U-Uo)/Uo: " << entropy/initial_entropy;
+                    //<< "    Ranocha CFL Condition: " << max_interface_value;
 
         this->pcout << std::endl;
     }

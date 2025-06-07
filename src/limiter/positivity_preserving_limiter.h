@@ -51,7 +51,10 @@ public:
         const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-        double                                                  dt) override;
+        double                                                  dt,
+        dealii::Vector<double>&                                 avg_density,
+        dealii::Vector<double>&                                 avg_pressure,
+        dealii::Vector<double>&                                 ranocha_cfl_condition) override;
 protected:
 
     /// Obtain the solution cell average using tensored quadrature rules for dim >= 2
@@ -101,6 +104,7 @@ protected:
     real dx; ///< Value required to compute solution cell average in 2D/3D, calculated using xmax and xmin parameters
     real dy; ///< Value required to compute solution cell average in 2D/3D, calculated using ymax and ymin parameters
     real dz; ///< Value required to compute solution cell average in 2D/3D, calculated using zmax and zmin parameters
+    real max_ranocha_cfl_condition;
 }; // End of PositivityPreservingLimiter Class
 } // PHiLiP namespace
 

@@ -113,11 +113,14 @@ void MaximumPrincipleLimiter<dim, nstate, real>::limit(
         const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-        double                                                  dt)
+        double                                                  dt,
+        dealii::Vector<double>&                                 avg_density,
+        dealii::Vector<double>&                                 avg_pressure,
+        dealii::Vector<double>&                                 ranocha_cfl_condition)
 {
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
-        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt);
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, avg_density, avg_pressure, ranocha_cfl_condition);
 
     // Construct 1D Quad Points
     const unsigned int init_grid_degree = grid_degree;

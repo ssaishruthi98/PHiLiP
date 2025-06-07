@@ -83,7 +83,10 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
                 this->dg->max_degree,
                 this->dg->oneD_fe_collection_1state,
                 this->dg->oneD_quadrature_collection,
-                dt);
+                dt,
+                this->dg->avg_density,
+                this->dg->avg_pressure,
+                this->dg->ranocha_cfl_condition);
         }
 
         //set the DG current time for unsteady source terms
@@ -130,7 +133,10 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             this->dg->max_degree,
             this->dg->oneD_fe_collection_1state,
             this->dg->oneD_quadrature_collection,
-            dt);
+            dt,
+            this->dg->avg_density,
+            this->dg->avg_pressure,
+            this->dg->ranocha_cfl_condition);
     }
     
     ++(this->current_iteration);

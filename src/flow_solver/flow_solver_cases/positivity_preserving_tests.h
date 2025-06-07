@@ -40,8 +40,11 @@ class PositivityPreservingTests : public CubeFlow_UniformGrid<dim, nstate>
     /// Check positivity of density and total energy + verify that density is not NaN
     void check_positivity_density(DGBase<dim, double>& dg);
 
-    /// Updates the maximum local wave speed
+    /// Computes integrated entropy at current iteration
     double compute_integrated_entropy(DGBase<dim, double>& dg) const;
+
+    /// Computes the value of the CFL condition dictated by Ranocha 
+    //double compute_ranocha_cfl_condition(DGBase<dim, double>& dg) const;
 
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;

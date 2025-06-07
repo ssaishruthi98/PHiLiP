@@ -132,8 +132,16 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
 
         if (p_lim >= 0)
             t2[iquad] = 1;
-        else
+        else{
             t2[iquad] = p_avg / (p_avg - p_lim);
+            // std::cout << std::endl << std::endl << "THETA 2 VALUE:   " << t2[iquad] << std::endl
+            //           << "   density:   " << soln_at_iquad[0] << std::endl
+            //           << "   velocity:  " << soln_at_iquad[1] << std::endl
+            //           << "   energy:    " << soln_at_iquad[2] << std::endl
+            //           << "   pressure:    " << p_lim << std::endl
+            //           << "   avg pressure:    " << p_avg << std::endl;
+            // sleep(5);
+        }
 
         if (t2[iquad] != 1) {
             if (t2[iquad] >= 0 && t2[iquad] <= 1 && t2[iquad] < theta2) {
@@ -181,20 +189,20 @@ void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
 
             // Verify that positivity of density is preserved after application of theta2 limiter
             if (istate == 0 && solution[current_dofs_indices[idof]] < 0) {
-                std::cout << "Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::cout << std::endl << std::endl << "Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
 
             // Verify that positivity of Total Energy is preserved after application of theta2 limiter
             if (istate == (nstate - 1) && solution[current_dofs_indices[idof]] < 0) {
-                std::cout << "Error: Total Energy is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::cout << std::endl << std::endl << "Error: Total Energy is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
 
             // Verify that the solution values haven't been changed to NaN as a result of all quad pts in a cell having negative density 
             // (all quad pts having negative density would result in the local maximum convective eigenvalue being zero leading to division by zero)
             if (isnan(solution[current_dofs_indices[idof]])) {
-                std::cout << "Error: Solution is NaN - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::cout << std::endl << std::endl << "Error: Solution is NaN - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
         }
@@ -214,6 +222,42 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
     // Obtain solution cell average
     if (dim == 1) {
         soln_cell_avg = get_soln_cell_avg(soln_at_q[0], n_quad_pts, quad_weights_GLL);
+
+        this->max_ranocha_cfl_condition = 0.0;
+
+        const real soln_cell_avg_wavespeed = this->euler_physics->max_convective_eigenvalue(soln_cell_avg);
+
+        this->max_ranocha_cfl_condition = soln_cell_avg_wavespeed;
+
+        // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        //     std::array<real,nstate> local_soln_at_q_1;
+
+        //     for(unsigned int istate = 0; istate < nstate; ++istate){
+        //         local_soln_at_q_1[istate] = soln_at_q[0][istate][iquad];
+        //     }
+            // Update the maximum local wave speed (i.e. convective eigenvalue)
+            //const real local_wave_speed_1 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_1);
+
+            // std::cout << "LOCAL WAVE SPEED:   " << local_wave_speed_1 << std::endl;
+            // if(isnan(local_wave_speed_1)){
+            //     std::cout << "   density:   " << soln_at_q[0][0][iquad] << std::endl
+            //               << "   momentum:  " << soln_at_q[0][1][iquad] << std::endl
+            //               << "   energy:    " << soln_at_q[0][2][iquad] << std::endl;
+            // }
+
+            // const real vel = local_soln_at_q_1[1]/local_soln_at_q_1[0];
+            // const real sound = this->euler_physics->compute_sound (local_soln_at_q_1);
+            // real cfl = this->flow_solver_param.courant_friedrichs_lewy_number;
+            // const real max_eig_p = abs((vel + sound/local_soln_at_q_1[0])*cfl);
+            // const real max_eig_m = abs((vel - sound/local_soln_at_q_1[0])*cfl);
+            // this->max_ranocha_cfl_condition = sound;
+            // std::cout << "   THE RANOCHA PAPER CFL CONDITION VALUE:   " << max_eig << std::endl;
+            // if(max_eig_p > this->max_ranocha_cfl_condition)
+            //     this->max_ranocha_cfl_condition = max_eig_p;
+            // if(max_eig_m > this->max_ranocha_cfl_condition)
+            //     this->max_ranocha_cfl_condition = max_eig_m;
+        // }
+
     } else if (dim > 1) {
         std::array<std::array<real, nstate>,dim> soln_cell_avg_dim;
 
@@ -352,12 +396,15 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     const unsigned int                                      max_degree,
     const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
     const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-    double                                                  dt)
+    double                                                  dt,
+    dealii::Vector<double>&                                 avg_density,
+    dealii::Vector<double>&                                 avg_pressure,
+    dealii::Vector<double>&                                 ranocha_cfl_condition)
 {
 
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
-        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt);
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, avg_density, avg_pressure, ranocha_cfl_condition);
 
     //create 1D solution polynomial basis functions to interpolate the solution to the quadrature nodes
     const unsigned int init_grid_degree = grid_degree;
@@ -372,6 +419,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GL(1, max_degree, init_grid_degree);
     soln_basis_GL.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quad_GL);
 
+    int cell_num = 0;
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;
 
@@ -464,6 +512,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         std::array<real, nstate> soln_cell_avg;
         // Obtain solution cell average
         soln_cell_avg = get_soln_cell_avg_PPL(soln_at_q, n_quad_pts, oneD_quad_GLL.get_weights(), oneD_quad_GL.get_weights(), dt);
+        avg_density[cell_num] = soln_cell_avg[0];
+        ranocha_cfl_condition[cell_num] = this->max_ranocha_cfl_condition;
 
         real lower_bound = this->all_parameters->limiter_param.min_density;
         real p_avg = 1e-13;
@@ -471,8 +521,21 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         if (nstate == dim + 2) {
             // Compute average value of pressure using soln_cell_avg
             p_avg = euler_physics->compute_pressure(soln_cell_avg);
+            if (p_avg < 0) {
+                real vel = soln_cell_avg[1]/soln_cell_avg[0];
+                real vel2 = pow(vel, 2.0);
+
+                std::cout << std::endl << std::endl << "density avg:   " << soln_cell_avg[0] << std::endl
+                          << "energy avg:    " << soln_cell_avg[nstate-1] << std::endl 
+                          << "vel avg:       " << vel << std::endl 
+                          << "vel^2 avg:     " << vel2 << std::endl
+                          << "0.5*rho*v^2:      " << 0.5*soln_cell_avg[0]*vel2 << std::endl << std::endl
+                          << "AVERAGE WAVE SPEED:   " << this->max_ranocha_cfl_condition << std::endl << std::endl;
+            }
         }
         
+        avg_pressure[cell_num] = p_avg;
+
         // Obtain value used to linearly scale density
         real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
 
@@ -581,8 +644,24 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             std::abort();
         }
 
+        if (avg_density[cell_num] < 0) {
+            std::cout << std::endl << std::endl << "Error: Average Density is negative - Aborting... " << std::endl << avg_density[cell_num] << std::endl;
+        }
+
+        if (soln_cell_avg[nstate-1] < 0) {
+            std::cout << std::endl << std::endl << "Error: Average Energy is negative - Aborting... " << std::endl << soln_cell_avg[nstate-1] << std::endl;
+        }
+
+        if (avg_pressure[cell_num] < 0) {
+            std::cout << std::endl << std::endl << "Error: Average Pressure is negative - Aborting... " << std::endl
+                      << " AVERAGE PRESSURE:   "  << avg_pressure[cell_num] << std::endl
+                      << " AVERAGE DENSITY:   "  << avg_density[cell_num] << std::endl
+                      << " AVERAGE ENERGY:   "  << soln_cell_avg[nstate-1] << std::endl;
+        }
+
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
+        cell_num++;
     }
 }
 

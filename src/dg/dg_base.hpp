@@ -456,6 +456,10 @@ public:
      */
     dealii::Vector<double> max_dt_cell;
 
+    dealii::Vector<double> avg_density;
+    dealii::Vector<double> avg_pressure;
+    dealii::Vector<double> ranocha_cfl_condition;
+
     /// Artificial dissipation in each cell.
     dealii::Vector<double> artificial_dissipation_coeffs;
 

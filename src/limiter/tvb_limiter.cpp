@@ -180,7 +180,10 @@ void TVBLimiter<dim, nstate, real>::limit(
     const unsigned int                                      max_degree,
     const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
     dealii::hp::QCollection<1>                              oneD_quadrature_collection,
-    double                                                  /*dt*/)
+    double                                                  /*dt*/,
+    dealii::Vector<double>&                                 /*avg_density*/,
+    dealii::Vector<double>&                                 /*avg_pressure*/,
+    dealii::Vector<double>&                                 /*ranocha_cfl_condition*/)
 {
     double h = this->all_parameters->limiter_param.max_delta_x;
 
