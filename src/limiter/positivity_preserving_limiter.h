@@ -105,6 +105,11 @@ protected:
     real dy; ///< Value required to compute solution cell average in 2D/3D, calculated using ymax and ymin parameters
     real dz; ///< Value required to compute solution cell average in 2D/3D, calculated using zmax and zmin parameters
     real max_ranocha_cfl_condition;
+    real final_maximum_wavespeed_across_all_space_time;
+
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
+    const int mpi_rank; ///< MPI rank.
+    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 }; // End of PositivityPreservingLimiter Class
 } // PHiLiP namespace
 

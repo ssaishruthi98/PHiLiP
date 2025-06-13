@@ -18,6 +18,10 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
     , dx((flow_solver_param.grid_xmax-flow_solver_param.grid_xmin)/flow_solver_param.number_of_grid_elements_x)
     , dy((flow_solver_param.grid_ymax-flow_solver_param.grid_ymin)/flow_solver_param.number_of_grid_elements_y)
     , dz((flow_solver_param.grid_zmax-flow_solver_param.grid_zmin)/flow_solver_param.number_of_grid_elements_z)
+    , final_maximum_wavespeed_across_all_space_time(0)
+    , mpi_communicator(MPI_COMM_WORLD)
+    , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+    , pcout(std::cout, mpi_rank==0)
 {
     // Create pointer to Euler Physics to compute pressure if pde_type==euler
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -503,17 +507,24 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         std::vector< real > GLL_weights = oneD_quad_GLL.get_weights();
         std::vector< real > GL_weights = oneD_quad_GL.get_weights();
         std::array<real, nstate> soln_cell_avg;
+
         // Obtain solution cell average
         soln_cell_avg = get_soln_cell_avg_PPL(soln_at_q, n_quad_pts, oneD_quad_GLL.get_weights(), oneD_quad_GL.get_weights(), dt);
 
         this->max_ranocha_cfl_condition = 0.0;
         const real soln_cell_avg_wavespeed = this->euler_physics->max_convective_eigenvalue(soln_cell_avg);
         this->max_ranocha_cfl_condition = soln_cell_avg_wavespeed;
-
+        if(soln_cell_avg_wavespeed > this->final_maximum_wavespeed_across_all_space_time){
+            this->final_maximum_wavespeed_across_all_space_time = soln_cell_avg_wavespeed;
+            // std::cout << "===================================================================================================="<<std::endl;
+            // std::cout << "MAXIMUM AVG WAVESPEED:    " << this->final_maximum_wavespeed_across_all_space_time << std::endl;
+            // std::cout << "===================================================================================================="<<std::endl;
+        }
 
         avg_density[cell_num] = soln_cell_avg[0];
-        ranocha_cfl_condition[cell_num] = this->max_ranocha_cfl_condition;
-
+        const dealii::types::global_dof_index cell_index = soln_cell->active_cell_index();
+        ranocha_cfl_condition[cell_index] = this->max_ranocha_cfl_condition;
+        //std::cout << "AVERAGE WAVE SPEED: " << this->max_ranocha_cfl_condition << std::endl << std::endl;
         real lower_bound = this->all_parameters->limiter_param.min_density;
         real p_avg = 1e-13;
 
@@ -662,6 +673,12 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
         cell_num++;
     }
+
+
+    double final_max_avg_wavespeed_mpi = dealii::Utilities::MPI::max(this->final_maximum_wavespeed_across_all_space_time, this->mpi_communicator);
+    this->pcout << "===================================================================================================="<<std::endl;
+    this->pcout << "MAXIMUM AVG WAVESPEED:    " << final_max_avg_wavespeed_mpi << std::endl;
+    this->pcout << "===================================================================================================="<<std::endl;
 }
 
 template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_DIM + 2, double>;
