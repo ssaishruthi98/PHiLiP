@@ -57,7 +57,8 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
                 this->dg->max_degree,
                 this->dg->oneD_fe_collection_1state,
                 this->dg->oneD_quadrature_collection,
-                dt);
+                dt,
+                this->current_time);
         }
 
         this->dg->assemble_residual();
@@ -93,7 +94,8 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
                 this->dg->max_degree,
                 this->dg->oneD_fe_collection_1state,
                 this->dg->oneD_quadrature_collection,
-                dt);
+                dt,
+                this->current_time);
         }
         this->dg->assemble_residual();
         this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, rhs);
@@ -112,7 +114,8 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
             this->dg->max_degree,
             this->dg->oneD_fe_collection_1state,
             this->dg->oneD_quadrature_collection,
-            dt);
+            dt,
+            this->current_time);
     }
  
     this->pcout << std::endl;
