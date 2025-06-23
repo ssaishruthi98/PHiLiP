@@ -146,6 +146,47 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
 }
 
 template <int dim, int nstate, typename real>
+bool PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
+    const std::array<std::vector<real>, nstate>&    soln_at_q,
+    // const unsigned int                              n_quad_pts,
+    const real&                                     u_velocity,
+    const unsigned int&                             iquad)
+{
+    std::array<real, nstate> soln_at_iquad;                                // creates fixed-size array for working with state vectors
+    real pi = std::acos(-1.0);                                             // initializes pi value
+    // std::vector<real> U_velocity;                                       // generalizing to higher-dimenion problems
+    real U_velocity = 0.0;
+    real l2_squared = 0.0;                                                 // sum of ||u - U(x,t)||_2^2
+    real pressure = 0.0;
+    real partI = 1.0;
+    real partII = 1.0;
+    real g_func = 0.0;
+
+    // take values from soln_at_q and compute summation term in partII
+
+    for (unsigned int istate = 0; istate < nstate; ++istate) {          // iterates through each state variable (ρ, m, E)
+        soln_at_iquad[istate] = soln_at_q[istate][iquad];               // sets state vector do be manipulated in the loop
+    }
+
+    l2_squared += pow(u_velocity - U_velocity, 2.0);                    // put together constant summation term for part II
+        
+    if (nstate == dim + 2) {                                            // checks if it is a NS or Euler problem
+        U_velocity = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[1];
+        pressure = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[2];
+    }
+
+    partI = pow(soln_at_iquad[0], dim/2 + 1) / (pow(2*pi*pressure, dim/2));
+
+    partII = exp(-soln_at_iquad[0] / (2 * pressure) * l2_squared);
+
+    g_func = partI * partII;
+
+    std::cout << "quad_pt: " << iquad + 1 << ", u_velocity = " << u_velocity << ", g_func = " << g_func << std::endl;   
+    
+    return true;
+}
+
+template <int dim, int nstate, typename real>
 real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
     const double    density_avg,
     const double    density_min,
@@ -372,6 +413,9 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GL(1, max_degree, init_grid_degree);
     soln_basis_GL.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quad_GL);
 
+    // iterating through each cell in the space
+    bool ran_one = false;
+
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;
 
@@ -583,6 +627,13 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
+
+        if (!ran_one) {
+            for (real u = -4.0; u < 6.0; u += 0.1)
+                get_boltzmann_distribution(soln_at_q[0], u, 1);
+            ran_one = true;
+        }
+
     }
 }
 

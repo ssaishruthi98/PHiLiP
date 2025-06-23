@@ -81,6 +81,15 @@ protected:
         const unsigned int                              n_quad_pts,
         const double                                    p_avg);
 
+
+    /// Obtain the Boltzmann distribution of microscopic velocities
+    /// Using 8 from Dzanic, Martinelli 2025
+    bool get_boltzmann_distribution(
+    const std::array<std::vector<real>, nstate>&    soln_at_q,
+    // const unsigned int                              n_quad_pts,
+    const real&                                     u_velocity,
+    const unsigned int&                             iquad);
+
     /// Obtain the value used to scale density and enforce positivity of density
     /// Using 3.15 from Zhang, Shu Nov 2010
     real get_density_scaling_value(
