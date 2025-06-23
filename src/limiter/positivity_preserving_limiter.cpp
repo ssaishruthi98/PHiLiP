@@ -393,12 +393,13 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     const unsigned int                                      max_degree,
     const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
     const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-    double                                                  dt)
+    double                                                  dt,
+    double                                                  current_time)
 {
 
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
-        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt);
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time);
 
     //create 1D solution polynomial basis functions to interpolate the solution to the quadrature nodes
     const unsigned int init_grid_degree = grid_degree;
@@ -628,14 +629,15 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
 
-        if (!ran_one) {
-            for (real u = -4.0; u < 6.0; u += 0.1)
-                get_boltzmann_distribution(soln_at_q[0], u, 1);
-            ran_one = true;
-        }
-
+        double final_time = this->flow_solver_param.final_time;
+        if(current_time > final_time - 1e-2 && current_time < final_time + 1e-2){
+            std::cout << "Reached final time." << std::endl;
+		for (real u = -4.0; u < 6.0; u += 0.1)
+			get_boltzann_distribution(soln_at_q[0], u, 1);
+	}
     }
 }
 
 template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_DIM + 2, double>;
+
 } // PHiLiP namespace
