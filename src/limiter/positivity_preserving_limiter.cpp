@@ -168,12 +168,13 @@ bool PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
         soln_at_iquad[istate] = soln_at_q[istate][iquad];               // sets state vector do be manipulated in the loop
     }
 
-    l2_squared += pow(u_velocity - U_velocity, 2.0);                    // put together constant summation term for part II
         
     if (nstate == dim + 2) {                                            // checks if it is a NS or Euler problem
         U_velocity = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[1];
         pressure = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[2];
     }
+
+    l2_squared += pow(u_velocity - U_velocity, 2.0);                    // put together constant summation term for part II
 
     partI = pow(soln_at_iquad[0], dim/2 + 1) / (pow(2*pi*pressure, dim/2));
 
@@ -181,7 +182,8 @@ bool PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
 
     g_func = partI * partII;
 
-    std::cout << "quad_pt: " << iquad + 1 << ", u_velocity = " << u_velocity << ", g_func = " << g_func << std::endl;   
+    std::cout << "quad: " << iquad + 1 << ", u = " << u_velocity << ", p1 = " << partI << ", p2 = " << partII << ", g_func = " << g_func << 
+        ", density = " << soln_at_iquad[0] << ", pressure = " << pressure << ", l2_squared = " << l2_squared << std::endl;   
     
     return true;
 }
@@ -631,10 +633,15 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         double final_time = this->flow_solver_param.final_time;
         if(current_time > final_time - 1e-2 && current_time < final_time + 1e-2){
-            std::cout << "Reached final time." << std::endl;
-		for (real u = -4.0; u < 6.0; u += 0.1)
-			get_boltzann_distribution(soln_at_q[0], u, 1);
-	}
+            if (ran_one==false) {
+                ran_one = true;
+                for (real u = -4.0; u < 6.0; u += 0.1) {
+                    for (int point = 0; point < 4; ++point)
+                        get_boltzmann_distribution(soln_at_q[0], u, point);
+                }
+            }
+        }
+
     }
 }
 
