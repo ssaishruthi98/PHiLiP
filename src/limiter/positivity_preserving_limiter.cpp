@@ -422,6 +422,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;
 
+        const dealii::types::global_dof_index cell_index = soln_cell->active_cell_index();
+
         std::vector<dealii::types::global_dof_index> current_dofs_indices;
         // Current reference element related to this physical cell
         const int i_fele = soln_cell->active_fe_index();
@@ -632,7 +634,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
 
         double final_time = this->flow_solver_param.final_time;
-        if(current_time > final_time - 1e-2 && current_time < final_time + 1e-2){
+        //change cell_index == to a number anywhere from 0 to grid_elements - 1
+        if(current_time > final_time - (final_time*1e-2) && cell_index == 61){
             if (ran_one==false) {
                 ran_one = true;
                 for (real u = -4.0; u < 6.0; u += 0.1) {
