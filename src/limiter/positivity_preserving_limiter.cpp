@@ -148,42 +148,43 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
 template <int dim, int nstate, typename real>
 bool PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
     const std::array<std::vector<real>, nstate>&    soln_at_q,
-    // const unsigned int                              n_quad_pts,
-    const real&                                     u_velocity,
-    const unsigned int&                             iquad)
+    const unsigned int                              n_quad_pts,
+    const real&                                     u_velocity)
 {
-    std::array<real, nstate> soln_at_iquad;                                // creates fixed-size array for working with state vectors
-    real pi = std::acos(-1.0);                                             // initializes pi value
-    // std::vector<real> U_velocity;                                       // generalizing to higher-dimenion problems
-    real U_velocity = 0.0;
-    real l2_squared = 0.0;                                                 // sum of ||u - U(x,t)||_2^2
-    real pressure = 0.0;
-    real partI = 1.0;
-    real partII = 1.0;
-    real g_func = 0.0;
+    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        std::array<real, nstate> soln_at_iquad;                                // creates fixed-size array for working with state vectors
+        real pi = std::acos(-1.0);                                             // initializes pi value
+        // std::vector<real> U_velocity;                                       // generalizing to higher-dimenion problems
+        real U_velocity = 0.0;
+        real l2_squared = 0.0;                                                 // sum of ||u - U(x,t)||_2^2
+        real pressure = 0.0;
+        real partI = 1.0;
+        real partII = 1.0;
+        real g_func = 0.0;
 
-    // take values from soln_at_q and compute summation term in partII
+        // take values from soln_at_q and compute summation term in partII
 
-    for (unsigned int istate = 0; istate < nstate; ++istate) {          // iterates through each state variable (ρ, m, E)
-        soln_at_iquad[istate] = soln_at_q[istate][iquad];               // sets state vector do be manipulated in the loop
+        for (unsigned int istate = 0; istate < nstate; ++istate) {          // iterates through each state variable (ρ, m, E)
+            soln_at_iquad[istate] = soln_at_q[istate][iquad];               // sets state vector do be manipulated in the loop
+        }
+
+            
+        if (nstate == dim + 2) {                                            // checks if it is a NS or Euler problem
+            U_velocity = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[1];
+            pressure = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[2];
+        }
+
+        l2_squared += pow(u_velocity - U_velocity, 2.0);                    // put together constant summation term for part II
+
+        partI = pow(soln_at_iquad[0], dim/2 + 1) / (pow(2*pi*pressure, dim/2));
+
+        partII = exp(-soln_at_iquad[0] / (2 * pressure) * l2_squared);
+
+        g_func = partI * partII;
+
+        std::cout << "quad: " << iquad + 1 << ", u = " << u_velocity << ", p1 = " << partI << ", p2 = " << partII << ", g_func = " << g_func << 
+            ", density = " << soln_at_iquad[0] << ", pressure = " << pressure << ", l2_squared = " << l2_squared << std::endl;   
     }
-
-        
-    if (nstate == dim + 2) {                                            // checks if it is a NS or Euler problem
-        U_velocity = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[1];
-        pressure = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[2];
-    }
-
-    l2_squared += pow(u_velocity - U_velocity, 2.0);                    // put together constant summation term for part II
-
-    partI = pow(soln_at_iquad[0], dim/2 + 1) / (pow(2*pi*pressure, dim/2));
-
-    partII = exp(-soln_at_iquad[0] / (2 * pressure) * l2_squared);
-
-    g_func = partI * partII;
-
-    std::cout << "quad: " << iquad + 1 << ", u = " << u_velocity << ", p1 = " << partI << ", p2 = " << partII << ", g_func = " << g_func << 
-        ", density = " << soln_at_iquad[0] << ", pressure = " << pressure << ", l2_squared = " << l2_squared << std::endl;   
     
     return true;
 }
@@ -635,13 +636,13 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         double final_time = this->flow_solver_param.final_time;
         //change cell_index == to a number anywhere from 0 to grid_elements - 1
-        if(current_time > final_time - (final_time*1e-2) && cell_index == 61){
+        if(current_time > final_time - (final_time*1e-2) && cell_index == 145){
+
             if (ran_one==false) {
                 ran_one = true;
-                for (real u = -4.0; u < 6.0; u += 0.1) {
-                    for (int point = 0; point < 4; ++point)
-                        get_boltzmann_distribution(soln_at_q[0], u, point);
-                }
+                std::cout << "Cell " << cell_index+1 << ":" << std::endl;
+                for (real u = -4.0; u < 8.0; u += 0.1)
+                    get_boltzmann_distribution(soln_at_q[0], n_quad_pts, u);   
             }
         }
 
