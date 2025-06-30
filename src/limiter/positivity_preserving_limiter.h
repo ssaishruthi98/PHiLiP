@@ -88,7 +88,9 @@ protected:
     bool get_boltzmann_distribution(
     const std::array<std::vector<real>, nstate>&    soln_at_q,
     const unsigned int                              n_quad_pts,
-    const double                                    resolution);
+    const double                                    resolution,
+    const double                                    lower_distribution_limit,
+    const double                                    upper_distribution_limit);
 
     /// Obtain the value used to scale density and enforce positivity of density
     /// Using 3.15 from Zhang, Shu Nov 2010

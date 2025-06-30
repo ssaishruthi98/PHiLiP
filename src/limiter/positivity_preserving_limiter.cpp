@@ -149,44 +149,42 @@ template <int dim, int nstate, typename real>
 bool PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
     const std::array<std::vector<real>, nstate>&    soln_at_q,
     const unsigned int                              n_quad_pts,
-    const double                                    resolution)
+    const double                                    resolution,
+    const double                                    lower_distribution_limit,
+    const double                                    upper_distribution_limit)
     // const real&                                     u_velocity)
 {
-    for (double u = -4.0; u < 8.0; u += resolution) {
+    std::vector<real> f_min;
+    std::vector<real> f_max;
+    
+    for (double u = lower_distribution_limit; u < upper_distribution_limit; u += resolution) {
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
         std::array<real, nstate> soln_at_iquad;                                // creates fixed-size array for working with state vectors
         real pi = std::acos(-1.0);                                             // initializes pi value
         // std::vector<real> U_velocity;                                          // generalizing to higher-dimenion problems
-        real U_velocity = 0.0;
+        real U = 0.0;
         real l2_squared = 0.0;                                                 // sum of ||u - U(x,t)||_2^2
         real pressure = 0.0;
-        real partI = 1.0;
-        real partII = 1.0;
-        real g_func = 0.0;
-
-        // take values from soln_at_q and compute summation term in partII
+        real g = 0.0;
 
         for (unsigned int istate = 0; istate < nstate; ++istate) {          // iterates through each state variable (ρ, m, E)
             soln_at_iquad[istate] = soln_at_q[istate][iquad];               // sets state vector do be manipulated in the loop
         }
-
             
         if (nstate == dim + 2) {                                            // checks if it is a NS or Euler problem
-            U_velocity = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[1];
+            U = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[1];
             pressure = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[2];
         }
+        
+        l2_squared += pow(u - U, 2.0);                      // put together constant summation term for part II
+        // for (int k = 0; k < dim; ++dim)
+        //     l2_squared += pow(u[k] - U[k], 2.0);                // generalizing L2 norm to n-dimensions
 
-        l2_squared += pow(u - U_velocity, 2.0);                    // put together constant summation term for part II
-
-        partI = pow(soln_at_iquad[0], dim/2 + 1) / (pow(2*pi*pressure, dim/2));
-
-        partII = exp(-soln_at_iquad[0] / (2 * pressure) * l2_squared);
-
-        g_func = partI * partII;
+        g = pow(soln_at_iquad[0], dim/2 + 1) / (pow(2*pi*pressure, dim/2)) * exp(-soln_at_iquad[0] / (2 * pressure) * l2_squared);
 
         // Outputting partI, partII, the g-function, density, pressure, and the l2 squared to console for plotting with Python
-        std::cout << "quad: " << iquad + 1 << ", u = " << u << ", p1 = " << partI << ", p2 = " << partII << ", g_func = " << g_func << 
-            ", density = " << soln_at_iquad[0] << ", pressure = " << pressure << ", l2_squared = " << l2_squared << std::endl;
+        std::cout << "quad: " << iquad + 1 << ", u = " << u << ", g = " << g << std::endl;
+
         }      
     }   
     
@@ -645,7 +643,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         if(current_time > final_time - (final_time*1e-2) && cell_index == 102){ //change cell_index == to a number anywhere from 0 to grid_elements-1
             if (ran_one==false) {
                 ran_one = true;
-                get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1);   
+                get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);   
             }
         }
 
