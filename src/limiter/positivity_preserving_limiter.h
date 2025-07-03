@@ -83,6 +83,10 @@ protected:
         const double                                    p_avg);
 
 
+    real trapezoidal_integral(
+    const std::vector<real>&        u_values,
+    const std::vector<real>&        f_values);
+
     /// Obtain the Boltzmann distribution of microscopic velocities
     /// Using 8 from Dzanic, Martinelli 2025
     bool get_boltzmann_distribution(
@@ -91,6 +95,12 @@ protected:
     const double                                    resolution,
     const double                                    lower_distribution_limit,
     const double                                    upper_distribution_limit);
+
+    /// Use the Boltzmann distribution to obtain the macroscopic maxima and minima for density, momentum, and energy
+    std::vector< std::vector<real>> boltzmann_limits(
+    const std::vector<real>&            u_values,
+    const std::vector<real>&            f_max_values,
+    const std::vector<real>&            f_min_values);
 
     /// Obtain the value used to scale density and enforce positivity of density
     /// Using 3.15 from Zhang, Shu Nov 2010

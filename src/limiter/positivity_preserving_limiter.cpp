@@ -198,6 +198,69 @@ bool PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
 }
 
 template <int dim, int nstate, typename real>
+real PositivityPreservingLimiter<dim, nstate, real>::trapezoidal_integral(
+    const std::vector<real>&        u_values,
+    const std::vector<real>&        f_values)
+{
+    real integral = 0.0;
+    const std::size_t N = u_values.size();
+
+    for (std::size_t i = 0; i < N - 1; ++i) {
+        real du = u_values[i + 1] - u_values[i];
+        integral += 0.5 * (f_values[i] + f_values[i + 1]) * du;
+    }
+
+    return integral;
+}
+
+template <int dim, int nstate, typename real>
+// lower bounds are in [0][ ], upper bounds are in [1][ ]
+// density bounds - [][0], momentum bounds - [][1]:[][dim], energy bounds - [][dim+1]
+std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::boltzmann_limits(
+    const std::vector<real>&            u_values,
+    const std::vector<real>&            f_max_values,
+    const std::vector<real>&            f_min_values)
+{
+    std::vector<std::vector<real>> limits(2, std::vector<real>(dim + 1));       // match the limiter to the size of the state vector based on # of dimensions
+    
+    // const std::size_t N = u_values.size();
+    
+    // define density limiters
+
+    real rho_min = trapezoidal_integral(u_values, f_min_values);
+    real rho_max = trapezoidal_integral(u_values, f_max_values);
+
+    // // define energy limiters
+    // std::vector<real> u_dot_product(N, 0.0);
+    // for (int i = 0; i < N; ++i) {
+    //     u_dot_product[i] = u_values[i] * u_values[i];
+    // }
+
+
+    // ///////////////////// need to adjust the input "f-function" as its own integrand vector ///////////////////////////////
+
+    // real E_min = min(trapezoidal_integral(u_values, 0.5 * f_min_values * u_dot_product), std::numeric_limits<real>::max());
+    // real E_max = std::numeric_limits<real>::lowest();
+    
+    // std::vector<real> momentum_min(dim, std::numeric_limits<real>::max());
+    // std::vector<real> momentum_max(dim, std::numeric_limits<real>::lowest());
+    
+    // double du = u_values[1] - u_values[0];
+
+    
+    // for (auto& u : u_values) {
+
+    //     boltzmann_limits[0]
+    // }
+
+    limits[0][0] = rho_min;
+    limits[1][0] = rho_max;
+    
+    return limits;
+}
+
+
+template <int dim, int nstate, typename real>
 real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
     const double    density_avg,
     const double    density_min,
@@ -648,7 +711,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         if(current_time > final_time - (final_time*1e-2) && cell_index == 102){ //change cell_index == to a number anywhere from 0 to grid_elements-1
             if (ran_one==false) {
                 ran_one = true;
-                get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);   
+            get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);   
             }
         }
 
