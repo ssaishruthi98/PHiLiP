@@ -146,22 +146,24 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
 }
 
 template <int dim, int nstate, typename real>
-bool PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
+std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
     const std::array<std::vector<real>, nstate>&    soln_at_q_dim,
     const unsigned int                              n_quad_pts,
     const double                                    resolution,
     const double                                    lower_distribution_limit,
     const double                                    upper_distribution_limit)
-    // const real&                                     u_velocity)
 {
-    real pi = std::acos(-1.0);
     const int num_u = static_cast<int>((upper_distribution_limit - lower_distribution_limit) / resolution) + 1;
+    std::vector< std::vector<real> > output_points(3, std::vector<real>(num_u));
+
+    real pi = std::acos(-1.0);
+    
     
     std::vector<real> f_min(num_u, std::numeric_limits<real>::max());
     std::vector<real> f_max(num_u, std::numeric_limits<real>::lowest());
     
     for (int i = 0; i < num_u; ++i) {
-        double u = lower_distribution_limit + i * resolution;
+        real u = lower_distribution_limit + i * resolution;
 
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
             std::array<real, nstate> soln_at_iquad;                                // creates fixed-size array for working with state vectors
@@ -187,6 +189,9 @@ bool PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
             // Outputting partI, partII, the g-function, density, pressure, and the l2 squared to console for plotting with Python
             // std::cout << "quad: " << iquad + 1 << ", u = " << u << ", g = " << g << std::endl;
         }
+        output_points[0][i] = u;
+        output_points[1][i] = f_min[i];
+        output_points[2][i] = f_max[i];
     }
 
     for (int i = 0; i < num_u; ++i) {
@@ -194,7 +199,7 @@ bool PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
         std::cout << "u = " << u << ", f_min = " << f_min[i] << ", f_max = " << f_max[i] << std::endl;
     }
     
-    return true;
+    return output_points;
 }
 
 template <int dim, int nstate, typename real>
@@ -226,7 +231,6 @@ std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::
     // const std::size_t N = u_values.size();
     
     // define density limiters
-
     real rho_min = trapezoidal_integral(u_values, f_min_values);
     real rho_max = trapezoidal_integral(u_values, f_max_values);
 
@@ -488,9 +492,6 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GL(1, max_degree, init_grid_degree);
     soln_basis_GL.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quad_GL);
 
-    // iterating through each cell in the space
-    bool ran_one = false;
-
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;
 
@@ -707,12 +708,9 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         double final_time = this->flow_solver_param.final_time;
         
-        // Loop for outputting Boltzmann distribution over microscopic velocities in [-4, 8] similar to D. and M.
-        if(current_time > final_time - (final_time*1e-2) && cell_index == 102){ //change cell_index == to a number anywhere from 0 to grid_elements-1
-            if (ran_one==false) {
-                ran_one = true;
-            get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);   
-            }
+        // Loop for isolating the final timestep, observing a particular cell
+        if(current_time > final_time - (final_time*1e-3) && cell_index == 102){     //change cell_index == to a number anywhere from 0 to grid_elements-1
+            // get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
         }
 
     }

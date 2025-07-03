@@ -89,7 +89,7 @@ protected:
 
     /// Obtain the Boltzmann distribution of microscopic velocities
     /// Using 8 from Dzanic, Martinelli 2025
-    bool get_boltzmann_distribution(
+    std::vector< std::vector<real>> get_boltzmann_distribution(
     const std::array<std::vector<real>, nstate>&    soln_at_q,
     const unsigned int                              n_quad_pts,
     const double                                    resolution,
