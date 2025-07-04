@@ -709,8 +709,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         double final_time = this->flow_solver_param.final_time;
         
         // Loop for isolating the final timestep, observing a particular cell
-        if(current_time > final_time - (final_time*1e-3) && cell_index == 102){     //change cell_index == to a number anywhere from 0 to grid_elements-1
-            // get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
+        if (current_time > final_time - (final_time*1e-3)){     //change cell_index == to a number anywhere from 0 to grid_elements-1
+            get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
         }
 
     }
