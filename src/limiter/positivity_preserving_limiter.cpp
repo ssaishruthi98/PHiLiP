@@ -396,12 +396,13 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
     const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
     double                                                  dt,
-    double                                                  current_time)
+    double                                                  current_time,
+    bool                                                    is_it_a_stage)
 {
 
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
-        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time);
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time, is_it_a_stage);
 
     //create 1D solution polynomial basis functions to interpolate the solution to the quadrature nodes
     const unsigned int init_grid_degree = grid_degree;
@@ -641,7 +642,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         double final_time = this->flow_solver_param.final_time;
         //change cell_index == to a number anywhere from 0 to grid_elements - 1
-        if(current_time > final_time - (final_time*1e-2) && cell_index == 61){
+        if(current_time > final_time - (final_time*1e-2) && cell_index == 61 && !is_it_a_stage){
             if (ran_one==false) {
                 ran_one = true;
                 for (real u = -4.0; u < 6.0; u += 0.1) {

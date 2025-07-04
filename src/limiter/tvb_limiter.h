@@ -74,7 +74,8 @@ public:
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
         double                                                  dt,
-        double                                                  current_time) override;
+        double                                                  current_time,
+        bool                                                    is_it_a_stage) override;
 
 }; // End of TVBLimiter Class
 } // PHiLiP namespace
