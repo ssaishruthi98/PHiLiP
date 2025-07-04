@@ -181,7 +181,8 @@ void TVBLimiter<dim, nstate, real>::limit(
     const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
     dealii::hp::QCollection<1>                              oneD_quadrature_collection,
     double                                                  /*dt*/,
-    double                                                  /*current_time*/)
+    double                                                  /*current_time*/,
+    bool                                                    /*is_it_a_stage*/)
 {
     double h = this->all_parameters->limiter_param.max_delta_x;
 

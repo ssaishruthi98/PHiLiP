@@ -84,7 +84,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
                 this->dg->oneD_fe_collection_1state,
                 this->dg->oneD_quadrature_collection,
                 dt,
-                this->current_time);
+                this->current_time,
+                true);
         }
 
         //set the DG current time for unsteady source terms
@@ -132,7 +133,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             this->dg->oneD_fe_collection_1state,
             this->dg->oneD_quadrature_collection,
             dt,
-            this->current_time);
+            this->current_time,
+            false);
     }
     
     ++(this->current_iteration);
