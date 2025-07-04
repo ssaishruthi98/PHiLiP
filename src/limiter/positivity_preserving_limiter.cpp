@@ -633,6 +633,12 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
 
+        // Returns the coordinates of the center of the current cell
+        dealii::Point<dim> current_cell_coord = soln_cell->center();
+        // Outputs the x coordinate of the current cell center for the expected final shock location of the Shu Osher Problem
+        if(current_cell_coord[0] >= 2.35 && current_cell_coord[0] < 2.45)
+            std::cout << current_cell_coord[0] << std::endl;
+
         double final_time = this->flow_solver_param.final_time;
         //change cell_index == to a number anywhere from 0 to grid_elements - 1
         if(current_time > final_time - (final_time*1e-2) && cell_index == 61){
