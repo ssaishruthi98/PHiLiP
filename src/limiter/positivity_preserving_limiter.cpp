@@ -147,7 +147,7 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
 
 template <int dim, int nstate, typename real>
 std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
-    const std::array<std::vector<real>, nstate>&    soln_at_q_dim,
+    const std::array<std::vector<real>, nstate>&    soln_at_q_dim,      // _dim added just to differentiate from soln_at_q which is passed in as soln_at_q[0]
     const unsigned int                              n_quad_pts,
     const double                                    resolution,
     const double                                    lower_distribution_limit,
@@ -161,8 +161,10 @@ std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>
     
     std::vector<real> f_min(num_u, std::numeric_limits<real>::max());
     std::vector<real> f_max(num_u, std::numeric_limits<real>::lowest());
-    
+    std::vector< std::vector<real> > g(num_u, std::vector<real>(n_quad_pts, 0.0));
+
     for (int i = 0; i < num_u; ++i) {
+
         real u = lower_distribution_limit + i * resolution;
 
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
@@ -181,10 +183,11 @@ std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>
             }
             
             real l2_squared = pow(u - U, 2.0);                      // put together constant summation term for part II, will need to update for multidimensional use
-            real g = pow(soln_at_iquad[0], dim / 2.0 + 1.0) / (pow(2 * pi * pressure, dim / 2.0)) * exp(-soln_at_iquad[0] / (2 * pressure) * l2_squared);
+            
+            g[i][iquad] = pow(soln_at_iquad[0], dim / 2.0 + 1.0) / (pow(2 * pi * pressure, dim / 2.0)) * exp(-soln_at_iquad[0] / (2 * pressure) * l2_squared);
 
-            f_min[i] = std::min(f_min[i], g);
-            f_max[i] = std::max(f_max[i], g);
+            f_min[i] = std::min(f_min[i], g[i][iquad]);
+            f_max[i] = std::max(f_max[i], g[i][iquad]);
 
             // Outputting partI, partII, the g-function, density, pressure, and the l2 squared to console for plotting with Python
             // std::cout << "quad: " << iquad + 1 << ", u = " << u << ", g = " << g << std::endl;
@@ -198,7 +201,13 @@ std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>
         double u = lower_distribution_limit + i * resolution;
         std::cout << "u = " << u << ", f_min = " << f_min[i] << ", f_max = " << f_max[i] << std::endl;
     }
-    
+    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        for (int i = 0; i < num_u; ++i){
+            double u = lower_distribution_limit + i * resolution;
+            std::cout << "QUAD " << iquad+1 << " : u = " << u << ", g = " << g[i][iquad] << std::endl;
+        }
+    }
+
     return output_points;
 }
 
@@ -495,7 +504,9 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;
 
-        const dealii::types::global_dof_index cell_index = soln_cell->active_cell_index();
+        // const dealii::types::global_dof_index cell_index = soln_cell->active_cell_index();  
+
+        // ^ can use for isolating a cell, but hard to correctly assign to capture the shock ^
 
         std::vector<dealii::types::global_dof_index> current_dofs_indices;
         // Current reference element related to this physical cell
@@ -708,9 +719,11 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         // Returns the coordinates of the center of the current cell
         dealii::Point<dim> current_cell_coord = soln_cell->center();
-        // Outputs the x coordinate of the current cell center for the expected final shock location of the Shu Osher Problem
+        // Outputs the x coordinate of the current cell center for the expected final shock location of the Shu Osher Problem   
         if(current_cell_coord[0] >= 2.35 && current_cell_coord[0] < 2.45)
             std::cout << current_cell_coord[0] << std::endl;
+
+            // ^ use this line to find how the grid points are being assigned on the x-axis ^
 
         double final_time = this->flow_solver_param.final_time;
         
