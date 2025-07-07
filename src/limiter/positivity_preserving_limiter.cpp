@@ -215,22 +215,6 @@ std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
-real PositivityPreservingLimiter<dim, nstate, real>::trapezoidal_integral(
-    const std::vector<real>&        u_values,
-    const std::vector<real>&        f_values)
-{
-    real integral = 0.0;
-    const std::size_t N = u_values.size();
-
-    for (std::size_t i = 0; i < N - 1; ++i) {
-        real du = u_values[i + 1] - u_values[i];
-        integral += 0.5 * (f_values[i] + f_values[i + 1]) * du;
-    }
-
-    return integral;
-}
-
-template <int dim, int nstate, typename real>
 // lower bounds are in [0][ ], upper bounds are in [1][ ]
 // density bounds - [][0], momentum bounds - [][1]:[][dim], energy bounds - [][dim+1]
 std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::boltzmann_limits(
