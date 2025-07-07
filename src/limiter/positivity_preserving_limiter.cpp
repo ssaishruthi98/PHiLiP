@@ -507,6 +507,9 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GL(1, max_degree, init_grid_degree);
     soln_basis_GL.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quad_GL);
 
+    using limiter_enum = Parameters::LimiterParam::LimiterType;
+    limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
+
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;
 
@@ -611,9 +614,13 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             // Compute average value of pressure using soln_cell_avg
             p_avg = euler_physics->compute_pressure(soln_cell_avg);
         }
-        
+
+        real theta = 1.0;
         // Obtain value used to linearly scale density
-        real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
+        if (limiter_type == limiter_enum::positivity_preservingDzanic2025 && nstate == dim + 2)
+            std::cout << "Implement function to obtain alpha_1 based on max/min values" << std::endl;
+        else
+            theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
 
         // Apply limiter on density values at quadrature points
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
@@ -638,8 +645,6 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
 
         real theta2 = 1.0;
-        using limiter_enum = Parameters::LimiterParam::LimiterType;
-        limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
         if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + 2) {
             std::array<real, dim> theta2_quad;
@@ -665,6 +670,24 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             }
         }
 
+        if (limiter_type == limiter_enum::positivity_preservingDzanic2025 && nstate == dim + 2) {
+            std::cout << "Implement function to obtain alpha_2" << std::endl;
+            // Limit values at quadrature points
+            // for (unsigned int istate = 0; istate < nstate; ++istate) {
+            //     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            //         real min_theta2_quad = 1e6;
+            //         for(unsigned int idim = 0; idim < dim; ++idim) {
+            //             if(theta2_quad[idim][iquad] < min_theta2_quad)
+            //                 min_theta2_quad = theta2_quad[idim][iquad];
+            //         }
+
+            //         theta2 = std::min({ min_theta2_quad, theta2_soln[iquad] });
+            //         soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
+            //                 + soln_cell_avg[istate];
+            //     }
+            // }
+
+        }
         if (limiter_type == limiter_enum::positivity_preservingZhang2010 && nstate == dim + 2) {
 
             std::array<std::vector< real >, dim> p_lim_quad;

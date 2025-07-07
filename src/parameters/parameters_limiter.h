@@ -17,7 +17,8 @@ public:
         none,
         maximum_principle,
         positivity_preservingZhang2010,
-        positivity_preservingWang2012
+        positivity_preservingWang2012,
+        positivity_preservingDzanic2025
     };
     /// Variable to store specified limiter type
     LimiterType bound_preserving_limiter;

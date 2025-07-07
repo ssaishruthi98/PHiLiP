@@ -19,13 +19,15 @@ void LimiterParam::declare_parameters (dealii::ParameterHandler &prm)
                            "none | "
                            "maximum_principle | "
                            "positivity_preservingZhang2010 | "
-                           "positivity_preservingWang2012 "),
+                           "positivity_preservingWang2012 | "
+                           "positivity_preservingDzanic2025 "),
                            "The type of limiter we want to apply to the solution. "
                            "Choices are "
                            " <none | "
                            " maximum_principle | "
                            " positivity_preservingZhang2010 | "
-                           " positivity_preservingWang2012>.");
+                           " positivity_preservingWang2012  | "
+                           " positivity_preservingDzanic2025>.");
 
         prm.declare_entry("min_density", "1e-13",
                           dealii::Patterns::Double(1e-20, 1e200),
@@ -58,6 +60,7 @@ void LimiterParam::parse_parameters (dealii::ParameterHandler &prm)
         if (bound_preserving_limiter_string == "maximum_principle")                  bound_preserving_limiter = LimiterType::maximum_principle;
         if (bound_preserving_limiter_string == "positivity_preservingZhang2010")     bound_preserving_limiter = LimiterType::positivity_preservingZhang2010;
         if (bound_preserving_limiter_string == "positivity_preservingWang2012")      bound_preserving_limiter = LimiterType::positivity_preservingWang2012;
+        if (bound_preserving_limiter_string == "positivity_preservingDzanic2025")    bound_preserving_limiter = LimiterType::positivity_preservingDzanic2025;
 
         min_density = prm.get_double("min_density");
 
