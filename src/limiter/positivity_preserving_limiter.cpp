@@ -146,6 +146,38 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
 }
 
 template <int dim, int nstate, typename real>
+std::vector<real> PositivityPreservingLimiter<dim, nstate, real>::get_integrating_domain(
+    const std::array<std::vector<real>, nstate>&    soln_at_q,
+    const unsigned int                              n_quad_pts,
+    const double                                    k)
+        // from Dzanic, Martinelli 2025 3.7: k=4 bounds relative error by approximately 6e-5 and k=8 bound relative error by approximately 1e-15
+{
+    std::vector<real> bounds(2, 0.0);                   // lower and upper bounds of the microscopic velocity distribution function domain for integration
+    std::array<real, nstate> soln_at_iquad;
+
+    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        for (unsigned int istate = 0; istate < nstate; ++istate) {
+            soln_at_iquad[istate] = soln_at_q[istate][iquad];
+        }
+        
+        // Did not account for non-Euler style situations as in the get_theta2_Wang2012 function
+        real U = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[1];   // hard-coded for 1D. For multidimensional, need to generalize
+
+        real pressure = euler_physics->compute_pressure(soln_at_iquad);
+        real density = soln_at_iquad[0];
+        real theta = pressure / density;
+        
+        real pot_lower_bound = U - k * sqrt(theta);
+        real pot_upper_bound = U + k * sqrt(theta);
+
+        bounds[0] = std::min(pot_lower_bound, bounds[0]);
+        bounds[1] = std::max(pot_upper_bound, bounds[1]);
+    }
+
+    return bounds;
+}
+
+template <int dim, int nstate, typename real>
 std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
     const std::array<std::vector<real>, nstate>&    soln_at_q_dim,      // _dim added just to differentiate from soln_at_q which is passed in as soln_at_q[0]
     const unsigned int                              n_quad_pts,
@@ -172,6 +204,7 @@ std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>
             
             real U = 0.0;
             real pressure = 0.0;
+            real density = soln_at_iquad[0];
 
             for (unsigned int istate = 0; istate < nstate; ++istate) {          // iterates through each state variable (ρ, m, E)
                 soln_at_iquad[istate] = soln_at_q_dim[istate][iquad];               // sets state vector do be manipulated in the loop
@@ -184,7 +217,7 @@ std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>
             
             real l2_squared = pow(u - U, 2.0);                      // put together constant summation term for part II, will need to update for multidimensional use
             
-            g[i][iquad] = pow(soln_at_iquad[0], dim / 2.0 + 1.0) / (pow(2 * pi * pressure, dim / 2.0)) * exp(-soln_at_iquad[0] / (2 * pressure) * l2_squared);
+            g[i][iquad] = pow(density, dim / 2.0 + 1.0) / (pow(2 * pi * pressure, dim / 2.0)) * exp(-density / (2 * pressure) * l2_squared);
 
             f_min[i] = std::min(f_min[i], g[i][iquad]);
             f_max[i] = std::max(f_max[i], g[i][iquad]);
@@ -703,9 +736,16 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         // Loop for isolating the final timestep, observing a particular cell
         if (current_time > final_time - (final_time*1e-3) && !is_it_a_stage){     //change cell_index == to a number anywhere from 0 to grid_elements-1
-            std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
-            std::cout << "x = " << current_cell_coord << ": ";
-            boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
+            std::vector<real> integrating_bounds = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0);
+            std::cout << "k=4...x = " << current_cell_coord << "; \t";
+            std::cout << "lower bound: " << integrating_bounds[0] << ", upper bound: " << integrating_bounds[1] << std::endl;
+            integrating_bounds = get_integrating_domain(soln_at_q[0], n_quad_pts, 8.0);
+            std::cout << "k=8...x = " << current_cell_coord << "; \t";
+            std::cout << "lower bound: " << integrating_bounds[0] << ", upper bound: " << integrating_bounds[1] << std::endl;
+
+            // std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
+            
+            // boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
         }
 
     }

@@ -83,8 +83,15 @@ protected:
         const unsigned int                              n_quad_pts,
         const double                                    p_avg);
 
+    /// Obtain the microscopic velocity domain using the min-max strategy over the stencil of the cell
+    /// Using 3.7 from Dzanic, Martinelli 2025
+    std::vector<real> get_integrating_domain(
+        const std::array<std::vector<real>, nstate>&    soln_at_q,
+        const unsigned int                              n_quad_pts,
+        const double                                    k);
+
     /// Obtain the Boltzmann distribution of microscopic velocities
-    /// Using 8 from Dzanic, Martinelli 2025
+    /// Using 2.2 from Dzanic, Martinelli 2025
     std::vector< std::vector<real>> get_boltzmann_distribution(
     const std::array<std::vector<real>, nstate>&    soln_at_q,
     const unsigned int                              n_quad_pts,
