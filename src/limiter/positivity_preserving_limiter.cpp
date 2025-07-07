@@ -188,25 +188,28 @@ std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>
 
             f_min[i] = std::min(f_min[i], g[i][iquad]);
             f_max[i] = std::max(f_max[i], g[i][iquad]);
-
-            // Outputting partI, partII, the g-function, density, pressure, and the l2 squared to console for plotting with Python
-            // std::cout << "quad: " << iquad + 1 << ", u = " << u << ", g = " << g << std::endl;
         }
+
         output_points[0][i] = u;
         output_points[1][i] = f_min[i];
         output_points[2][i] = f_max[i];
     }
 
-    for (int i = 0; i < num_u; ++i) {
-        double u = lower_distribution_limit + i * resolution;
-        std::cout << "u = " << u << ", f_min = " << f_min[i] << ", f_max = " << f_max[i] << std::endl;
-    }
-    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-        for (int i = 0; i < num_u; ++i){
-            double u = lower_distribution_limit + i * resolution;
-            std::cout << "QUAD " << iquad+1 << " : u = " << u << ", g = " << g[i][iquad] << std::endl;
-        }
-    }
+    // for (int i = 0; i < num_u; ++i) {
+    //     double u = lower_distribution_limit + i * resolution;
+    //     std::cout << "u = " << u << ", f_min = " << f_min[i] << ", f_max = " << f_max[i] << std::endl;
+    // }
+
+    // // ^ for outputting points for the min-max envelope ^
+
+    // for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+    //     for (int i = 0; i < num_u; ++i){
+    //         double u = lower_distribution_limit + i * resolution;
+    //         std::cout << "QUAD " << iquad+1 << " : u = " << u << ", g = " << g[i][iquad] << std::endl;
+    //     }
+    // }
+
+    // // ^ for outputting points for all the quad point distributions ^
 
     return output_points;
 }
@@ -232,42 +235,43 @@ template <int dim, int nstate, typename real>
 // density bounds - [][0], momentum bounds - [][1]:[][dim], energy bounds - [][dim+1]
 std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::boltzmann_limits(
     const std::vector<real>&            u_values,
-    const std::vector<real>&            f_max_values,
-    const std::vector<real>&            f_min_values)
+    const std::vector<real>&            f_min_values,
+    const std::vector<real>&            f_max_values)
 {
     std::vector<std::vector<real>> limits(2, std::vector<real>(dim + 1));       // match the limiter to the size of the state vector based on # of dimensions
-    
-    // const std::size_t N = u_values.size();
-    
-    // define density limiters
-    real rho_min = trapezoidal_integral(u_values, f_min_values);
-    real rho_max = trapezoidal_integral(u_values, f_max_values);
 
-    // // define energy limiters
-    // std::vector<real> u_dot_product(N, 0.0);
-    // for (int i = 0; i < N; ++i) {
-    //     u_dot_product[i] = u_values[i] * u_values[i];
-    // }
+    const std::size_t N = u_values.size();
 
+    // define density, momentum, and energy limiters
+    real rho_min = 0.0;
+    real rho_max = 0.0;
+    real momentum_min = 0.0;
+    real momentum_max = 0.0;
+    real E_min = 0.0;
+    real E_max = 0.0;
 
-    // ///////////////////// need to adjust the input "f-function" as its own integrand vector ///////////////////////////////
-
-    // real E_min = min(trapezoidal_integral(u_values, 0.5 * f_min_values * u_dot_product), std::numeric_limits<real>::max());
-    // real E_max = std::numeric_limits<real>::lowest();
-    
-    // std::vector<real> momentum_min(dim, std::numeric_limits<real>::max());
-    // std::vector<real> momentum_max(dim, std::numeric_limits<real>::lowest());
-    
-    // double du = u_values[1] - u_values[0];
-
-    
-    // for (auto& u : u_values) {
-
-    //     boltzmann_limits[0]
-    // }
+    for (std::size_t i = 0; i < N - 1; ++i) {
+        double du = u_values[i + 1] - u_values[i];          // made generic to the first stepsize assuming constant stepsize
+        real u_ave = 0.5 * (u_values[i + 1] + u_values[i]);
+        real f_min_ave = 0.5 * (f_min_values[i] + f_min_values[i + 1]);
+        real f_max_ave = 0.5 * (f_max_values[i] + f_max_values[i + 1]);
+        rho_min += f_min_ave * du;
+        rho_max += f_max_ave * du;
+        momentum_min += f_max_ave * u_ave * du;
+        momentum_max += f_min_ave * u_ave * du;
+        E_min += 0.5 * u_ave * u_ave * f_min_values[i] * du;
+        E_max += 0.5 * u_ave * u_ave * f_max_values[i] * du;
+    }
 
     limits[0][0] = rho_min;
     limits[1][0] = rho_max;
+    limits[0][1] = momentum_min;
+    limits[1][1] = momentum_max;
+    limits[0][2] = E_min;
+    limits[1][2] = E_max;
+
+    std::cout << "density-min: " << rho_min << ", density-max: " << rho_max << ", momentum-min: " << momentum_min << ", momentum-max: " 
+        << momentum_max << ", energy-min: " << E_min << ", energy-max: " << E_max << std::endl;
     
     return limits;
 }
@@ -720,17 +724,20 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         // Returns the coordinates of the center of the current cell
         dealii::Point<dim> current_cell_coord = soln_cell->center();
-        // Outputs the x coordinate of the current cell center for the expected final shock location of the Shu Osher Problem   
-        if(current_cell_coord[0] >= 2.35 && current_cell_coord[0] < 2.45)
-            std::cout << current_cell_coord[0] << std::endl;
 
-            // ^ use this line to find how the grid points are being assigned on the x-axis ^
+        // // Outputs the x coordinate of the current cell center for the expected final shock location of the Shu Osher Problem   
+        // if(current_cell_coord[0] >= 2.35 && current_cell_coord[0] < 2.45)
+        //     std::cout << current_cell_coord[0] << std::endl;
+
+        //     // ^ use this line to find how the grid points are being assigned on the x-axis ^
 
         double final_time = this->flow_solver_param.final_time;
 
         // Loop for isolating the final timestep, observing a particular cell
         if (current_time > final_time - (final_time*1e-3) && !is_it_a_stage){     //change cell_index == to a number anywhere from 0 to grid_elements-1
-            get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
+            std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
+            std::cout << "x = " << current_cell_coord << ": ";
+            boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
         }
 
     }
