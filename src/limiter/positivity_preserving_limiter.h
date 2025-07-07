@@ -83,11 +83,6 @@ protected:
         const unsigned int                              n_quad_pts,
         const double                                    p_avg);
 
-
-    real trapezoidal_integral(
-    const std::vector<real>&        u_values,
-    const std::vector<real>&        f_values);
-
     /// Obtain the Boltzmann distribution of microscopic velocities
     /// Using 8 from Dzanic, Martinelli 2025
     std::vector< std::vector<real>> get_boltzmann_distribution(

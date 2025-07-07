@@ -195,22 +195,6 @@ std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>
         output_points[2][i] = f_max[i];
     }
 
-    // for (int i = 0; i < num_u; ++i) {
-    //     double u = lower_distribution_limit + i * resolution;
-    //     std::cout << "u = " << u << ", f_min = " << f_min[i] << ", f_max = " << f_max[i] << std::endl;
-    // }
-
-    // // ^ for outputting points for the min-max envelope ^
-
-    // for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-    //     for (int i = 0; i < num_u; ++i){
-    //         double u = lower_distribution_limit + i * resolution;
-    //         std::cout << "QUAD " << iquad+1 << " : u = " << u << ", g = " << g[i][iquad] << std::endl;
-    //     }
-    // }
-
-    // // ^ for outputting points for all the quad point distributions ^
-
     return output_points;
 }
 
