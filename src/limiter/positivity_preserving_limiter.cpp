@@ -256,6 +256,7 @@ std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::
         real u_ave = 0.5 * (u_values[i + 1] + u_values[i]);
         real f_min_ave = 0.5 * (f_min_values[i] + f_min_values[i + 1]);
         real f_max_ave = 0.5 * (f_max_values[i] + f_max_values[i + 1]);
+
         rho_min += f_min_ave * du;
         rho_max += f_max_ave * du;
         momentum_min += f_max_ave * u_ave * du;
@@ -266,13 +267,31 @@ std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::
 
     limits[0][0] = rho_min;
     limits[1][0] = rho_max;
-    limits[0][1] = momentum_min;
-    limits[1][1] = momentum_max;
+    limits[1][1] = momentum_min; //switched indices of max and min for p_min and p_max calcs
+    limits[0][1] = momentum_max;
     limits[0][2] = E_min;
     limits[1][2] = E_max;
 
+
+    std::array<real,nstate> p_min_state_values;
+    std::array<real,nstate> p_max_state_values;
+    for(int istate = 0; istate < nstate; ++istate) {
+        p_min_state_values[istate] = limits[0][istate];
+        p_max_state_values[istate] = limits[1][istate];
+    }
+    real p_min = euler_physics->compute_pressure(p_min_state_values);
+    real p_max = euler_physics->compute_pressure(p_max_state_values);
+
+    for (auto& side : limits) {
+        side.resize(dim + 2);
+    }
+    // limits.resize(2, std::vector<real>(dim + 2));
+    // limits[0][3] = p_min;
+    // limits[1][3] = p_max;
+
     std::cout << "density-min: " << rho_min << ", density-max: " << rho_max << ", momentum-min: " << momentum_min << ", momentum-max: " 
-        << momentum_max << ", energy-min: " << E_min << ", energy-max: " << E_max << std::endl;
+        << momentum_max << ", energy-min: " << E_min << ", energy-max: " << E_max << ", pressure-min: " << p_min << ", pressure-max: " 
+        << p_max << std::endl;
     
     return limits;
 }
@@ -759,16 +778,16 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         // Loop for isolating the final timestep, observing a particular cell
         if (current_time > final_time - (final_time*1e-3) && !is_it_a_stage){     //change cell_index == to a number anywhere from 0 to grid_elements-1
-            std::vector<real> integrating_bounds = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0);
-            std::cout << "k=4...x = " << current_cell_coord << "; \t";
-            std::cout << "lower bound: " << integrating_bounds[0] << ", upper bound: " << integrating_bounds[1] << std::endl;
-            integrating_bounds = get_integrating_domain(soln_at_q[0], n_quad_pts, 8.0);
-            std::cout << "k=8...x = " << current_cell_coord << "; \t";
-            std::cout << "lower bound: " << integrating_bounds[0] << ", upper bound: " << integrating_bounds[1] << std::endl;
+            // std::vector<real> integrating_bounds = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0);
+            // std::cout << "k=4...x = " << current_cell_coord << "; \t";
+            // std::cout << "lower bound: " << integrating_bounds[0] << ", upper bound: " << integrating_bounds[1] << std::endl;
+            // integrating_bounds = get_integrating_domain(soln_at_q[0], n_quad_pts, 8.0);
+            // std::cout << "k=8...x = " << current_cell_coord << "; \t";
+            // std::cout << "lower bound: " << integrating_bounds[0] << ", upper bound: " << integrating_bounds[1] << std::endl;
 
-            // std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
-            
-            // boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
+            std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
+            std::cout << "x = " << current_cell_coord << ": ";
+            boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
         }
 
     }
