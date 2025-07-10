@@ -105,6 +105,16 @@ protected:
     const std::vector<real>&            f_max_values,
     const std::vector<real>&            f_min_values);
 
+
+    /// Using boltzman-distribution-derived limiting state vectors and cell-average values to obtain density scaling value which enforces limits
+    /// Using 3.4 from Dzanicm, Martinelli 2025
+    real get_alpha(
+    const std::array<std::vector<real>, nstate>&    soln_at_q_dim,
+    const unsigned int                              n_quad_pts,
+    const std::array<real, nstate>&                 soln_cell_avg,
+    const std::array<real, nstate>&                 soln_cell_min,
+    const std::array<real, nstate>&                 soln_cell_max);
+
     /// Obtain the value used to scale density and enforce positivity of density
     /// Using 3.15 from Zhang, Shu Nov 2010
     real get_density_scaling_value(

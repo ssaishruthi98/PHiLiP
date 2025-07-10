@@ -298,6 +298,54 @@ std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::
 
 
 template <int dim, int nstate, typename real>
+real PositivityPreservingLimiter<dim, nstate, real>::get_alpha(
+    const std::array<std::vector<real>, nstate>&    soln_at_q_dim,
+    const unsigned int                              n_quad_pts,
+    const std::array<real, nstate>&                 soln_cell_avg,
+    const std::array<real, nstate>&                 soln_cell_min,
+    const std::array<real, nstate>&                 soln_cell_max)
+{
+    real alpha = 1.0;
+
+    // finds max and min deviations of a quadrature point's state vector from the cell-averaged state vector
+    std::vector<real> min_values(nstate, 1e9);
+        // arbitrary high value for starting minimization function
+    std::vector<real> max_values(nstate,-1e9);
+        // arbitrary low value for starting minimization function (because momentum could be negative)
+
+    // real max_density = 0.0;
+    // real min_density = 1e9;                         // arbitrary high value for starting minimization function
+    // std::vector<real> max_momentum(dim, -1e9);      // arbitrary low value for starting minimization function (because momentum could be negative)
+    // std::vector<real> min_momentum(dim, 1e9);       // arbitrary high value for starting minimization function
+    // real max_energy = 0.0;
+    // real min_energy = 1e9;                          // arbitrary high value for starting minimization function
+
+
+    for (int istate = 0; istate < nstate; ++istate) {
+        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad){
+            std::cout << "soln_at_q_dim[istate][iquad] = " << soln_at_q_dim[istate][iquad] << ", soln_cell_avg[istate] = " << soln_cell_avg[istate] <<
+            ", min_values[istate] = " << min_values[istate] << std::endl;
+            min_values[istate] = std::min(soln_at_q_dim[istate][iquad] - soln_cell_avg[istate], min_values[istate]);
+            max_values[istate] = std::max(soln_at_q_dim[istate][iquad] - soln_cell_avg[istate], max_values[istate]);
+        }
+    }
+
+    for (int istate = 0; istate < nstate; ++istate) {
+        alpha = std::min(std::abs((soln_cell_max[istate] - soln_cell_avg[istate]) / max_values[istate]), alpha);
+        alpha = std::min(std::abs((soln_cell_min[istate] - soln_cell_avg[istate]) / min_values[istate]), alpha);
+    }
+
+
+        //// ****min_values and max_values are vector of vectors and hence need to indices
+    std::cout << "Minimum values: rho=" << min_values[0] << ", m=" << min_values[1] << ", E=" << min_values[2] << 
+        "\n Maximum values: rho=" << max_values[0] << ", m=" << max_values[1] << ", E=" << max_values[2] << std::endl;
+
+
+    return alpha;
+}
+
+
+template <int dim, int nstate, typename real>
 real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
     const double    density_avg,
     const double    density_min,
@@ -635,7 +683,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         }
 
         real theta = 1.0;
-        // Obtain value used to linearly scale density
+        // Obtain value used to linearly scale density - *** can comment out the first 3 lines so that theta runs every time because it's bascially 
+        //                                               *** the same scaling as Wang and Zhang
         if (limiter_type == limiter_enum::positivity_preservingDzanic2025 && nstate == dim + 2)
             std::cout << "Implement function to obtain alpha_1 based on max/min values" << std::endl;
         else
@@ -766,7 +815,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
 
         // Returns the coordinates of the center of the current cell
-        dealii::Point<dim> current_cell_coord = soln_cell->center();
+        // dealii::Point<dim> current_cell_coord = soln_cell->center();
 
         // // Outputs the x coordinate of the current cell center for the expected final shock location of the Shu Osher Problem   
         // if(current_cell_coord[0] >= 2.35 && current_cell_coord[0] < 2.45)
@@ -778,16 +827,45 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         // Loop for isolating the final timestep, observing a particular cell
         if (current_time > final_time - (final_time*1e-3) && !is_it_a_stage){     //change cell_index == to a number anywhere from 0 to grid_elements-1
-            // std::vector<real> integrating_bounds = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0);
-            // std::cout << "k=4...x = " << current_cell_coord << "; \t";
-            // std::cout << "lower bound: " << integrating_bounds[0] << ", upper bound: " << integrating_bounds[1] << std::endl;
-            // integrating_bounds = get_integrating_domain(soln_at_q[0], n_quad_pts, 8.0);
-            // std::cout << "k=8...x = " << current_cell_coord << "; \t";
-            // std::cout << "lower bound: " << integrating_bounds[0] << ", upper bound: " << integrating_bounds[1] << std::endl;
+            
+            // getting integrating domain limits for the cell for the distribution function based on k standard deviations around macroscopic velocity, U
+            std::array<real, 2> integrating_limits;
+            for (int i = 0; i < 2; ++i)
+                integrating_limits[i] = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0)[i];
+                                                                                     //   ^   this is the k-value; k=4 here
+            // use the integrating domain limits to develop the min-max f-function against microscopic velocity (u) points
+            std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, integrating_limits[0], integrating_limits[1]);
+                                                                                                                  //  ^  this is the resolution of the boltmann distribution plot
+            // std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
+            // std::cout << "x = " << current_cell_coord << ": ";
+            // boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
+                // ^ old hard-coded implementation ^
 
-            std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
-            std::cout << "x = " << current_cell_coord << ": ";
-            boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
+
+            // use the f-function points to obtain macroscopic state vector limits - outputs state vector and pressure ie., dim + 3 values for min and then max
+            std::array<real, dim + 2> soln_cell_min;
+            std::array<real, dim + 2> soln_cell_max;
+
+            for (int i = 0; i < dim + 2; ++i) {
+                soln_cell_min[i] = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[0][i];
+                soln_cell_max[i] = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[1][i];
+            }
+            
+            // using parameters shown, including soln_cell_min and _max, obtain alpha scaling factor for first scaling
+            get_alpha(soln_at_q_dim, n_quad_pts, soln_cell_avg, soln_cell_min, soln_cell_max);
+
+
+
+
+
+
+
+
+
+            // notes for commit label  
+                // commented out current_cell_coord - but maybe not because will probably still use it to plot some stuff
+
+
         }
 
     }
