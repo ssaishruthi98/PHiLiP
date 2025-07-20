@@ -1,3 +1,4 @@
+#include "boltzmann_limiter.h"
 #include "positivity_preserving_limiter.h"
 #include "tvb_limiter.h"
 #include <eigen/unsupported/Eigen/Polynomials>
@@ -6,12 +7,12 @@
 namespace PHiLiP {
 /**********************************
 *
-* Positivity Preserving Limiter Class
+* Boltzmann Limiter Class
 *
 **********************************/
 // Constructor
 template <int dim, int nstate, typename real>
-PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
+BoltzmannLimiter<dim, nstate, real>::BoltzmannLimiter(
     const Parameters::AllParameters* const parameters_input)
     : BoundPreservingLimiterState<dim,nstate,real>::BoundPreservingLimiterState(parameters_input)
     , flow_solver_param(parameters_input->flow_solver_param)
@@ -62,87 +63,6 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
         std::cout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
         std::abort();
     }
-}
-
-template <int dim, int nstate, typename real>
-std::vector<real> PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Zhang2010(
-    const std::vector< real >&                      p_lim,
-    const std::array<real, nstate>&                 soln_cell_avg,
-    const std::array<std::vector<real>, nstate>&    soln_at_q,
-    const unsigned int                              n_quad_pts,
-    const double                                    eps,
-    const double                                    gamma)
-{
-    std::vector<real> theta2(n_quad_pts, 1); // Value used to linearly scale state variables
-    Eigen::PolynomialSolver<double, 2> solver; // Solver to find smallest root
-
-    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-        if (p_lim[iquad] >= eps) {
-            theta2[iquad] = 1;
-        }
-        else {
-            real s_coeff1 = (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) * (soln_at_q[0][iquad] - soln_cell_avg[0]) - 0.5 * pow(soln_at_q[1][iquad] - soln_cell_avg[1], 2);
-
-            real s_coeff2 = soln_cell_avg[0] * (soln_at_q[nstate - 1][iquad] - soln_cell_avg[nstate - 1]) + soln_cell_avg[nstate - 1] * (soln_at_q[0][iquad] - soln_cell_avg[0])
-                - soln_cell_avg[1] * (soln_at_q[1][iquad] - soln_cell_avg[1]) - (eps / gamma) * (soln_at_q[0][iquad] - soln_cell_avg[0]);
-
-            real s_coeff3 = (soln_cell_avg[nstate - 1] * soln_cell_avg[0]) - 0.5 * pow(soln_cell_avg[1], 2) - (eps / gamma) * soln_cell_avg[0];
-
-            if (dim > 1) {
-                s_coeff1 -= 0.5 * pow(soln_at_q[2][iquad] - soln_cell_avg[2], 2);
-                s_coeff2 -= soln_cell_avg[2] * (soln_at_q[2][iquad] - soln_cell_avg[2]);
-                s_coeff3 -= 0.5 * pow(soln_cell_avg[2], 2);
-            }
-
-            if (dim > 2) {
-                s_coeff1 -= 0.5 * pow(soln_at_q[3][iquad] - soln_cell_avg[3], 2);
-                s_coeff2 -= soln_cell_avg[3] * (soln_at_q[3][iquad] - soln_cell_avg[3]);
-                s_coeff3 -= 0.5 * pow(soln_cell_avg[3], 2);
-            }
-
-            Eigen::Vector3d coeff(s_coeff3, s_coeff2, s_coeff1);
-            solver.compute(coeff);
-            const Eigen::PolynomialSolver<double, 2>::RootType &r = solver.smallestRoot();
-            theta2[iquad] = r.real();
-        }
-    }
-
-    return theta2;
-}
-
-template <int dim, int nstate, typename real>
-real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
-    const std::array<std::vector<real>, nstate>&    soln_at_q,
-    const unsigned int                              n_quad_pts,
-    const double                                    p_avg)
-{
-    std::vector<real> t2(n_quad_pts, 1);
-    real theta2 = 1.0; // Value used to linearly scale state variables 
-    std::array<real, nstate> soln_at_iquad;
-
-    // Obtain theta2 value
-    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-        for (unsigned int istate = 0; istate < nstate; ++istate) {
-            soln_at_iquad[istate] = soln_at_q[istate][iquad];
-        }
-        real p_lim = 0;
-
-        if (nstate == dim + 2)
-            p_lim = euler_physics->compute_pressure(soln_at_iquad);
-
-        if (p_lim >= 0)
-            t2[iquad] = 1;
-        else
-            t2[iquad] = p_avg / (p_avg - p_lim);
-
-        if (t2[iquad] != 1) {
-            if (t2[iquad] >= 0 && t2[iquad] <= 1 && t2[iquad] < theta2) {
-                theta2 = t2[iquad];
-            }
-        }
-    }
-
-    return theta2;
 }
 
 template <int dim, int nstate, typename real>
@@ -239,8 +159,6 @@ std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::
     const std::vector<real>&            f_min_values,
     const std::vector<real>&            f_max_values)
 {
-    std::vector<std::vector<real>> limits(2, std::vector<real>(dim + 1));       // match the limiter to the size of the state vector based on # of dimensions
-
     const std::size_t N = u_values.size();
 
     // define density, momentum, and energy limiters
@@ -265,19 +183,23 @@ std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::
         E_max += 0.5 * u_ave * u_ave * f_max_values[i] * du;
     }
 
-    limits[0][0] = rho_min;
-    limits[1][0] = rho_max;
-    limits[1][1] = momentum_min; //switched indices of max and min for p_min and p_max calcs
-    limits[0][1] = momentum_max;
-    limits[0][2] = E_min;
-    limits[1][2] = E_max;
+    this->limits[0][0] = rho_min;
+    this->limits[1][0] = rho_max;
+
+    // replace this part with a for loop when implementing for multiple dims!!
+    this->limits[1][1] = momentum_min; //switched indices of max and min for p_min and p_max calcs
+    this->limits[0][1] = momentum_max;
+
+
+    this->limits[0][nstate-1] = E_min;
+    this->limits[1][nstate-1] = E_max;
 
 
     std::array<real,nstate> p_min_state_values;
     std::array<real,nstate> p_max_state_values;
     for(int istate = 0; istate < nstate; ++istate) {
-        p_min_state_values[istate] = limits[0][istate];
-        p_max_state_values[istate] = limits[1][istate];
+        p_min_state_values[istate] = this->limits[0][istate];
+        p_max_state_values[istate] = this->limits[1][istate];
     }
     real p_min = euler_physics->compute_pressure(p_min_state_values);
     real p_max = euler_physics->compute_pressure(p_max_state_values);
@@ -557,7 +479,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     bool                                                    is_it_a_stage)
 {
 
-    // If use_tvb_limiter is true, apply TVB limiter before applying positivity-preserving limiter
+    // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
         this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time, is_it_a_stage);
 

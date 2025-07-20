@@ -54,7 +54,13 @@ public:
         double                                                  dt,
         double                                                  current_time,
         bool                                                    is_it_a_stage) override;
-protected:
+
+    /// Obtain the theta value used to scale all states and enforce positivity of pressure
+    /// Using 3.7 in Wang, Shu 2012
+    real get_theta2_Wang2012(
+        const std::array<std::vector<real>, nstate>&    soln_at_q,
+        const unsigned int                              n_quad_pts,
+        const double                                    p_avg);
 
     /// Obtain the solution cell average using tensored quadrature rules for dim >= 2
     /// Using 3.11 from Zhang, Shu Nov 2010
@@ -66,6 +72,8 @@ protected:
         const std::vector<real>&                                             quad_weights_GL,
         double&                                                              dt);
 
+protected:
+
     /// Obtain the theta value used to scale all states and enforce positivity of pressure 
     /// Using 3.16-3.18 in Zhang, Shu Nov 2010
     std::vector<real> get_theta2_Zhang2010(
@@ -75,13 +83,6 @@ protected:
         const unsigned int                              n_quad_pts,
         const double                                    eps,
         const double                                    gamma);
-
-    /// Obtain the theta value used to scale all states and enforce positivity of pressure
-    /// Using 3.7 in Wang, Shu 2012
-    real get_theta2_Wang2012(
-        const std::array<std::vector<real>, nstate>&    soln_at_q,
-        const unsigned int                              n_quad_pts,
-        const double                                    p_avg);
 
     /// Obtain the microscopic velocity domain using the min-max strategy over the stencil of the cell
     /// Using 3.7 from Dzanic, Martinelli 2025
