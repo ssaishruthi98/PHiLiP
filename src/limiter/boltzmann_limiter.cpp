@@ -19,6 +19,7 @@ BoltzmannLimiter<dim, nstate, real>::BoltzmannLimiter(
     , dx((flow_solver_param.grid_xmax-flow_solver_param.grid_xmin)/flow_solver_param.number_of_grid_elements_x)
     , dy((flow_solver_param.grid_ymax-flow_solver_param.grid_ymin)/flow_solver_param.number_of_grid_elements_y)
     , dz((flow_solver_param.grid_zmax-flow_solver_param.grid_zmin)/flow_solver_param.number_of_grid_elements_z)
+    , first_run(true)
 {
     // Create pointer to Euler Physics to compute pressure if pde_type==euler
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -66,7 +67,7 @@ BoltzmannLimiter<dim, nstate, real>::BoltzmannLimiter(
 }
 
 template <int dim, int nstate, typename real>
-std::vector<real> PositivityPreservingLimiter<dim, nstate, real>::get_integrating_domain(
+std::vector<real> BoltzmannLimiter<dim, nstate, real>::get_integrating_domain(
     const std::array<std::vector<real>, nstate>&    soln_at_q,
     const unsigned int                              n_quad_pts,
     const double                                    k)
@@ -98,7 +99,7 @@ std::vector<real> PositivityPreservingLimiter<dim, nstate, real>::get_integratin
 }
 
 template <int dim, int nstate, typename real>
-std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>::get_boltzmann_distribution(
+std::vector< std::vector<real> >  BoltzmannLimiter<dim, nstate, real>::get_boltzmann_distribution(
     const std::array<std::vector<real>, nstate>&    soln_at_q_dim,      // _dim added just to differentiate from soln_at_q which is passed in as soln_at_q[0]
     const unsigned int                              n_quad_pts,
     const double                                    resolution,
@@ -154,11 +155,13 @@ std::vector< std::vector<real> >  PositivityPreservingLimiter<dim, nstate, real>
 template <int dim, int nstate, typename real>
 // lower bounds are in [0][ ], upper bounds are in [1][ ]
 // density bounds - [][0], momentum bounds - [][1]:[][dim], energy bounds - [][dim+1]
-std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::boltzmann_limits(
+std::vector< std::vector<real>> BoltzmannLimiter<dim, nstate, real>::boltzmann_limits(
     const std::vector<real>&            u_values,
     const std::vector<real>&            f_min_values,
     const std::vector<real>&            f_max_values)
 {
+    std::vector<std::vector<real>> limits(2, std::vector<real>(dim + 1));       // match the limiter to the size of the state vector based on # of dimensions
+
     const std::size_t N = u_values.size();
 
     // define density, momentum, and energy limiters
@@ -183,33 +186,26 @@ std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::
         E_max += 0.5 * u_ave * u_ave * f_max_values[i] * du;
     }
 
-    this->limits[0][0] = rho_min;
-    this->limits[1][0] = rho_max;
+    limits[0][0] = rho_min;
+    limits[1][0] = rho_max;
 
     // replace this part with a for loop when implementing for multiple dims!!
-    this->limits[1][1] = momentum_min; //switched indices of max and min for p_min and p_max calcs
-    this->limits[0][1] = momentum_max;
+    limits[1][1] = momentum_min; //switched indices of max and min for p_min and p_max calcs
+    limits[0][1] = momentum_max;
 
 
-    this->limits[0][nstate-1] = E_min;
-    this->limits[1][nstate-1] = E_max;
+    limits[0][nstate-1] = E_min;
+    limits[1][nstate-1] = E_max;
 
 
     std::array<real,nstate> p_min_state_values;
     std::array<real,nstate> p_max_state_values;
     for(int istate = 0; istate < nstate; ++istate) {
-        p_min_state_values[istate] = this->limits[0][istate];
-        p_max_state_values[istate] = this->limits[1][istate];
+        p_min_state_values[istate] = limits[0][istate];
+        p_max_state_values[istate] = limits[1][istate];
     }
     real p_min = euler_physics->compute_pressure(p_min_state_values);
     real p_max = euler_physics->compute_pressure(p_max_state_values);
-
-    for (auto& side : limits) {
-        side.resize(dim + 2);
-    }
-    // limits.resize(2, std::vector<real>(dim + 2));
-    // limits[0][3] = p_min;
-    // limits[1][3] = p_max;
 
     std::cout << "density-min: " << rho_min << ", density-max: " << rho_max << ", momentum-min: " << momentum_min << ", momentum-max: " 
         << momentum_max << ", energy-min: " << E_min << ", energy-max: " << E_max << ", pressure-min: " << p_min << ", pressure-max: " 
@@ -220,7 +216,7 @@ std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::
 
 
 template <int dim, int nstate, typename real>
-real PositivityPreservingLimiter<dim, nstate, real>::get_alpha(
+real BoltzmannLimiter<dim, nstate, real>::get_alpha(
     const std::array<std::vector<real>, nstate>&    soln_at_q_dim,
     const unsigned int                              n_quad_pts,
     const std::array<real, nstate>&                 soln_cell_avg,
@@ -266,30 +262,8 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_alpha(
     return alpha;
 }
 
-
 template <int dim, int nstate, typename real>
-real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
-    const double    density_avg,
-    const double    density_min,
-    const double    lower_bound,
-    const double    p_avg)
-{
-    // Get epsilon (lower bound for rho) for theta limiter
-    real eps = std::min({ lower_bound, density_avg, p_avg });
-    if (eps < 0) eps = lower_bound;
-
-    real theta = 1.0; // Value used to linearly scale density 
-    if (density_avg - density_min > 1e-13)
-        theta = (density_avg - density_min == 0) ? 1.0 : std::min((density_avg - eps) / (density_avg - density_min), 1.0);
-
-    if (theta < 0 || theta > 1)
-        theta = 0;
-
-    return theta;
-}
-
-template <int dim, int nstate, typename real>
-void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
+void BoltzmannLimiter<dim, nstate, real>::write_limited_solution(
     dealii::LinearAlgebra::distributed::Vector<double>& solution,
     const std::array<std::vector<real>, nstate>& soln_coeff,
     const unsigned int                                      n_shape_fns,
@@ -324,148 +298,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
 }
 
 template <int dim, int nstate, typename real>
-std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_soln_cell_avg_PPL(
-    const std::array<std::array<std::vector<real>, nstate>, dim>&        soln_at_q,
-    const unsigned int                                                   n_quad_pts,
-    const std::vector<real>&                                             quad_weights_GLL,
-    const std::vector<real>&                                             quad_weights_GL,
-    double&                                                              dt)
-{
-    std::array<real, nstate> soln_cell_avg;
-
-    // Obtain solution cell average
-    if (dim == 1) {
-        soln_cell_avg = get_soln_cell_avg(soln_at_q[0], n_quad_pts, quad_weights_GLL);
-    } else if (dim > 1) {
-        std::array<std::array<real, nstate>,dim> soln_cell_avg_dim;
-
-        for(unsigned int idim = 0; idim < dim; ++idim) {
-            for(unsigned int istate = 0; istate < nstate; ++istate) {
-                soln_cell_avg_dim[idim][istate] = 0;
-            }
-        }
-
-        if constexpr (dim == 2) {
-            // Calculating average in x-dir - GLL used for x direction to include surface nodes, GL for rest
-            for(unsigned int istate = 0; istate < nstate; ++istate) {
-                unsigned int quad_pt = 0;
-                for(unsigned int iquad=0; iquad<quad_weights_GLL.size(); ++iquad) {
-                    for(unsigned int jquad=0; jquad<quad_weights_GL.size(); ++jquad) {
-                        soln_cell_avg_dim[0][istate] += quad_weights_GLL[iquad]*quad_weights_GL[jquad]*soln_at_q[0][istate][quad_pt];
-                            quad_pt++;
-                    }
-                }
-            }
-
-            // Calculating average in y-dir - GLL used for y direction to include surface nodes, GL for rest
-            for(unsigned int istate = 0; istate < nstate; ++istate) {
-                unsigned int quad_pt = 0;
-                for(unsigned int iquad=0; iquad<quad_weights_GL.size(); ++iquad) {
-                    for(unsigned int jquad=0; jquad<quad_weights_GLL.size(); ++jquad) {
-                        soln_cell_avg_dim[1][istate] += quad_weights_GL[iquad]*quad_weights_GLL[jquad]*soln_at_q[1][istate][quad_pt];
-                            quad_pt++;
-                    }
-                }
-            }
-        }
-
-        if constexpr (dim == 3) {
-            // Calculating average in x-dir - GLL used for x direction to include surface nodes, GL for rest
-            for(unsigned int istate = 0; istate < nstate; ++istate) {
-                unsigned int quad_pt = 0;
-                for(unsigned int iquad=0; iquad<quad_weights_GLL.size(); ++iquad) {
-                    for(unsigned int jquad=0; jquad<quad_weights_GL.size(); ++jquad) {
-                        for(unsigned int kquad=0; kquad<quad_weights_GL.size(); ++kquad)
-                            soln_cell_avg_dim[0][istate] += quad_weights_GLL[iquad]*quad_weights_GL[jquad]*quad_weights_GL[kquad]*soln_at_q[0][istate][quad_pt];
-                                quad_pt++;
-                    }
-                }
-            }
-
-            // Calculating average in y-dir - GLL used for y direction to include surface nodes, GL for rest
-            for(unsigned int istate = 0; istate < nstate; ++istate) {
-                unsigned int quad_pt = 0;
-                for(unsigned int iquad=0; iquad<quad_weights_GL.size(); ++iquad) {
-                    for(unsigned int jquad=0; jquad<quad_weights_GLL.size(); ++jquad) {
-                        for(unsigned int kquad=0; kquad<quad_weights_GL.size(); ++kquad)
-                            soln_cell_avg_dim[1][istate] += quad_weights_GL[iquad]*quad_weights_GLL[jquad]*quad_weights_GL[kquad]*soln_at_q[1][istate][quad_pt];
-                                quad_pt++;
-                    }
-                }
-            }
-
-            // Calculating average in z-dir - GLL used for z direction to include surface nodes, GL for rest
-            for(unsigned int istate = 0; istate < nstate; ++istate) {
-                unsigned int quad_pt = 0;
-                for(unsigned int iquad=0; iquad<quad_weights_GL.size(); ++iquad) {
-                    for(unsigned int jquad=0; jquad<quad_weights_GL.size(); ++jquad) {
-                        for(unsigned int kquad=0; kquad<quad_weights_GLL.size(); ++kquad)
-                            soln_cell_avg_dim[2][istate] += quad_weights_GL[iquad]*quad_weights_GL[jquad]*quad_weights_GLL[kquad]*soln_at_q[2][istate][quad_pt];
-                                quad_pt++;
-                    }
-                }
-            }
-        }
-
-        for (unsigned int istate = 0; istate < nstate; ++istate) {
-            soln_cell_avg[istate] = 0;
-        }
-
-        // Values required to weight the averages of each set of mixed nodes (refer to Eqn3.8 in Zhang,Shu paper)
-        const real lambda_1 = dt/this->dx; const real lambda_2 = dt/this->dy; real lambda_3 = 0.0;
-        if constexpr(dim == 3)
-            lambda_3 = dt/this->dz;
-
-        real max_local_wave_speed_1 = 0.0;
-        real max_local_wave_speed_2 = 0.0;
-        real max_local_wave_speed_3 = 0.0;
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            std::array<real,nstate> local_soln_at_q_1;
-            std::array<real,nstate> local_soln_at_q_2;
-            std::array<real,nstate> local_soln_at_q_3;
-            for(unsigned int istate = 0; istate < nstate; ++istate){
-                local_soln_at_q_1[istate] = soln_at_q[0][istate][iquad];
-                local_soln_at_q_2[istate] = soln_at_q[1][istate][iquad];
-                if(dim == 3)
-                    local_soln_at_q_3[istate] = soln_at_q[2][istate][iquad];
-                else
-                    local_soln_at_q_3[istate] = 0.0;
-            }
-            // Update the maximum local wave speed (i.e. convective eigenvalue)
-            const real local_wave_speed_1 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_1);
-            const real local_wave_speed_2 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_2);
-
-            real local_wave_speed_3 = 0.0;
-            if(dim == 3)
-                local_wave_speed_3 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_3);
-
-            if(local_wave_speed_1 > max_local_wave_speed_1) max_local_wave_speed_1 = local_wave_speed_1;
-            if(local_wave_speed_2 > max_local_wave_speed_2) max_local_wave_speed_2 = local_wave_speed_2;
-            if(dim == 3 && local_wave_speed_3 > max_local_wave_speed_3) max_local_wave_speed_3 = local_wave_speed_3;
-
-        }
-
-        real mu = max_local_wave_speed_1*lambda_1 + max_local_wave_speed_2*lambda_2 + max_local_wave_speed_3*lambda_3;
-        real avg_weight_1 = (max_local_wave_speed_1*lambda_1)/mu;
-        real avg_weight_2 = (max_local_wave_speed_2*lambda_2)/mu;
-        real avg_weight_3 = (max_local_wave_speed_3*lambda_3)/mu;
-
-        for (unsigned int istate = 0; istate < nstate; istate++) {
-            soln_cell_avg[istate] = avg_weight_1*soln_cell_avg_dim[0][istate] + avg_weight_2*soln_cell_avg_dim[1][istate];
-            if(dim == 3)
-                soln_cell_avg[istate] += avg_weight_3*soln_cell_avg_dim[2][istate];
-
-            if (isnan(soln_cell_avg[istate])) {
-                std::cout << "Error: Solution Cell Avg is NaN - Aborting... " << std::endl << std::flush;
-                std::abort();
-            }
-        }
-    }
-    return soln_cell_avg;
-}
-
-template <int dim, int nstate, typename real>
-void PositivityPreservingLimiter<dim, nstate, real>::limit(
+void BoltzmannLimiter<dim, nstate, real>::limit(
     dealii::LinearAlgebra::distributed::Vector<double>&     solution,
     const dealii::DoFHandler<dim>&                          dof_handler,
     const dealii::hp::FECollection<dim>&                    fe_collection,
@@ -499,12 +332,15 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     using limiter_enum = Parameters::LimiterParam::LimiterType;
     limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
+    if (first_run) {
+        for (unsigned int istate = 0; istate < nstate+1; ++istate) {
+            max_values.push_back(-1e9);
+            min_values.push_back(1e9);
+        }
+    }
+
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;
-
-        // const dealii::types::global_dof_index cell_index = soln_cell->active_cell_index();  
-
-        // ^ can use for isolating a cell, but hard to correctly assign to capture the shock ^
 
         std::vector<dealii::types::global_dof_index> current_dofs_indices;
         // Current reference element related to this physical cell
@@ -522,7 +358,6 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         std::array<std::vector<real>, nstate> soln_coeff;
 
         const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
-        real local_min_density = 1e6;
 
         for (unsigned int istate = 0; istate < nstate; ++istate) {
             soln_coeff[istate].resize(n_shape_fns);
@@ -551,7 +386,6 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
                 }
 
                 std::cout << std::endl;
-
                 std::abort();
             }  
         }
@@ -581,15 +415,6 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             soln_at_q[idim] = soln_at_q_dim;
         }
 
-        for (unsigned int idim = 0; idim < dim; ++idim) {
-            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                if (soln_coeff[0][iquad] < local_min_density)
-                    local_min_density = soln_coeff[0][iquad];
-                if (soln_at_q[idim][0][iquad] < local_min_density)
-                    local_min_density = soln_at_q[idim][0][iquad];
-            }
-        }
-
         std::vector< real > GLL_weights = oneD_quad_GLL.get_weights();
         std::vector< real > GL_weights = oneD_quad_GL.get_weights();
         std::array<real, nstate> soln_cell_avg;
@@ -604,13 +429,34 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             p_avg = euler_physics->compute_pressure(soln_cell_avg);
         }
 
+        // getting integrating domain limits for the cell for the distribution function based on k standard deviations around macroscopic velocity, U
+        std::array<real, 2> integrating_limits;
+        for (int i = 0; i < 2; ++i)
+            integrating_limits[i] = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0)[i];
+                                                                                    //   ^   this is the k-value; k=4 here
+        // use the integrating domain limits to develop the min-max f-function against microscopic velocity (u) points
+        std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, integrating_limits[0], integrating_limits[1]);
+                                                                                                                //  ^  this is the resolution of the boltmann distribution plot
         real theta = 1.0;
         // Obtain value used to linearly scale density - *** can comment out the first 3 lines so that theta runs every time because it's bascially 
         //                                               *** the same scaling as Wang and Zhang
-        if (limiter_type == limiter_enum::positivity_preservingDzanic2025 && nstate == dim + 2)
-            std::cout << "Implement function to obtain alpha_1 based on max/min values" << std::endl;
-        else
-            theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
+
+        // use the f-function points to obtain macroscopic state vector limits - outputs state vector and pressure ie., dim + 3 values for min and then max
+        std::array<real, nstate+1> soln_cell_min;
+        std::array<real, nstate+1> soln_cell_max;
+
+        for (int i = 0; i < nstate+1; ++i) {
+            soln_cell_min[i] = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[0][i];
+            soln_cell_max[i] = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[1][i];
+        }
+
+        // Get epsilon (lower bound for rho) for theta limiter
+        real eps = std::min({ lower_bound, soln_cell_min[0] });
+        if (eps < 0) eps = lower_bound;
+
+        // using parameters shown, including soln_cell_min and _max, obtain alpha scaling factor for first scaling
+        get_alpha(soln_at_q_dim, n_quad_pts, soln_cell_avg, soln_cell_min, soln_cell_max);
+        
 
         // Apply limiter on density values at quadrature points
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
@@ -678,121 +524,12 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             // }
 
         }
-        if (limiter_type == limiter_enum::positivity_preservingZhang2010 && nstate == dim + 2) {
-
-            std::array<std::vector< real >, dim> p_lim_quad;
-            std::array<real, nstate> soln_at_iquad;
-
-            for(unsigned int idim = 0; idim < dim; ++idim) {
-                p_lim_quad[idim].resize(n_quad_pts);
-                // Compute pressure at quadrature points
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    for (unsigned int istate = 0; istate < nstate; ++istate) {
-                        soln_at_iquad[istate] = soln_at_q[idim][istate][iquad];
-                    }
-                    p_lim_quad[idim][iquad] = euler_physics->compute_pressure(soln_at_iquad);
-                }
-            }
-
-            std::array<std::vector< real >, dim> theta2_quad;
-            // Obtain value used to linearly scale state variables
-            for(unsigned int idim = 0; idim < dim; ++idim) {
-                theta2_quad[idim].resize(n_quad_pts);
-                theta2_quad[idim] = get_theta2_Zhang2010(p_lim_quad[idim], soln_cell_avg, soln_at_q[idim], n_quad_pts, lower_bound, euler_physics->gam);
-            }
-
-            // Compute pressure at solution points
-            std::vector< real > p_lim;
-            p_lim.resize(n_quad_pts);
-            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                for (unsigned int istate = 0; istate < nstate; ++istate) {
-                    soln_at_iquad[istate] = soln_coeff[istate][iquad];
-                }
-                p_lim[iquad] = euler_physics->compute_pressure(soln_at_iquad);
-            }
-            std::vector<real> theta2_soln = get_theta2_Zhang2010(p_lim, soln_cell_avg, soln_coeff, n_quad_pts, lower_bound, euler_physics->gam);
-
-            // Limit values at quadrature points
-            for (unsigned int istate = 0; istate < nstate; ++istate) {
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    real min_theta2_quad = 1e6;
-                    for(unsigned int idim = 0; idim < dim; ++idim) {
-                        if(theta2_quad[idim][iquad] < min_theta2_quad)
-                            min_theta2_quad = theta2_quad[idim][iquad];
-                    }
-
-                    theta2 = std::min({ min_theta2_quad, theta2_soln[iquad] });
-                    soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
-                            + soln_cell_avg[istate];
-                }
-            }
-        }
-
-        if (isnan(theta2)) {
-            std::cout << "Error: Theta2 is NaN - Aborting... " << std::endl << theta2 << std::endl << std::flush;
-            std::abort();
-        }
 
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
-
-        // Returns the coordinates of the center of the current cell
-        // dealii::Point<dim> current_cell_coord = soln_cell->center();
-
-        // // Outputs the x coordinate of the current cell center for the expected final shock location of the Shu Osher Problem   
-        // if(current_cell_coord[0] >= 2.35 && current_cell_coord[0] < 2.45)
-        //     std::cout << current_cell_coord[0] << std::endl;
-
-        //     // ^ use this line to find how the grid points are being assigned on the x-axis ^
-
-        double final_time = this->flow_solver_param.final_time;
-
-        // Loop for isolating the final timestep, observing a particular cell
-        if (current_time > final_time - (final_time*1e-3) && !is_it_a_stage){     //change cell_index == to a number anywhere from 0 to grid_elements-1
-            
-            // getting integrating domain limits for the cell for the distribution function based on k standard deviations around macroscopic velocity, U
-            std::array<real, 2> integrating_limits;
-            for (int i = 0; i < 2; ++i)
-                integrating_limits[i] = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0)[i];
-                                                                                     //   ^   this is the k-value; k=4 here
-            // use the integrating domain limits to develop the min-max f-function against microscopic velocity (u) points
-            std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, integrating_limits[0], integrating_limits[1]);
-                                                                                                                  //  ^  this is the resolution of the boltmann distribution plot
-            // std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, -4.0, 8.0);
-            // std::cout << "x = " << current_cell_coord << ": ";
-            // boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
-                // ^ old hard-coded implementation ^
-
-
-            // use the f-function points to obtain macroscopic state vector limits - outputs state vector and pressure ie., dim + 3 values for min and then max
-            std::array<real, dim + 2> soln_cell_min;
-            std::array<real, dim + 2> soln_cell_max;
-
-            for (int i = 0; i < dim + 2; ++i) {
-                soln_cell_min[i] = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[0][i];
-                soln_cell_max[i] = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[1][i];
-            }
-            
-            // using parameters shown, including soln_cell_min and _max, obtain alpha scaling factor for first scaling
-            get_alpha(soln_at_q_dim, n_quad_pts, soln_cell_avg, soln_cell_min, soln_cell_max);
-
-
-
-
-
-
-
-
-
-            // notes for commit label  
-                // commented out current_cell_coord - but maybe not because will probably still use it to plot some stuff
-
-
-        }
-
     }
 }
 
-template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_DIM + 2, double>;
+template class BoltzmannLimiter <PHILIP_DIM, PHILIP_DIM + 2, double>;
 
 } // PHiLiP namespace

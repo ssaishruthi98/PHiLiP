@@ -97,10 +97,10 @@ protected:
     real dz; ///< Value required to compute solution cell average in 2D/3D, calculated using zmax and zmin parameters
 
     // Store the maximum and minimum bounds computed for the states to be applied at the next time step
-    // NOTE: maximum and minimum are stored in [0][nstate] and [1][nstate] respectively for density and energy
-    //       for momentum, the first index is swapped in order to facilitate the easy calculation of the max and min pressure
-    //       (ie. maximum momentum is [1][nstate] and minimum momentum is [0][nstate])
-    std::vector<std::vector<real>> limits(2, std::vector<real>(dim + 1));
+    std::vector<real> max_values;
+    std::vector<real> min_values;
+
+    bool first_run;
 }; // End of PositivityPreservingLimiter Class
 } // PHiLiP namespace
 
