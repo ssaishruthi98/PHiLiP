@@ -6,7 +6,7 @@
 
 namespace PHiLiP {
 /// Class for implementation of two forms of the Maximum-Principle limiter using bounds derived from the Boltzmann Equation
-/// derived from BoundPreservingLimiterState class and uses some functions from the PositivityPreservingLimiter class
+/// derived from PositivityPreservingLimiter class
 /**********************************
 * Dzanic and Martinelli. 
 * "High-order limiting methods using maximum principle bounds 
@@ -14,7 +14,7 @@ namespace PHiLiP {
 * Journal of Computational Physics (jcp.2025.113895)
 **********************************/
 template<int dim, int nstate, typename real>
-class BoltzmannLimiter : public BoundPreservingLimiterState <dim, nstate, real>
+class BoltzmannLimiter : public PositivityPreservingLimiter <dim, nstate, real>
 {
 public:
     /// Constructor
@@ -36,6 +36,12 @@ public:
     /// Function to obtain the solution cell average for one dimension
     using BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg;
 
+    /// Function to obtain the solution cell average for two or more dimensions
+    using PositivityPreservingLimiter<dim, nstate, real>::get_soln_cell_avg_PPL;
+
+    /// Function to obtain scaling value based on pressure
+    using PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012;
+
     /// FILL THIS OUT LATER !!!!!!!!!!!!!!!!!!!!!!!!!!
     void limit(
         dealii::LinearAlgebra::distributed::Vector<double>&     solution,
@@ -48,7 +54,8 @@ public:
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
         double                                                  dt,
         double                                                  current_time,
-        bool                                                    is_it_a_stage) override;
+        bool                                                    is_it_a_stage,
+        dealii::Vector<double>&                                 alpha_value) override;
 protected:
 
     /// Obtain the microscopic velocity domain using the min-max strategy over the stencil of the cell
@@ -80,8 +87,8 @@ protected:
     const std::array<std::vector<real>, nstate>&    soln_at_q_dim,
     const unsigned int                              n_quad_pts,
     const std::array<real, nstate>&                 soln_cell_avg,
-    const std::array<real, nstate>&                 soln_cell_min,
-    const std::array<real, nstate>&                 soln_cell_max);
+    const std::vector<real>&                        soln_cell_min,
+    const std::vector<real>&                        soln_cell_max);
 
     /// Function to verify the limited solution preserves positivity of density and pressure
     /// and write back limited solution
@@ -97,8 +104,9 @@ protected:
     real dz; ///< Value required to compute solution cell average in 2D/3D, calculated using zmax and zmin parameters
 
     // Store the maximum and minimum bounds computed for the states to be applied at the next time step
-    std::vector<real> max_values;
-    std::vector<real> min_values;
+    std::vector<std::vector<real>> state_max_cell;
+    std::vector<std::vector<real>> state_min_cell;
+
 
     bool first_run;
 }; // End of PositivityPreservingLimiter Class

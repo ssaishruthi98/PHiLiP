@@ -115,11 +115,12 @@ void MaximumPrincipleLimiter<dim, nstate, real>::limit(
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
         double                                                  dt,
         double                                                  current_time,
-        bool                                                    is_it_a_stage)
+        bool                                                    is_it_a_stage,
+        dealii::Vector<double>&                                 alpha_value)
 {
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
-        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time, is_it_a_stage);
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time, is_it_a_stage, alpha_value);
 
     // Construct 1D Quad Points
     const unsigned int init_grid_degree = grid_degree;

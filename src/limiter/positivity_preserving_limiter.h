@@ -53,7 +53,8 @@ public:
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
         double                                                  dt,
         double                                                  current_time,
-        bool                                                    is_it_a_stage) override;
+        bool                                                    is_it_a_stage,
+        dealii::Vector<double>&                                 alpha_value) override;
 
     /// Obtain the theta value used to scale all states and enforce positivity of pressure
     /// Using 3.7 in Wang, Shu 2012

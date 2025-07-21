@@ -14,7 +14,7 @@ namespace PHiLiP {
 template <int dim, int nstate, typename real>
 BoltzmannLimiter<dim, nstate, real>::BoltzmannLimiter(
     const Parameters::AllParameters* const parameters_input)
-    : BoundPreservingLimiterState<dim,nstate,real>::BoundPreservingLimiterState(parameters_input)
+    : PositivityPreservingLimiter<dim,nstate,real>::PositivityPreservingLimiter(parameters_input)
     , flow_solver_param(parameters_input->flow_solver_param)
     , dx((flow_solver_param.grid_xmax-flow_solver_param.grid_xmin)/flow_solver_param.number_of_grid_elements_x)
     , dy((flow_solver_param.grid_ymax-flow_solver_param.grid_ymin)/flow_solver_param.number_of_grid_elements_y)
@@ -107,6 +107,11 @@ std::vector< std::vector<real> >  BoltzmannLimiter<dim, nstate, real>::get_boltz
     const double                                    upper_distribution_limit)
 {
     const int num_u = static_cast<int>((upper_distribution_limit - lower_distribution_limit) / resolution) + 1;
+    if(num_u < 0) {
+        std::cout << "Error: Integrating limits are diverging from nonphysical values....Aborting" << std::endl;
+        std::cout << "upper_distribution_limit:   " << upper_distribution_limit << "    lower_distribution_limit:   " << lower_distribution_limit << std::endl;
+        std::abort();
+    }
     std::vector< std::vector<real> > output_points(3, std::vector<real>(num_u));
 
     real pi = std::acos(-1.0);
@@ -190,8 +195,8 @@ std::vector< std::vector<real>> BoltzmannLimiter<dim, nstate, real>::boltzmann_l
     limits[1][0] = rho_max;
 
     // replace this part with a for loop when implementing for multiple dims!!
-    limits[1][1] = momentum_min; //switched indices of max and min for p_min and p_max calcs
-    limits[0][1] = momentum_max;
+    limits[0][1] = momentum_min;
+    limits[1][1] = momentum_max;
 
 
     limits[0][nstate-1] = E_min;
@@ -204,12 +209,9 @@ std::vector< std::vector<real>> BoltzmannLimiter<dim, nstate, real>::boltzmann_l
         p_min_state_values[istate] = limits[0][istate];
         p_max_state_values[istate] = limits[1][istate];
     }
-    real p_min = euler_physics->compute_pressure(p_min_state_values);
-    real p_max = euler_physics->compute_pressure(p_max_state_values);
 
-    std::cout << "density-min: " << rho_min << ", density-max: " << rho_max << ", momentum-min: " << momentum_min << ", momentum-max: " 
-        << momentum_max << ", energy-min: " << E_min << ", energy-max: " << E_max << ", pressure-min: " << p_min << ", pressure-max: " 
-        << p_max << std::endl;
+    //std::cout << "density-min: " << rho_min << ", density-max: " << rho_max << ", momentum-min: " << momentum_min << ", momentum-max: " 
+    //    << momentum_max << ", energy-min: " << E_min << ", energy-max: " << E_max << std::endl;
     
     return limits;
 }
@@ -220,8 +222,8 @@ real BoltzmannLimiter<dim, nstate, real>::get_alpha(
     const std::array<std::vector<real>, nstate>&    soln_at_q_dim,
     const unsigned int                              n_quad_pts,
     const std::array<real, nstate>&                 soln_cell_avg,
-    const std::array<real, nstate>&                 soln_cell_min,
-    const std::array<real, nstate>&                 soln_cell_max)
+    const std::vector<real>&                        soln_cell_min,
+    const std::vector<real>&                        soln_cell_max)
 {
     real alpha = 1.0;
 
@@ -241,8 +243,8 @@ real BoltzmannLimiter<dim, nstate, real>::get_alpha(
 
     for (int istate = 0; istate < nstate; ++istate) {
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad){
-            std::cout << "soln_at_q_dim[istate][iquad] = " << soln_at_q_dim[istate][iquad] << ", soln_cell_avg[istate] = " << soln_cell_avg[istate] <<
-            ", min_values[istate] = " << min_values[istate] << std::endl;
+            //std::cout << "soln_at_q_dim[istate][iquad] = " << soln_at_q_dim[istate][iquad] << ", soln_cell_avg[istate] = " << soln_cell_avg[istate] <<
+            //", min_values[istate] = " << min_values[istate] << std::endl;
             min_values[istate] = std::min(soln_at_q_dim[istate][iquad] - soln_cell_avg[istate], min_values[istate]);
             max_values[istate] = std::max(soln_at_q_dim[istate][iquad] - soln_cell_avg[istate], max_values[istate]);
         }
@@ -256,9 +258,9 @@ real BoltzmannLimiter<dim, nstate, real>::get_alpha(
 
         //// ****min_values and max_values are vector of vectors and hence need to indices
     std::cout << "Minimum values: rho=" << min_values[0] << ", m=" << min_values[1] << ", E=" << min_values[2] << 
-        "\n Maximum values: rho=" << max_values[0] << ", m=" << max_values[1] << ", E=" << max_values[2] << std::endl;
+       "\n Maximum values: rho=" << max_values[0] << ", m=" << max_values[1] << ", E=" << max_values[2] << std::endl;
 
-
+    std::cout << "alpha:   " << alpha << std::endl;
     return alpha;
 }
 
@@ -309,12 +311,13 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
     const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
     double                                                  dt,
     double                                                  current_time,
-    bool                                                    is_it_a_stage)
+    bool                                                    is_it_a_stage,
+    dealii::Vector<double>&                                 alpha_value)
 {
 
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
-        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time, is_it_a_stage);
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time, is_it_a_stage, alpha_value);
 
     //create 1D solution polynomial basis functions to interpolate the solution to the quadrature nodes
     const unsigned int init_grid_degree = grid_degree;
@@ -332,11 +335,15 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
     using limiter_enum = Parameters::LimiterParam::LimiterType;
     limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
-    if (first_run) {
-        for (unsigned int istate = 0; istate < nstate+1; ++istate) {
-            max_values.push_back(-1e9);
-            min_values.push_back(1e9);
-        }
+    if(first_run) {
+        real number_of_grid_elements = flow_solver_param.number_of_grid_elements_x;
+        if(dim > 1)
+            number_of_grid_elements *= flow_solver_param.number_of_grid_elements_y;
+        if(dim > 2)
+            number_of_grid_elements *= flow_solver_param.number_of_grid_elements_z;
+
+        state_max_cell.resize(number_of_grid_elements,std::vector<real>(nstate));
+        state_min_cell.resize(number_of_grid_elements,std::vector<real>(nstate));
     }
 
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
@@ -347,6 +354,7 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
         const int i_fele = soln_cell->active_fe_index();
         const dealii::FESystem<dim, dim>& current_fe_ref = fe_collection[i_fele];
         const int poly_degree = current_fe_ref.tensor_degree();
+        const dealii::types::global_dof_index cell_index = soln_cell->active_cell_index();
 
         const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
 
@@ -429,6 +437,35 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
             p_avg = euler_physics->compute_pressure(soln_cell_avg);
         }
 
+        real theta = 1.0;
+        if(!first_run) {
+            // using parameters shown, including soln_cell_min and _max, obtain alpha scaling factor for first scaling
+            theta = get_alpha(soln_at_q_dim, n_quad_pts, soln_cell_avg, state_max_cell[cell_index], state_min_cell[cell_index]);
+            alpha_value[cell_index] = theta;
+
+            // Apply limiter on density values at quadrature points
+            for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
+                soln_coeff[0][ishape] = theta*(soln_coeff[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
+            }
+
+            // Interpolate new density values to mixed quadrature points
+            if(dim >= 1) {
+                soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[0][0],
+                    soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
+            }
+
+            if(dim >= 2) {
+                soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[1][0],
+                    soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
+            }
+
+            if(dim == 3) {
+                soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[2][0],
+                    soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator);
+            }
+        }
+
+
         // getting integrating domain limits for the cell for the distribution function based on k standard deviations around macroscopic velocity, U
         std::array<real, 2> integrating_limits;
         for (int i = 0; i < 2; ++i)
@@ -437,48 +474,26 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
         // use the integrating domain limits to develop the min-max f-function against microscopic velocity (u) points
         std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, integrating_limits[0], integrating_limits[1]);
                                                                                                                 //  ^  this is the resolution of the boltmann distribution plot
-        real theta = 1.0;
         // Obtain value used to linearly scale density - *** can comment out the first 3 lines so that theta runs every time because it's bascially 
         //                                               *** the same scaling as Wang and Zhang
 
         // use the f-function points to obtain macroscopic state vector limits - outputs state vector and pressure ie., dim + 3 values for min and then max
-        std::array<real, nstate+1> soln_cell_min;
-        std::array<real, nstate+1> soln_cell_max;
+        std::array<real, nstate> soln_cell_min;
+        std::array<real, nstate> soln_cell_max;
 
-        for (int i = 0; i < nstate+1; ++i) {
+        for (int i = 0; i < nstate; ++i) {
             soln_cell_min[i] = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[0][i];
             soln_cell_max[i] = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[1][i];
         }
 
+        for(int istate = 0; istate < nstate; ++istate) {
+            state_max_cell[cell_index][istate] = soln_cell_max[istate];
+            state_min_cell[cell_index][istate] = soln_cell_min[istate];
+        }
+
         // Get epsilon (lower bound for rho) for theta limiter
-        real eps = std::min({ lower_bound, soln_cell_min[0] });
-        if (eps < 0) eps = lower_bound;
-
-        // using parameters shown, including soln_cell_min and _max, obtain alpha scaling factor for first scaling
-        get_alpha(soln_at_q_dim, n_quad_pts, soln_cell_avg, soln_cell_min, soln_cell_max);
-        
-
-        // Apply limiter on density values at quadrature points
-        for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
-            soln_coeff[0][ishape] = theta*(soln_coeff[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
-        }
-
-        // Interpolate new density values to mixed quadrature points
-        if(dim >= 1) {
-            soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[0][0],
-                soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
-        }
-
-        if(dim >= 2) {
-            soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[1][0],
-                soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
-        }
-
-        if(dim == 3) {
-            soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[2][0],
-                soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator);
-        }
-
+        if(state_min_cell[cell_index][0] < lower_bound)
+            state_min_cell[cell_index][0] = lower_bound;
 
         real theta2 = 1.0;
 
@@ -506,27 +521,11 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
             }
         }
 
-        if (limiter_type == limiter_enum::positivity_preservingDzanic2025 && nstate == dim + 2) {
-            std::cout << "Implement function to obtain alpha_2" << std::endl;
-            // Limit values at quadrature points
-            // for (unsigned int istate = 0; istate < nstate; ++istate) {
-            //     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-            //         real min_theta2_quad = 1e6;
-            //         for(unsigned int idim = 0; idim < dim; ++idim) {
-            //             if(theta2_quad[idim][iquad] < min_theta2_quad)
-            //                 min_theta2_quad = theta2_quad[idim][iquad];
-            //         }
-
-            //         theta2 = std::min({ min_theta2_quad, theta2_soln[iquad] });
-            //         soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
-            //                 + soln_cell_avg[istate];
-            //     }
-            // }
-
-        }
-
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
+    }
+    if(first_run) {
+        first_run = false;
     }
 }
 

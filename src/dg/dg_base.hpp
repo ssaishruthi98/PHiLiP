@@ -456,6 +456,10 @@ public:
      */
     dealii::Vector<double> max_dt_cell;
 
+    // output vector for alpha value so I can monitor whether it's accurate
+    dealii::Vector<double> alpha_value;
+
+
     /// Artificial dissipation in each cell.
     dealii::Vector<double> artificial_dissipation_coeffs;
 
