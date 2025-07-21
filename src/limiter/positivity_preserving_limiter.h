@@ -106,7 +106,7 @@ protected:
     const std::vector<real>&            f_min_values);
 
 
-    /// Using boltzman-distribution-derived limiting state vectors and cell-average values to obtain density scaling value which enforces limits
+    /// Using boltzman-distribution-derived limiting state vectors and cell-average values to obtain density-scaling value which enforces limits
     /// Using 3.4 from Dzanicm, Martinelli 2025
     real get_alpha(
     const std::array<std::vector<real>, nstate>&    soln_at_q_dim,

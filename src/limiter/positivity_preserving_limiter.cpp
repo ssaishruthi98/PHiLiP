@@ -251,6 +251,7 @@ std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::
     real E_min = 0.0;
     real E_max = 0.0;
 
+    // integrating to obtain macroscopic bounds using (33) to (36)
     for (std::size_t i = 0; i < N - 1; ++i) {
         double du = u_values[i + 1] - u_values[i];          // made generic to the first stepsize assuming constant stepsize
         real u_ave = 0.5 * (u_values[i + 1] + u_values[i]);
@@ -272,26 +273,29 @@ std::vector< std::vector<real>> PositivityPreservingLimiter<dim, nstate, real>::
     limits[0][2] = E_min;
     limits[1][2] = E_max;
 
+    std::array<real, nstate> p_min_state_values;
+    std::array<real, nstate> p_max_state_values;
 
-    std::array<real,nstate> p_min_state_values;
-    std::array<real,nstate> p_max_state_values;
     for(int istate = 0; istate < nstate; ++istate) {
         p_min_state_values[istate] = limits[0][istate];
         p_max_state_values[istate] = limits[1][istate];
     }
-    real p_min = euler_physics->compute_pressure(p_min_state_values);
+    real p_min = euler_physics->compute_pressure(p_min_state_values);           // what's going on here? I don't recall this being here
     real p_max = euler_physics->compute_pressure(p_max_state_values);
+
 
     for (auto& side : limits) {
         side.resize(dim + 2);
     }
-    // limits.resize(2, std::vector<real>(dim + 2));
-    // limits[0][3] = p_min;
-    // limits[1][3] = p_max;
+    limits.resize(2, std::vector<real>(dim + 2));
+    limits[0][3] = p_min;
+    limits[1][3] = p_max;
 
-    std::cout << "density-min: " << rho_min << ", density-max: " << rho_max << ", momentum-min: " << momentum_min << ", momentum-max: " 
-        << momentum_max << ", energy-min: " << E_min << ", energy-max: " << E_max << ", pressure-min: " << p_min << ", pressure-max: " 
-        << p_max << std::endl;
+    //                          vvv_for printing density, momentum, energy, and pressure envelopes_vvv
+
+    // std::cout << "density-min: " << rho_min << ", density-max: " << rho_max << ", momentum-min: " << momentum_min << ", momentum-max: " 
+    //     << momentum_max << ", energy-min: " << E_min << ", energy-max: " << E_max << ", pressure-min: " << p_min << ", pressure-max: " 
+    //     << p_max << std::endl;
     
     return limits;
 }
@@ -308,10 +312,13 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_alpha(
     real alpha = 1.0;
 
     // finds max and min deviations of a quadrature point's state vector from the cell-averaged state vector
-    std::vector<real> min_values(nstate, 1e9);
+    std::vector<real> min_values(nstate, 1e12);
         // arbitrary high value for starting minimization function
-    std::vector<real> max_values(nstate,-1e9);
+    std::vector<real> max_values(nstate,-1e12);
         // arbitrary low value for starting minimization function (because momentum could be negative)
+
+    std::vector<real> min_denominators(nstate);
+    std::vector<real> max_denominators(nstate);
 
     // real max_density = 0.0;
     // real min_density = 1e9;                         // arbitrary high value for starting minimization function
@@ -323,22 +330,29 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_alpha(
 
     for (int istate = 0; istate < nstate; ++istate) {
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad){
-            std::cout << "soln_at_q_dim[istate][iquad] = " << soln_at_q_dim[istate][iquad] << ", soln_cell_avg[istate] = " << soln_cell_avg[istate] <<
-            ", min_values[istate] = " << min_values[istate] << std::endl;
-            min_values[istate] = std::min(soln_at_q_dim[istate][iquad] - soln_cell_avg[istate], min_values[istate]);
-            max_values[istate] = std::max(soln_at_q_dim[istate][iquad] - soln_cell_avg[istate], max_values[istate]);
+            // std::cout << "soln_at_q_dim[istate][iquad] = " << soln_at_q_dim[istate][iquad] << ", soln_cell_avg[istate] = " << soln_cell_avg[istate] <<
+            // ", min_values[istate] = " << min_values[istate] << std::endl;
+            min_values[istate] = std::min(soln_at_q_dim[istate][iquad], min_values[istate]);
+            max_values[istate] = std::max(soln_at_q_dim[istate][iquad], max_values[istate]);
         }
-    }
+        min_denominators[istate] = min_values[istate] - soln_cell_avg[istate];
+        max_denominators[istate] = max_values[istate] - soln_cell_avg[istate];
 
+    }
+    
     for (int istate = 0; istate < nstate; ++istate) {
-        alpha = std::min(std::abs((soln_cell_max[istate] - soln_cell_avg[istate]) / max_values[istate]), alpha);
-        alpha = std::min(std::abs((soln_cell_min[istate] - soln_cell_avg[istate]) / min_values[istate]), alpha);
+        real max_term = std::abs((soln_cell_max[istate] - soln_cell_avg[istate]) / max_denominators[istate]);
+        real min_term = std::abs((soln_cell_min[istate] - soln_cell_avg[istate]) / min_denominators[istate]);
+        alpha = std::min(max_term, alpha);
+        alpha = std::min(min_term, alpha);
+        std::cout << "\t istate: " << istate << ", entry " << 1 + 2 * istate << ": " << max_term <<
+            ", entry " << 2 + 2 * istate << ": " << min_term << std::endl;
     }
 
-
-        //// ****min_values and max_values are vector of vectors and hence need to indices
-    std::cout << "Minimum values: rho=" << min_values[0] << ", m=" << min_values[1] << ", E=" << min_values[2] << 
-        "\n Maximum values: rho=" << max_values[0] << ", m=" << max_values[1] << ", E=" << max_values[2] << std::endl;
+    //                             v  for outputing min and max state vector values  v
+    //                             v                                                 v
+    // std::cout << "Minimum values: rho=" << min_values[0] << ", m=" << min_values[1] << ", E=" << min_values[2] << 
+    //     "\n Maximum values: rho=" << max_values[0] << ", m=" << max_values[1] << ", E=" << max_values[2] << std::endl;
 
 
     return alpha;
@@ -815,7 +829,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
 
         // Returns the coordinates of the center of the current cell
-        // dealii::Point<dim> current_cell_coord = soln_cell->center();
+        dealii::Point<dim> current_cell_coord = soln_cell->center();
 
         // // Outputs the x coordinate of the current cell center for the expected final shock location of the Shu Osher Problem   
         // if(current_cell_coord[0] >= 2.35 && current_cell_coord[0] < 2.45)
@@ -826,13 +840,14 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         double final_time = this->flow_solver_param.final_time;
 
         // Loop for isolating the final timestep, observing a particular cell
-        if (current_time > final_time - (final_time*1e-3) && !is_it_a_stage){     //change cell_index == to a number anywhere from 0 to grid_elements-1
+        if (current_time > final_time - (final_time*1e-2) && !is_it_a_stage){     //change cell_index == to a number anywhere from 0 to grid_elements-1
             
             // getting integrating domain limits for the cell for the distribution function based on k standard deviations around macroscopic velocity, U
             std::array<real, 2> integrating_limits;
             for (int i = 0; i < 2; ++i)
                 integrating_limits[i] = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0)[i];
                                                                                      //   ^   this is the k-value; k=4 here
+
             // use the integrating domain limits to develop the min-max f-function against microscopic velocity (u) points
             std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, integrating_limits[0], integrating_limits[1]);
                                                                                                                   //  ^  this is the resolution of the boltmann distribution plot
@@ -843,8 +858,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
 
             // use the f-function points to obtain macroscopic state vector limits - outputs state vector and pressure ie., dim + 3 values for min and then max
-            std::array<real, dim + 2> soln_cell_min;
-            std::array<real, dim + 2> soln_cell_max;
+            std::array<real, nstate> soln_cell_min;
+            std::array<real, nstate> soln_cell_max;
 
             for (int i = 0; i < dim + 2; ++i) {
                 soln_cell_min[i] = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[0][i];
@@ -852,20 +867,11 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             }
             
             // using parameters shown, including soln_cell_min and _max, obtain alpha scaling factor for first scaling
-            get_alpha(soln_at_q_dim, n_quad_pts, soln_cell_avg, soln_cell_min, soln_cell_max);
+            real alpha = get_alpha(soln_at_q_dim, n_quad_pts, soln_cell_avg, soln_cell_min, soln_cell_max);
 
+            std::cout << "x = " << current_cell_coord << ", alpha = " << alpha << std::endl;
 
-
-
-
-
-
-
-
-            // notes for commit label  
-                // commented out current_cell_coord - but maybe not because will probably still use it to plot some stuff
-
-
+            // commit label: "changed dim + 2 to nstate and "
         }
 
     }
