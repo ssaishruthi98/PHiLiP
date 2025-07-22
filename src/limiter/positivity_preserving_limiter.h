@@ -85,38 +85,6 @@ protected:
         const double                                    eps,
         const double                                    gamma);
 
-    /// Obtain the microscopic velocity domain using the min-max strategy over the stencil of the cell
-    /// Using 3.7 from Dzanic, Martinelli 2025
-    std::vector<real> get_integrating_domain(
-        const std::array<std::vector<real>, nstate>&    soln_at_q,
-        const unsigned int                              n_quad_pts,
-        const double                                    k);
-
-    /// Obtain the Boltzmann distribution of microscopic velocities
-    /// Using 2.2 from Dzanic, Martinelli 2025
-    std::vector< std::vector<real>> get_boltzmann_distribution(
-    const std::array<std::vector<real>, nstate>&    soln_at_q,
-    const unsigned int                              n_quad_pts,
-    const double                                    resolution,
-    const double                                    lower_distribution_limit,
-    const double                                    upper_distribution_limit);
-
-    /// Use the Boltzmann distribution to obtain the macroscopic maxima and minima for density, momentum, and energy
-    std::vector< std::vector<real>> boltzmann_limits(
-    const std::vector<real>&            u_values,
-    const std::vector<real>&            f_max_values,
-    const std::vector<real>&            f_min_values);
-
-
-    /// Using boltzman-distribution-derived limiting state vectors and cell-average values to obtain density-scaling value which enforces limits
-    /// Using 3.4 from Dzanicm, Martinelli 2025
-    real get_alpha(
-    const std::array<std::vector<real>, nstate>&    soln_at_q_dim,
-    const unsigned int                              n_quad_pts,
-    const std::array<real, nstate>&                 soln_cell_avg,
-    const std::array<real, nstate>&                 soln_cell_min,
-    const std::array<real, nstate>&                 soln_cell_max);
-
     /// Obtain the value used to scale density and enforce positivity of density
     /// Using 3.15 from Zhang, Shu Nov 2010
     real get_density_scaling_value(
