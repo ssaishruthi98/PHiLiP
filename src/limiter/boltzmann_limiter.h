@@ -16,6 +16,7 @@ namespace PHiLiP {
 template<int dim, int nstate, typename real>
 class BoltzmannLimiter : public PositivityPreservingLimiter <dim, nstate, real>
 {
+    
 public:
     /// Constructor
     explicit BoltzmannLimiter(
@@ -56,6 +57,7 @@ public:
         double                                                  current_time,
         bool                                                    is_it_a_stage,
         dealii::Vector<double>&                                 alpha_value) override;
+
 protected:
 
     /// Obtain the microscopic velocity domain using the min-max strategy over the stencil of the cell

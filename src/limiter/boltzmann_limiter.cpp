@@ -217,6 +217,69 @@ std::vector< std::vector<real>> BoltzmannLimiter<dim, nstate, real>::boltzmann_l
 }
 
 
+/////////////////////////////////////////////////////    the old get_alpha function that was present in my remote repo when Shruthi created this new file    /////////////////////////////////////////////////////
+//
+// template <int dim, int nstate, typename real>
+// real BoltzmannLimiter<dim, nstate, real>::get_alpha(
+//     const std::array<std::vector<real>, nstate>&    soln_at_q_dim,
+//     const unsigned int                              n_quad_pts,
+//     const std::array<real, nstate>&                 soln_cell_avg,
+//     const std::vector<real>&                        soln_cell_min,
+//     const std::vector<real>&                        soln_cell_max)
+// {
+//     real alpha = 1.0;
+//
+//     // finds max and min deviations of a quadrature point's state vector from the cell-averaged state vector
+//     std::vector<real> min_values(nstate, 1e9);
+//         // arbitrary high value for starting minimization function
+//     std::vector<real> max_values(nstate,-1e9);
+//         // arbitrary low value for starting minimization function (because momentum could be negative)
+//
+//     // real max_density = 0.0;
+//     // real min_density = 1e9;                         // arbitrary high value for starting minimization function
+//     // std::vector<real> max_momentum(dim, -1e9);      // arbitrary low value for starting minimization function (because momentum could be negative)
+//     // std::vector<real> min_momentum(dim, 1e9);       // arbitrary high value for starting minimization function
+//     // real max_energy = 0.0;
+//     // real min_energy = 1e9;                          // arbitrary high value for starting minimization function
+//
+//
+//     for (int istate = 0; istate < nstate; ++istate) {
+//         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad){
+//             //std::cout << "soln_at_q_dim[istate][iquad] = " << soln_at_q_dim[istate][iquad] << ", soln_cell_avg[istate] = " << soln_cell_avg[istate] <<
+//             //", min_values[istate] = " << min_values[istate] << std::endl;
+//             min_values[istate] = std::min(soln_at_q_dim[istate][iquad] - soln_cell_avg[istate], min_values[istate]);
+//             max_values[istate] = std::max(soln_at_q_dim[istate][iquad] - soln_cell_avg[istate], max_values[istate]);
+//         }
+//     }
+//
+//     for (int istate = 0; istate < nstate; ++istate) {
+//         // if(std::abs(max_values[istate]) < 1e-13 || std::abs(min_values[istate]) < 1e-13) {
+//         //     alpha = 0;
+//         // } else {
+//             alpha = std::min(std::abs((soln_cell_max[istate] - soln_cell_avg[istate]) / max_values[istate]), alpha);
+//             alpha = std::min(std::abs((soln_cell_min[istate] - soln_cell_avg[istate]) / min_values[istate]), alpha);
+//         // }
+//         // if(alpha < 0.05) {
+//         //     std::cout << soln_cell_avg[istate] << " <<<< SOLUTION CELL AVERAGE" << std::endl;
+//         //     std::cout << soln_cell_max[istate] << " <<<< SOLUTION CELL MAXIMUM" << std::endl;
+//         //     std::cout << soln_cell_min[istate] << " <<<< SOLUTION CELL MINIMUM" << std::endl;
+//         //     // std::cout << "Minimum values: rho=" << min_values[0] << ", m=" << min_values[1] << ", E=" << min_values[2] << 
+//         //     // "\n Maximum values: rho=" << max_values[0] << ", m=" << max_values[1] << ", E=" << max_values[2] << std::endl;
+//         //     std::cout << "alpha:    " << alpha << "   istate:   " << istate << "   max_value:   " << max_values[istate] << "   min_value:   " << min_values[istate]
+//         //               << "\n soln_cell_max[istate] - soln_cell_avg[istate]:   " << soln_cell_max[istate] - soln_cell_avg[istate]
+//         //               << "\n soln_cell_min[istate] - soln_cell_avg[istate]:   " << soln_cell_min[istate] - soln_cell_avg[istate] << std::endl << std::endl;
+//         // }
+//     }
+//
+//
+//         //// ****min_values and max_values are vector of vectors and hence need to indices
+//     //std::cout << "Minimum values: rho=" << min_values[0] << ", m=" << min_values[1] << ", E=" << min_values[2] << 
+//     //   "\n Maximum values: rho=" << max_values[0] << ", m=" << max_values[1] << ", E=" << max_values[2] << std::endl;
+//     return alpha;
+// }
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template <int dim, int nstate, typename real>
 real BoltzmannLimiter<dim, nstate, real>::get_alpha(
     const std::array<std::vector<real>, nstate>&    soln_at_q_dim,
@@ -228,53 +291,67 @@ real BoltzmannLimiter<dim, nstate, real>::get_alpha(
     real alpha = 1.0;
 
     // finds max and min deviations of a quadrature point's state vector from the cell-averaged state vector
-    std::vector<real> min_values(nstate, 1e9);
+    std::vector<real> min_values(nstate, 1e12);
         // arbitrary high value for starting minimization function
-    std::vector<real> max_values(nstate,-1e9);
+    std::vector<real> max_values(nstate,-1e12);
         // arbitrary low value for starting minimization function (because momentum could be negative)
 
-    // real max_density = 0.0;
-    // real min_density = 1e9;                         // arbitrary high value for starting minimization function
-    // std::vector<real> max_momentum(dim, -1e9);      // arbitrary low value for starting minimization function (because momentum could be negative)
-    // std::vector<real> min_momentum(dim, 1e9);       // arbitrary high value for starting minimization function
-    // real max_energy = 0.0;
-    // real min_energy = 1e9;                          // arbitrary high value for starting minimization function
+    // min and max expressions from Eq. (37)
+    std::vector<real> min_state_values(nstate);
+    std::vector<real> max_state_values(nstate);
+
+    std::vector<real> min_denominators(nstate);
+    std::vector<real> max_denominators(nstate);    
 
 
     for (int istate = 0; istate < nstate; ++istate) {
-        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad){
-            //std::cout << "soln_at_q_dim[istate][iquad] = " << soln_at_q_dim[istate][iquad] << ", soln_cell_avg[istate] = " << soln_cell_avg[istate] <<
-            //", min_values[istate] = " << min_values[istate] << std::endl;
-            min_values[istate] = std::min(soln_at_q_dim[istate][iquad] - soln_cell_avg[istate], min_values[istate]);
-            max_values[istate] = std::max(soln_at_q_dim[istate][iquad] - soln_cell_avg[istate], max_values[istate]);
+        
+        // initialize values using the first quad point
+        min_state_values[istate] = soln_at_q_dim[istate][0];
+        max_state_values[istate] = soln_at_q_dim[istate][0];
+        
+        // iterate through the rest of the quad points and obtain minimum and maximum values
+        for (unsigned int iquad = 1; iquad < n_quad_pts; ++iquad){
+
+            // replace minimum value if lower than previous minimum
+            if (soln_at_q_dim[istate][iquad] < min_state_values[istate])
+                min_state_values[istate] = soln_at_q_dim[istate][iquad];
+            
+            // replace maximum value if greater than previous minimum
+            if (soln_at_q_dim[istate][iquad] > max_state_values[istate])
+                max_state_values[istate] = soln_at_q_dim[istate][iquad];
+
         }
+
+        min_denominators[istate] = min_state_values[istate] - soln_cell_avg[istate];
+        max_denominators[istate] = max_state_values[istate] - soln_cell_avg[istate];
+        
     }
+
+    std::cout << "\t limit_min: \t density = " << soln_cell_min[0] << ",\t momentum = " << soln_cell_min[1] << ",\t energy = " << soln_cell_min[2] << std::endl;       
+    std::cout << "\t cell_min: \t density = " << min_state_values[0] << ",\t momentum = " << min_state_values[1] << ",\t energy = " << min_state_values[2] << std::endl;
+    std::cout << "\t cell_ave: \t density = " << soln_cell_avg[0] << ",\t momentum = " << soln_cell_avg[1] << ",\t energy = " << soln_cell_avg[2] << std::endl;
+    std::cout << "\t cell_max: \t density = " << max_state_values[0] << ",\t momentum = " << max_state_values[1] << ",\t energy = " << max_state_values[2] << std::endl;
+    std::cout << "\t limit_max: \t density = " << soln_cell_max[0] << ",\t momentum = " << soln_cell_max[1] << ",\t energy = " << soln_cell_max[2] << std::endl;
 
     for (int istate = 0; istate < nstate; ++istate) {
-        // if(std::abs(max_values[istate]) < 1e-13 || std::abs(min_values[istate]) < 1e-13) {
-        //     alpha = 0;
-        // } else {
-            alpha = std::min(std::abs((soln_cell_max[istate] - soln_cell_avg[istate]) / max_values[istate]), alpha);
-            alpha = std::min(std::abs((soln_cell_min[istate] - soln_cell_avg[istate]) / min_values[istate]), alpha);
-        // }
-        // if(alpha < 0.05) {
-        //     std::cout << soln_cell_avg[istate] << " <<<< SOLUTION CELL AVERAGE" << std::endl;
-        //     std::cout << soln_cell_max[istate] << " <<<< SOLUTION CELL MAXIMUM" << std::endl;
-        //     std::cout << soln_cell_min[istate] << " <<<< SOLUTION CELL MINIMUM" << std::endl;
-        //     // std::cout << "Minimum values: rho=" << min_values[0] << ", m=" << min_values[1] << ", E=" << min_values[2] << 
-        //     // "\n Maximum values: rho=" << max_values[0] << ", m=" << max_values[1] << ", E=" << max_values[2] << std::endl;
-        //     std::cout << "alpha:    " << alpha << "   istate:   " << istate << "   max_value:   " << max_values[istate] << "   min_value:   " << min_values[istate]
-        //               << "\n soln_cell_max[istate] - soln_cell_avg[istate]:   " << soln_cell_max[istate] - soln_cell_avg[istate]
-        //               << "\n soln_cell_min[istate] - soln_cell_avg[istate]:   " << soln_cell_min[istate] - soln_cell_avg[istate] << std::endl << std::endl;
-        // }
+        real max_term = std::abs((soln_cell_max[istate] - soln_cell_avg[istate]) / max_denominators[istate]);
+        real min_term = std::abs((soln_cell_min[istate] - soln_cell_avg[istate]) / min_denominators[istate]);
+        alpha = std::min(max_term, alpha);
+        alpha = std::min(min_term, alpha);
+        // std::cout << "\t istate: " << istate << ", entry " << 1 + 2 * istate << ": " << max_term <<
+        //     ", entry " << 2 + 2 * istate << ": " << min_term << std::endl;
     }
 
+    //                             v  for outputing min and max state vector values  v
+    //                             v                                                 v
+    // std::cout << "Minimum values: rho=" << min_values[0] << ", m=" << min_values[1] << ", E=" << min_values[2] << 
+    //     "\n Maximum values: rho=" << max_values[0] << ", m=" << max_values[1] << ", E=" << max_values[2] << std::endl;
 
-        //// ****min_values and max_values are vector of vectors and hence need to indices
-    //std::cout << "Minimum values: rho=" << min_values[0] << ", m=" << min_values[1] << ", E=" << min_values[2] << 
-    //   "\n Maximum values: rho=" << max_values[0] << ", m=" << max_values[1] << ", E=" << max_values[2] << std::endl;
+
     return alpha;
 }
+
 
 template <int dim, int nstate, typename real>
 void BoltzmannLimiter<dim, nstate, real>::write_limited_solution(
