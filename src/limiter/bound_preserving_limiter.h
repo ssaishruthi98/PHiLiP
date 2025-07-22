@@ -49,7 +49,8 @@ public:
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
         double                                                  dt,
         double                                                  current_time,
-        bool                                                    is_it_a_stage) = 0;
+        bool                                                    is_it_a_stage,
+        dealii::Vector<double>&                                 alpha_value) = 0;
 }; // End of BoundPreservingLimiter Class
 
 /// Base Class for bound preserving limiters templated on state
@@ -79,7 +80,8 @@ public:
         const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
         double                                                  dt,
         double                                                  current_time,
-        bool                                                    is_it_a_stage) = 0;
+        bool                                                    is_it_a_stage,
+        dealii::Vector<double>&                                 alpha_value) = 0;
 
     /// Function to obtain the solution cell average
     std::array<real, nstate> get_soln_cell_avg(

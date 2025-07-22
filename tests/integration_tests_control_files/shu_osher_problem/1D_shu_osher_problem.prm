@@ -22,7 +22,7 @@ set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
 subsection limiter
-  set bound_preserving_limiter = positivity_preservingWang2012
+  set bound_preserving_limiter = positivity_preservingDzanic2025
   set min_density = 1e-13
 end
 
@@ -31,8 +31,8 @@ subsection ODE solver
   set ode_output = verbose
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.00000001
-  #set output_solution_every_x_steps = 100
-  set output_solution_every_dt_time_intervals = 0.1
+  set output_solution_every_x_steps = 1
+  #set output_solution_every_dt_time_intervals = 0.1
   set runge_kutta_method = ssprk3_ex
   set print_iteration_modulo = 1
 end
@@ -45,7 +45,7 @@ end
 
 subsection flow_solver
   set flow_case_type = shu_osher_problem
-  set poly_degree = 6
+  set poly_degree = 3
   set final_time = 1.8
   #set constant_time_step = 0.0024
   set courant_friedrichs_lewy_number = 0.5

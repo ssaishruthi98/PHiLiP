@@ -3,6 +3,7 @@
 #include "bound_preserving_limiter.h"
 #include "tvb_limiter.h"
 #include "maximum_principle_limiter.h"
+#include "boltzmann_limiter.h"
 #include "positivity_preserving_limiter.h"
 
 namespace PHiLiP {
@@ -61,13 +62,25 @@ std::unique_ptr< BoundPreservingLimiter<dim, real> >
     } else if (limiter_type == limiter_enum::maximum_principle) {
         return std::make_unique< MaximumPrincipleLimiter<dim, nstate, real> >(parameters_input);
     } else if (limiter_type == limiter_enum::positivity_preservingZhang2010
-                || limiter_type == limiter_enum::positivity_preservingWang2012
-                || limiter_type == limiter_enum::positivity_preservingDzanic2025) {
+                || limiter_type == limiter_enum::positivity_preservingWang2012) {
         if (nstate == dim + 2)
             return std::make_unique< PositivityPreservingLimiter<dim, nstate, real> >(parameters_input);
         else {
             if(nstate != dim + 2) {
                 std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
+            }
+        }
+    } else if (limiter_type == limiter_enum::positivity_preservingDzanic2025) {
+        if (dim == 1 && nstate == dim + 2)
+            return std::make_unique< BoltzmannLimiter<dim, nstate, real> >(parameters_input);
+        else {
+            if(nstate != dim + 2) {
+                std::cout << "Error: Cannot create Boltzmann limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
+            }
+            if(dim != 1) {
+                std::cout << "Error: Cannot create Boltzmann limiter for dim > 1" << std::endl;
                 std::abort();
             }
         }
