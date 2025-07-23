@@ -106,8 +106,8 @@ protected:
     real dz; ///< Value required to compute solution cell average in 2D/3D, calculated using zmax and zmin parameters
 
     // Store the maximum and minimum bounds computed for the states to be applied at the next time step
-    std::vector<std::vector<real>> state_max_cell;
-    std::vector<std::vector<real>> state_min_cell;
+    std::vector<real> state_max;
+    std::vector<real> state_min;
 
 
     bool first_run;
