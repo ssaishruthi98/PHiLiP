@@ -957,6 +957,8 @@ InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
 ::InitialConditionFunction_AstrophysicalJet(
     Parameters::AllParameters const* const param)
     : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
 {}
 
 template <int dim, int nstate, typename real>
@@ -966,21 +968,40 @@ real InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
     real value = 0.0;
     if constexpr (dim == 2 && nstate == (dim + 2)) {
 
-        if (istate == 0) {
-            // density
-            value = 0.5;
-        }
-        else if (istate == 1) {
-            // x-velocity
-            value = 0.0;
-        }
-        else if (istate == 2) {
-            // y-velocity
-            value = 0.0;
-        }
-        else if (istate == 3) {
-            // pressure
-            value = 0.4127;
+        if(this->mach_inf == 800.0) {
+            if (istate == 0) {
+                // density
+                value = 0.1*this->gamma_gas;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+        } else {
+            if (istate == 0) {
+                // density
+                value = 0.1;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 0.4127;
+            }
         }
     }
     return value;

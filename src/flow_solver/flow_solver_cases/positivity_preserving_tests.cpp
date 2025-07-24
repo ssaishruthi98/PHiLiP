@@ -58,7 +58,10 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
         Grids::shock_diffraction_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
     else if (dim==2 && flow_case_type == flow_case_enum::astrophysical_jet) {
-        Grids::astrophysical_jet_grid<dim>(*grid, &this->all_param.flow_solver_param);
+        if (this->all_param.flow_solver_param.grid_ymin == 0)
+            Grids::astrophysical_jet_grid<dim>(*grid, &this->all_param.flow_solver_param, true);
+        if (this->all_param.flow_solver_param.grid_ymin != 0)
+            Grids::astrophysical_jet_grid<dim>(*grid, &this->all_param.flow_solver_param, false);
     }
     else if (dim==2 && flow_case_type == flow_case_enum::double_mach_reflection) {
             Grids::double_mach_reflection_grid<dim>(*grid, &this->all_param.flow_solver_param);
@@ -361,6 +364,9 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
 
         this->pcout << std::endl;
     }
+
+    // Update local maximum wave speed before calculating next time step
+    //update_maximum_local_wave_speed(*dg);
 }
 
 template class PositivityPreservingTests<PHILIP_DIM, PHILIP_DIM+2>;

@@ -187,7 +187,8 @@ void shock_diffraction_grid(
 template<int dim, typename TriangulationType>
 void astrophysical_jet_grid(
     TriangulationType&  grid,
-    const Parameters::FlowSolverParam *const flow_solver_param) 
+    const Parameters::FlowSolverParam *const flow_solver_param,
+    const bool half_grid) 
 {
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
@@ -198,10 +199,6 @@ void astrophysical_jet_grid(
 
     n_subdivisions[0] = flow_solver_param->number_of_grid_elements_x;
     n_subdivisions[1] = flow_solver_param->number_of_grid_elements_y;
-
-    std::vector<int> n_cells_remove(2);
-    n_cells_remove[0] = (1.0/13.0)*n_subdivisions[0];
-    n_cells_remove[1] = (6.0/11.0)*n_subdivisions[1];
 
     dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
 
@@ -214,7 +211,11 @@ void astrophysical_jet_grid(
             if (cell->face(face)->at_boundary()) {
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if (current_id == 0) {
-                    if (left_y >= 0.45 && left_y <=0.55-dy) {
+                    if (!half_grid && left_y >= 0.45 && left_y <=0.55-dy) {
+                        left_y += cell->extent_in_direction(1);
+                        cell->face(face)->set_boundary_id(1008); // x_left, Post Shock (custom bc set in prm file)
+                    }
+                    else if (half_grid && left_y <0.05) {
                         left_y += cell->extent_in_direction(1);
                         cell->face(face)->set_boundary_id(1008); // x_left, Post Shock (custom bc set in prm file)
                     }
@@ -290,7 +291,8 @@ template void shock_diffraction_grid<2, dealii::parallel::distributed::Triangula
     const Parameters::FlowSolverParam *const flow_solver_param);
 template void astrophysical_jet_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
-    const Parameters::FlowSolverParam *const flow_solver_param);
+    const Parameters::FlowSolverParam *const flow_solver_param,
+    const bool half_grid);
 template void svsw_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::FlowSolverParam *const flow_solver_param);

@@ -540,6 +540,9 @@ public:
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_AstrophysicalJet(
         Parameters::AllParameters const* const param);
+
+    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
+    const double mach_inf; ///< Farfield Mach number.
 };
 
 
