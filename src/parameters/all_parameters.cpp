@@ -224,7 +224,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " hyper_adaptive_sampling_new_error |"
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
-                      " low_density "),
+                      " low_density | "
+                      " richtmyer_meshkov"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -274,7 +275,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  hyper_adaptive_sampling_new_error |"
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
-                      "  low_density>.");
+                      "  low_density | "
+                      "  richtmyer_meshkov>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -464,6 +466,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "HROM_error_post_sampling")                 { test_type = HROM_error_post_sampling; }
     else if (test_string == "hyper_adaptive_sampling_new_error")        { test_type = hyper_adaptive_sampling_new_error; }
     else if (test_string == "low_density")                              { test_type = low_density; }
+    else if (test_string == "richtmyer_meshkov")                        { test_type = richtmyer_meshkov; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     
     overintegration = prm.get_integer("overintegration");

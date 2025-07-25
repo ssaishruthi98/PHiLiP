@@ -522,6 +522,24 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+/// Initial Condition Function: 2D Richtmyer-Meshkov Problem
+/** See Dzanic & Martinelli, High-order limiting methods using
+ *  maximum principle bounds derived from the Boltzmann
+ *  equation I: Euler equations, 2025
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_RichtmyerMeshkov : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_RichtmyerMeshkov
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_RichtmyerMeshkov(
+        Parameters::AllParameters const* const param);
+};
 
 /// Initial Condition Function: 2D Astrophysical Mach Jet
 /** See Xu & Shu, Third order maximum-principle-satisfying 

@@ -278,6 +278,46 @@ void svsw_grid(
     }
 }
 
+template<int dim, typename TriangulationType>
+void richtmyer_meshkov_grid(
+    TriangulationType&  grid,
+    const Parameters::FlowSolverParam *const flow_solver_param) 
+{
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    p1[0] = flow_solver_param->grid_xmin; p1[1] = flow_solver_param->grid_ymin;
+    p2[0] = flow_solver_param->grid_xmax; p2[1] = flow_solver_param->grid_ymax;
+    
+    std::vector<unsigned int> n_subdivisions(2);
+
+    n_subdivisions[0] = flow_solver_param->number_of_grid_elements_x;
+    n_subdivisions[1] = flow_solver_param->number_of_grid_elements_y;
+
+
+    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
+
+    // Set boundary type and design type
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                unsigned int current_id = cell->face(face)->boundary_id();
+                if (current_id == 0) {
+                    cell->face(face)->set_boundary_id(1001); // x_left, wall
+                }
+                else if (current_id == 1) {
+                    cell->face(face)->set_boundary_id(1001); // x_right, wall
+                }
+                else if (current_id == 2) {
+                    cell->face(face)->set_boundary_id(1008); // y_bottom, custom inflow
+                }
+                else if (current_id == 3) {
+                    cell->face(face)->set_boundary_id(1007); // y_top, do nothing
+                }
+            }
+        }
+    }
+}
+
 #if PHILIP_DIM==1
 template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
@@ -297,6 +337,9 @@ template void svsw_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
 template void shock_bubble_grid<2, dealii::parallel::distributed::Triangulation<2>>(
+    dealii::parallel::distributed::Triangulation<2>&    grid,
+    const Parameters::FlowSolverParam *const flow_solver_param);
+template void richtmyer_meshkov_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
 #endif

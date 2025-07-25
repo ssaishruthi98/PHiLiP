@@ -1145,6 +1145,85 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
 }
 
 // ========================================================
+// Richtmyer-Meshkov Instability (2D) -- Initial Condition
+// See Dzanic & Martinelli, High-order limiting..., 2025 
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_RichtmyerMeshkov<dim, nstate, real>
+::InitialConditionFunction_RichtmyerMeshkov(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_RichtmyerMeshkov<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    const real x = point[0];
+    const real y = point[1];
+    const double pi = dealii::numbers::PI;
+    
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        if (y >= 2 - 0.5*cos(2*pi*x)) {
+            if (istate == 0) {
+                // density
+                value = 0.25;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+        }
+        else if (y < 2 - 0.5*cos(2*pi*x) && y >= 0.5) {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+        }
+        else {
+           if (istate == 0) {
+               // density
+               value = 2.6666666;
+           }
+           else if (istate == 1) {
+               // x-velocity
+               value = 0.0;
+           }
+           else if (istate == 2) {
+               // y-velocity
+               value = 0.0;
+           }
+           else if (istate == 3) {
+               // pressure
+               value = 4.5;
+           }
+        }
+    }
+    return value;
+}
+
+// ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -1241,6 +1320,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_AstrophysicalJet<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::strong_vortex_shock_wave) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SVSW<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::richtmyer_meshkov) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_RichtmyerMeshkov<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {

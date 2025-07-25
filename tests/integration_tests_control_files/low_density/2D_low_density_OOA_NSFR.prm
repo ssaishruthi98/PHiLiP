@@ -21,7 +21,7 @@ set flux_nodes_type = GLL
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cDG
+set flux_reconstruction = cAdaptive
 set shock_sensor = modal_sensor
 set afr_type = scale
 set shock_sensor_threshold = 1e-6
@@ -52,16 +52,16 @@ end
 
 subsection flow_solver
   set flow_case_type = low_density
-  set poly_degree = 2
+  set poly_degree = 3
   set final_time = 1.0
   set adaptive_time_step = true
-  set courant_friedrichs_lewy_number = 0.5
+  set courant_friedrichs_lewy_number = 0.4
   set unsteady_data_table_filename = low_density_shock_energy
   set expected_order_at_final_time = 5.018319635436
   subsection grid
     set grid_left_bound = -0.5
     set grid_right_bound = 0.5
-    set number_of_mesh_refinements = 0
+    set number_of_mesh_refinements = 6
 
     subsection positivity_preserving_tests
       set grid_xmin = -0.5

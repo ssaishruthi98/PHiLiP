@@ -214,7 +214,8 @@ public:
         ROM_error_post_sampling,
         HROM_error_post_sampling,
         hyper_adaptive_sampling_new_error,
-        low_density
+        low_density,
+        richtmyer_meshkov
     };
     /// Store selected TestType from the input file.
     TestType test_type;

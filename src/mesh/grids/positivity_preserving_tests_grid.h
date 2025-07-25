@@ -40,6 +40,11 @@ template<int dim, typename TriangulationType>
 void shock_bubble_grid(
     TriangulationType&  grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
+
+template<int dim, typename TriangulationType>
+void richtmyer_meshkov_grid(
+    TriangulationType&  grid,
+    const Parameters::FlowSolverParam *const flow_solver_param);
 } 
 
 // namespace PHiLiP::Grids

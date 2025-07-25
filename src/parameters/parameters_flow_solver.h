@@ -39,7 +39,8 @@ public:
         astrophysical_jet,
         strong_vortex_shock_wave,
         blast_wave_1d,
-        shock_bubble
+        shock_bubble,
+        richtmyer_meshkov
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
