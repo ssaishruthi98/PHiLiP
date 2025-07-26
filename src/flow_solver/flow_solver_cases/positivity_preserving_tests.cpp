@@ -182,6 +182,9 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
     const unsigned int current_iteration = ode_solver->current_iteration;
     const double current_time = ode_solver->current_time;
 
+    // Update maximum local wave speed for adaptive time_step
+    if(this->all_param.flow_solver_param.adaptive_time_step) this->update_maximum_local_wave_speed(*dg);
+
     this->check_positivity_density(*dg);
     if (this->mpi_rank == 0) {
 
