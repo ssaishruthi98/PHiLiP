@@ -115,6 +115,9 @@ protected:
     std::vector<real> state_max;
     std::vector<real> state_min;
 
+    // Resolution for the trapezoidal rule pulled from flow_solver_param
+    real resolution;
+
 
     bool first_run;
 }; // End of PositivityPreservingLimiter Class

@@ -562,10 +562,10 @@ real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
     real value = 0.0;
     if constexpr (dim == 1 && nstate == (dim + 2)) {
         const real x = point[0];
-        if (x < 0) {
+        if (x <= 3.0) {
             if (istate == 0) {
                 // density
-                value = 2.0;
+                value = 1.0;
             }
             if (istate == 1) {
                 // x-velocity
@@ -573,13 +573,13 @@ real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
             }
             if (istate == 2) {
                 // pressure
-                value = pow(10.0, 9.0);
+                value = 0.4*pow(10.0, -1.0);
             }
         }
         else {
             if (istate == 0) {
                 // density
-                value = 0.001;
+                value = pow(10.0, -3.0);
             }
             if (istate == 1) {
                 // x-velocity
@@ -587,7 +587,8 @@ real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
             }
             if (istate == 2) {
                 // pressure
-                value = 1.0;
+                value = 0.4*pow(10.0, -10.0);
+
             }
         }
     }

@@ -324,6 +324,14 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        prm.enter_subsection("boltzmann_limiter");
+        {
+            prm.declare_entry("resolution", "0.1",
+                              dealii::Patterns::Double(0.0, 1000.0),
+                              "The resolution of the trapezoidal rule for integrating the microscopic velocity domain.");
+        }
+        prm.leave_subsection();
+
         prm.declare_entry("apply_initial_condition_method", "interpolate_initial_condition_function",
                           dealii::Patterns::Selection(
                           " interpolate_initial_condition_function | "
@@ -504,6 +512,12 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         prm.enter_subsection("kelvin_helmholtz_instability");
         {
             atwood_number = prm.get_double("atwood_number");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("boltzmann_limiter");
+        {
+            resolution = prm.get_double("resolution");
         }
         prm.leave_subsection();
 
