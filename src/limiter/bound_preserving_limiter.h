@@ -22,6 +22,8 @@ namespace PHiLiP {
 template<int dim, typename real>
 class BoundPreservingLimiter
 {
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<double>; ///< Alias for dealii's parallel distributed vector.
+    using DoFHandlerType = dealii::DoFHandler<dim>; ///< Alias for declaring DofHandler
 public:
     /// Constructor
     explicit BoundPreservingLimiter(
@@ -39,24 +41,27 @@ public:
 
     /// Function to limit the solution
     virtual void limit(
-        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-        const dealii::DoFHandler<dim>&                          dof_handler,
-        const dealii::hp::FECollection<dim>&                    fe_collection,
-        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
-        const unsigned int                                      grid_degree,
-        const unsigned int                                      max_degree,
-        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-        double                                                  dt,
-        double                                                  current_time,
-        bool                                                    is_it_a_stage,
-        dealii::Vector<double>&                                 alpha_value) = 0;
+        dealii::LinearAlgebra::distributed::Vector<double>&                                         solution,
+        const dealii::DoFHandler<dim>&                                                              dof_handler,
+        const dealii::hp::FECollection<dim>&                                                        fe_collection,
+        const dealii::hp::QCollection<dim>&                                                         volume_quadrature_collection,
+        const unsigned int                                                                          grid_degree,
+        const unsigned int                                                                          max_degree,
+        const dealii::hp::FECollection<1>                                                           oneD_fe_collection_1state,
+        const dealii::hp::QCollection<1>                                                            oneD_quadrature_collection,
+        double                                                                                      dt,
+        double                                                                                      current_time,
+        bool                                                                                        is_it_a_stage,
+        dealii::Vector<double>&                                                                     alpha_value,
+        const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field) = 0;
 }; // End of BoundPreservingLimiter Class
 
 /// Base Class for bound preserving limiters templated on state
 template<int dim, int nstate, typename real>
 class BoundPreservingLimiterState : public BoundPreservingLimiter <dim, real>
 {
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<double>; ///< Alias for dealii's parallel distributed vector.
+    using DoFHandlerType = dealii::DoFHandler<dim>; ///< Alias for declaring DofHandler
 public:
     /// Pointer to parameters object
     using BoundPreservingLimiter<dim, real>::all_parameters;
@@ -70,18 +75,19 @@ public:
 
     /// Function to limit the solution
     virtual void limit(
-        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-        const dealii::DoFHandler<dim>&                          dof_handler,
-        const dealii::hp::FECollection<dim>&                    fe_collection,
-        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
-        const unsigned int                                      grid_degree,
-        const unsigned int                                      max_degree,
-        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-        double                                                  dt,
-        double                                                  current_time,
-        bool                                                    is_it_a_stage,
-        dealii::Vector<double>&                                 alpha_value) = 0;
+        dealii::LinearAlgebra::distributed::Vector<double>&                                         solution,
+        const dealii::DoFHandler<dim>&                                                              dof_handler,
+        const dealii::hp::FECollection<dim>&                                                        fe_collection,
+        const dealii::hp::QCollection<dim>&                                                         volume_quadrature_collection,
+        const unsigned int                                                                          grid_degree,
+        const unsigned int                                                                          max_degree,
+        const dealii::hp::FECollection<1>                                                           oneD_fe_collection_1state,
+        const dealii::hp::QCollection<1>                                                            oneD_quadrature_collection,
+        double                                                                                      dt,
+        double                                                                                      current_time,
+        bool                                                                                        is_it_a_stage,
+        dealii::Vector<double>&                                                                     alpha_value,
+        const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field) = 0;
 
     /// Function to obtain the solution cell average
     std::array<real, nstate> get_soln_cell_avg(

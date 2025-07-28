@@ -16,7 +16,8 @@ namespace PHiLiP {
 template<int dim, int nstate, typename real>
 class BoltzmannLimiter : public PositivityPreservingLimiter <dim, nstate, real>
 {
-    
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<double>; ///< Alias for dealii's parallel distributed vector.
+    using DoFHandlerType = dealii::DoFHandler<dim>; ///< Alias for declaring DofHandler    
 public:
     /// Constructor
     explicit BoltzmannLimiter(
@@ -45,18 +46,19 @@ public:
 
     /// FILL THIS OUT LATER !!!!!!!!!!!!!!!!!!!!!!!!!!
     void limit(
-        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-        const dealii::DoFHandler<dim>&                          dof_handler,
-        const dealii::hp::FECollection<dim>&                    fe_collection,
-        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
-        const unsigned int                                      grid_degree,
-        const unsigned int                                      max_degree,
-        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-        double                                                  dt,
-        double                                                  current_time,
-        bool                                                    is_it_a_stage,
-        dealii::Vector<double>&                                 alpha_value) override;
+        dealii::LinearAlgebra::distributed::Vector<double>&                                         solution,
+        const dealii::DoFHandler<dim>&                                                              dof_handler,
+        const dealii::hp::FECollection<dim>&                                                        fe_collection,
+        const dealii::hp::QCollection<dim>&                                                         volume_quadrature_collection,
+        const unsigned int                                                                          grid_degree,
+        const unsigned int                                                                          max_degree,
+        const dealii::hp::FECollection<1>                                                           oneD_fe_collection_1state,
+        const dealii::hp::QCollection<1>                                                            oneD_quadrature_collection,
+        double                                                                                      dt,
+        double                                                                                      current_time,
+        bool                                                                                        is_it_a_stage,
+        dealii::Vector<double>&                                                                     alpha_value,
+        const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field) override;
 
 protected:
 
@@ -70,11 +72,15 @@ protected:
     /// Obtain the Boltzmann distribution of microscopic velocities
     /// Using 2.2 from Dzanic, Martinelli 2025
     std::vector< std::vector<real>> get_boltzmann_distribution(
-    const std::array<std::vector<real>, nstate>&    soln_at_q,
-    const unsigned int                              n_quad_pts,
-    const double                                    resolution,
-    const double                                    lower_distribution_limit,
-    const double                                    upper_distribution_limit);
+    const std::array<std::vector<real>, nstate>&                                                soln_at_q_dim,
+    const unsigned int                                                                          n_quad_pts,
+    const double                                                                                resolution,
+    const double                                                                                lower_distribution_limit,
+    const double                                                                                upper_distribution_limit,
+    const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field,
+    dealii::QGaussLobatto<dim>                                                                  quad_for_l2_norm,
+    const dealii::hp::FECollection<dim>&                                                        fe_collection,
+    const int                                                                                   poly_degree);
 
     /// Use the Boltzmann distribution to obtain the macroscopic maxima and minima for density, momentum, and energy
     std::vector< std::vector<real>> boltzmann_limits(

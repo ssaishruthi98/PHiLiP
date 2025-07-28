@@ -172,18 +172,19 @@ std::array<real, nstate> TVBLimiter<dim, nstate, real>::get_neighbour_cell_avg(
 
 template <int dim, int nstate, typename real>
 void TVBLimiter<dim, nstate, real>::limit(
-    dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-    const dealii::DoFHandler<dim>&                          dof_handler,
-    const dealii::hp::FECollection<dim>&                    fe_collection,
-    const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
-    const unsigned int                                      grid_degree,
-    const unsigned int                                      max_degree,
-    const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-    dealii::hp::QCollection<1>                              oneD_quadrature_collection,
-    double                                                  /*dt*/,
-    double                                                  /*current_time*/,
-    bool                                                    /*is_it_a_stage*/,
-    dealii::Vector<double>&                                 /*alpha_value*/)
+    dealii::LinearAlgebra::distributed::Vector<double>&                                         solution,
+    const dealii::DoFHandler<dim>&                                                              dof_handler,
+    const dealii::hp::FECollection<dim>&                                                        fe_collection,
+    const dealii::hp::QCollection<dim>&                                                         volume_quadrature_collection,
+    const unsigned int                                                                          grid_degree,
+    const unsigned int                                                                          max_degree,
+    const dealii::hp::FECollection<1>                                                           oneD_fe_collection_1state,
+    const dealii::hp::QCollection<1>                                                            oneD_quadrature_collection,
+    double                                                                                      /*dt*/,
+    double                                                                                      /*current_time*/,
+    bool                                                                                        /*is_it_a_stage*/,
+    dealii::Vector<double>&                                                                     /*alpha_value*/,
+    const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            /*mapping_field*/) 
 {
     double h = this->all_parameters->limiter_param.max_delta_x;
 

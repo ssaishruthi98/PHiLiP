@@ -105,22 +105,23 @@ void MaximumPrincipleLimiter<dim, nstate, real>::write_limited_solution(
 
 template <int dim, int nstate, typename real>
 void MaximumPrincipleLimiter<dim, nstate, real>::limit(
-        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-        const dealii::DoFHandler<dim>&                          dof_handler,
-        const dealii::hp::FECollection<dim>&                    fe_collection,
-        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
-        const unsigned int                                      grid_degree,
-        const unsigned int                                      max_degree,
-        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-        double                                                  dt,
-        double                                                  current_time,
-        bool                                                    is_it_a_stage,
-        dealii::Vector<double>&                                 alpha_value)
+    dealii::LinearAlgebra::distributed::Vector<double>&                                         solution,
+    const dealii::DoFHandler<dim>&                                                              dof_handler,
+    const dealii::hp::FECollection<dim>&                                                        fe_collection,
+    const dealii::hp::QCollection<dim>&                                                         volume_quadrature_collection,
+    const unsigned int                                                                          grid_degree,
+    const unsigned int                                                                          max_degree,
+    const dealii::hp::FECollection<1>                                                           oneD_fe_collection_1state,
+    const dealii::hp::QCollection<1>                                                            oneD_quadrature_collection,
+    double                                                                                      dt,
+    double                                                                                      current_time,
+    bool                                                                                        is_it_a_stage,
+    dealii::Vector<double>&                                                                     alpha_value,
+    const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field) 
 {
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
-        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time, is_it_a_stage, alpha_value);
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time, is_it_a_stage, alpha_value, mapping_field);
 
     // Construct 1D Quad Points
     const unsigned int init_grid_degree = grid_degree;

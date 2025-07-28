@@ -19,6 +19,8 @@ namespace PHiLiP {
 template<int dim, int nstate, typename real>
 class PositivityPreservingLimiter : public BoundPreservingLimiterState <dim, nstate, real>
 {
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<double>; ///< Alias for dealii's parallel distributed vector.
+    using DoFHandlerType = dealii::DoFHandler<dim>; ///< Alias for declaring DofHandler
 public:
     /// Constructor
     explicit PositivityPreservingLimiter(
@@ -43,18 +45,19 @@ public:
     /// Using Zhang,Shu November 2010 Eq 3.14-3.19 or Wang, Shu 2012 Eq 3.7
     /// we apply a limiter on the global solution
     void limit(
-        dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-        const dealii::DoFHandler<dim>&                          dof_handler,
-        const dealii::hp::FECollection<dim>&                    fe_collection,
-        const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
-        const unsigned int                                      grid_degree,
-        const unsigned int                                      max_degree,
-        const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-        double                                                  dt,
-        double                                                  current_time,
-        bool                                                    is_it_a_stage,
-        dealii::Vector<double>&                                 alpha_value) override;
+        dealii::LinearAlgebra::distributed::Vector<double>&                                         solution,
+        const dealii::DoFHandler<dim>&                                                              dof_handler,
+        const dealii::hp::FECollection<dim>&                                                        fe_collection,
+        const dealii::hp::QCollection<dim>&                                                         volume_quadrature_collection,
+        const unsigned int                                                                          grid_degree,
+        const unsigned int                                                                          max_degree,
+        const dealii::hp::FECollection<1>                                                           oneD_fe_collection_1state,
+        const dealii::hp::QCollection<1>                                                            oneD_quadrature_collection,
+        double                                                                                      dt,
+        double                                                                                      current_time,
+        bool                                                                                        is_it_a_stage,
+        dealii::Vector<double>&                                                                     alpha_value,
+        const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field) override;
 
     /// Obtain the theta value used to scale all states and enforce positivity of pressure
     /// Using 3.7 in Wang, Shu 2012

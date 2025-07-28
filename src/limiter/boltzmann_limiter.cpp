@@ -103,11 +103,15 @@ std::vector<real> BoltzmannLimiter<dim, nstate, real>::get_integrating_domain(
 
 template <int dim, int nstate, typename real>
 std::vector< std::vector<real> >  BoltzmannLimiter<dim, nstate, real>::get_boltzmann_distribution(
-    const std::array<std::vector<real>, nstate>&    soln_at_q_dim,      // _dim added just to differentiate from soln_at_q which is passed in as soln_at_q[0]
-    const unsigned int                              n_quad_pts,
-    const double                                    resolution,
-    const double                                    lower_distribution_limit,
-    const double                                    upper_distribution_limit)
+    const std::array<std::vector<real>, nstate>&                                                soln_at_q_dim,   // _dim added just to differentiate from soln_at_q which is passed in as soln_at_q[0]
+    const unsigned int                                                                          n_quad_pts,
+    const double                                                                                resolution,
+    const double                                                                                lower_distribution_limit,
+    const double                                                                                upper_distribution_limit,
+    const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field,
+    dealii::QGaussLobatto<dim>                                                                  quad_for_l2_norm,
+    const dealii::hp::FECollection<dim>&                                                        fe_collection,
+    const int                                                                                   poly_degree)
 {
     const int num_u = static_cast<int>((upper_distribution_limit - lower_distribution_limit) / resolution) + 1;
     if(num_u < 0) {
@@ -124,6 +128,9 @@ std::vector< std::vector<real> >  BoltzmannLimiter<dim, nstate, real>::get_boltz
     std::vector<real> f_max(num_u, std::numeric_limits<real>::lowest());
     std::vector< std::vector<real> > g(num_u, std::vector<real>(n_quad_pts, 0.0));
 
+    dealii::FEValues<dim, dim> fe_values(*mapping_field, fe_collection[poly_degree], quad_for_l2_norm,
+        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+
     for (int i = 0; i < num_u; ++i) {
 
         real u = lower_distribution_limit + i * resolution;
@@ -138,7 +145,7 @@ std::vector< std::vector<real> >  BoltzmannLimiter<dim, nstate, real>::get_boltz
             if (nstate == dim + 2)                                            // checks if it is a NS or Euler problem
                 U = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[1];
 
-            l2_squared += pow(u - U, 2.0);
+            l2_squared += pow(u - U, 2.0) * fe_values.JxW(iquad);
         }
 
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
@@ -338,23 +345,24 @@ void BoltzmannLimiter<dim, nstate, real>::write_limited_solution(
 
 template <int dim, int nstate, typename real>
 void BoltzmannLimiter<dim, nstate, real>::limit(
-    dealii::LinearAlgebra::distributed::Vector<double>&     solution,
-    const dealii::DoFHandler<dim>&                          dof_handler,
-    const dealii::hp::FECollection<dim>&                    fe_collection,
-    const dealii::hp::QCollection<dim>&                     volume_quadrature_collection,
-    const unsigned int                                      grid_degree,
-    const unsigned int                                      max_degree,
-    const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-    const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
-    double                                                  dt,
-    double                                                  current_time,
-    bool                                                    is_it_a_stage,
-    dealii::Vector<double>&                                 alpha_value)
+    dealii::LinearAlgebra::distributed::Vector<double>&                                         solution,
+    const dealii::DoFHandler<dim>&                                                              dof_handler,
+    const dealii::hp::FECollection<dim>&                                                        fe_collection,
+    const dealii::hp::QCollection<dim>&                                                         volume_quadrature_collection,
+    const unsigned int                                                                          grid_degree,
+    const unsigned int                                                                          max_degree,
+    const dealii::hp::FECollection<1>                                                           oneD_fe_collection_1state,
+    const dealii::hp::QCollection<1>                                                            oneD_quadrature_collection,
+    double                                                                                      dt,
+    double                                                                                      current_time,
+    bool                                                                                        is_it_a_stage,
+    dealii::Vector<double>&                                                                     alpha_value,
+    const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field) 
 {
 
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
-        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time, is_it_a_stage, alpha_value);
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt, current_time, is_it_a_stage, alpha_value, mapping_field);
 
     //create 1D solution polynomial basis functions to interpolate the solution to the quadrature nodes
     const unsigned int init_grid_degree = grid_degree;
@@ -512,8 +520,10 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
         for (int i = 0; i < 2; ++i)
             integrating_limits[i] = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0)[i];
                                                                                     //   ^   this is the k-value; k=4 here
+
+        dealii::QGaussLobatto<dim> quad_for_l2_norm(poly_degree + 1);
         // use the integrating domain limits to develop the min-max f-function against microscopic velocity (u) points
-        std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, integrating_limits[0], integrating_limits[1]);
+        std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, 0.1, integrating_limits[0], integrating_limits[1], mapping_field, quad_for_l2_norm, fe_collection, poly_degree);
                                                                                                                 //  ^  this is the resolution of the boltmann distribution plot
         // Obtain value used to linearly scale density - *** can comment out the first 3 lines so that theta runs every time because it's bascially 
         //                                               *** the same scaling as Wang and Zhang
