@@ -280,12 +280,6 @@ real BoltzmannLimiter<dim, nstate, real>::get_alpha(
         
     }
 
-    // std::cout << "\t limit_min: \t density = " << soln_cell_min[0] << ",\t momentum = " << soln_cell_min[1] << ",\t energy = " << soln_cell_min[2] << std::endl;       
-    // std::cout << "\t cell_min: \t density = " << min_state_values[0] << ",\t momentum = " << min_state_values[1] << ",\t energy = " << min_state_values[2] << std::endl;
-    // std::cout << "\t cell_ave: \t density = " << soln_cell_avg[0] << ",\t momentum = " << soln_cell_avg[1] << ",\t energy = " << soln_cell_avg[2] << std::endl;
-    // std::cout << "\t cell_max: \t density = " << max_state_values[0] << ",\t momentum = " << max_state_values[1] << ",\t energy = " << max_state_values[2] << std::endl;
-    // std::cout << "\t limit_max: \t density = " << soln_cell_max[0] << ",\t momentum = " << soln_cell_max[1] << ",\t energy = " << soln_cell_max[2] << std::endl;
-
     for (int istate = 0; istate < nstate; ++istate) {
         real max_term = std::abs((soln_cell_max[istate] - soln_cell_avg[istate]) / max_denominators[istate]);
         real min_term = std::abs((soln_cell_min[istate] - soln_cell_avg[istate]) / min_denominators[istate]);
@@ -294,16 +288,6 @@ real BoltzmannLimiter<dim, nstate, real>::get_alpha(
         // std::cout << "\t istate: " << istate << ", entry " << 1 + 2 * istate << ": " << max_term <<
         //     ", entry " << 2 + 2 * istate << ": " << min_term << std::endl;
     }
-
-    //                             v  for outputing min and max state vector values  v
-    //                             v                                                 v
-    // if(alpha < 0.1) {
-    //     std::cout << "Local minimum values: rho=" << min_state_values[0] << ", m=" << min_state_values[1] << ", E=" << min_state_values[2] << 
-    //         "\n Local maximum values: rho=" << max_state_values[0] << ", m=" << max_state_values[1] << ", E=" << max_state_values[2] <<
-    //         "\n Global minimum values: rho=" << soln_cell_min[0] << ", m=" << soln_cell_min[1] << ", E=" << soln_cell_min[2] << 
-    //         "\n Global maximum values: rho=" << soln_cell_max[0] << ", m=" << soln_cell_max[1] << ", E=" << soln_cell_max[2] << std::endl;
-    // }
-
 
     return alpha;
 }
@@ -360,6 +344,7 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
     dealii::Vector<double>&                                                                     alpha_value,
     const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field) 
 {
+    std::cout << "Running limit";
 
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
@@ -516,32 +501,238 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
         }
 
 
-        // getting integrating domain limits for the cell for the distribution function based on k standard deviations around macroscopic velocity, U
-        std::array<real, 2> integrating_limits;
-        for (int i = 0; i < 2; ++i)
-            integrating_limits[i] = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0)[i];
-                                                                                    //   ^   this is the k-value; k=4 here
+        if (dim == 1) {
+            // getting integrating domain limits for the cell for the distribution function based on k standard deviations around macroscopic velocity, U
+            std::array<real, 2> integrating_limits;
+            for (int i = 0; i < 2; ++i)
+                integrating_limits[i] = get_integrating_domain(soln_at_q[0], n_quad_pts, 4.0)[i];
+                                                                                        //   ^   this is the k-value; k=4 here
 
-        dealii::QGaussLobatto<dim> quad_for_l2_norm(poly_degree + 1);
-        // use the integrating domain limits to develop the min-max f-function against microscopic velocity (u) points
-        std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, this->resolution, integrating_limits[0], integrating_limits[1], mapping_field, quad_for_l2_norm, fe_collection, poly_degree);
-                                                                                                                //  ^  this is the resolution of the boltmann distribution plot
-        // Obtain value used to linearly scale density - *** can comment out the first 3 lines so that theta runs every time because it's bascially 
-        //                                               *** the same scaling as Wang and Zhang
+            dealii::QGaussLobatto<dim> quad_for_l2_norm(poly_degree + 1);
+            // use the integrating domain limits to develop the min-max f-function against microscopic velocity (u) points
+            std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, this->resolution, integrating_limits[0], integrating_limits[1], mapping_field, quad_for_l2_norm, fe_collection, poly_degree);
+                                                                                                                    //  ^  this is the resolution of the boltmann distribution plot
+            std::vector<std::vector<real>> cell_max_and_mins = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
 
-        // use the f-function points to obtain macroscopic state vector limits - outputs state vector and pressure ie., dim + 3 values for min and then max
-        // std::vector<real> soln_cell_min(nstate);
-        // std::vector<real> soln_cell_max(nstate);
-        std::vector<std::vector<real>> cell_max_and_mins = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
-        // soln_cell_min = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[0];
-        // soln_cell_max = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2])[1];
-
-        for(int istate = 0; istate < nstate; ++istate) {
-            if(state_max[istate] < cell_max_and_mins[1][istate])
-                state_max[istate] = cell_max_and_mins[1][istate];
-            if(state_min[istate] > cell_max_and_mins[0][istate])
-                state_min[istate] = cell_max_and_mins[0][istate];
+            for(int istate = 0; istate < nstate; ++istate) {
+                if(state_max[istate] < cell_max_and_mins[1][istate])
+                    state_max[istate] = cell_max_and_mins[1][istate];
+                if(state_min[istate] > cell_max_and_mins[0][istate])
+                    state_min[istate] = cell_max_and_mins[0][istate];
+            }
         }
+
+
+///// 2D implementation /////
+        if (dim == 2) {
+
+            /// (1) get_integrating_domain ///
+
+            std::vector<real> u_bounds(2, 0.0);
+            std::vector<real> v_bounds(2, 0.0);
+            std::array<real, nstate> soln_at_iquad;
+            int k = 4;
+
+            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    soln_at_iquad[istate] = soln_at_q[0][istate][iquad];
+                }
+
+                real U = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[1];
+                real V = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[2];
+
+                real density = soln_at_iquad[0];
+                real pressure = euler_physics->compute_pressure(soln_at_iquad);
+
+                if(pressure > 1e9)
+                    std::cout << density << "   " << soln_at_iquad[1] << "    " << soln_at_iquad[2] << std::endl;
+
+                real theta = pressure / density;              
+
+                u_bounds[0] = std::min(U - k * sqrt(theta), u_bounds[0]);
+                u_bounds[1] = std::max(U + k * sqrt(theta), u_bounds[1]);
+                v_bounds[0] = std::min(V - k * sqrt(theta), v_bounds[0]);
+                v_bounds[1] = std::max(V + k * sqrt(theta), v_bounds[1]);
+            }    
+
+            /// (1) /////////////////////////
+
+            dealii::QGaussLobatto<2> quad_for_l2_norm(poly_degree + 1);
+
+            /// (2+3) get_boltzmann_distribution + boltzmann_limits ///
+
+            const int num_u = static_cast<int>((u_bounds[1] - u_bounds[0]) / resolution) + 1;
+            const int num_v = static_cast<int>((v_bounds[1] - v_bounds[0]) / resolution) + 1;
+            if(num_u < 0) {
+                std::cout << "Error: Integrating limits are diverging from nonphysical values....Aborting" << std::endl;
+                std::cout << "u lower bound:   " << u_bounds[0] << "    u upper bound:   " << u_bounds[1] << std::endl;
+                std::abort();
+            }
+            if(num_v < 0) {
+                std::cout << "Error: Integrating limits are diverging from nonphysical values....Aborting" << std::endl;
+                std::cout << "v lower bound:   " << v_bounds[0] << "    v upper bound:   " << v_bounds[1] << std::endl;
+                std::abort();
+            }
+
+            real pi = std::acos(-1.0);
+
+            std::vector<std::vector<real>> f_min( num_u, std::vector<real>(num_v, std::numeric_limits<real>::max()) );
+            std::vector<std::vector<real>> f_max( num_u, std::vector<real>(num_v, std::numeric_limits<real>::lowest()) );
+            std::vector <std::vector <std::vector<real>>> g( num_u, std::vector <std::vector<real>>(num_v, std::vector<real>(n_quad_pts, 0.0)) );
+            
+            // initializing boltzmann limits
+            real rho_min = 0.0;
+            real rho_max = 0.0;
+            real u_momentum_min = 0.0;
+            real u_momentum_max = 0.0;
+            real v_momentum_min = 0.0;
+            real v_momentum_max = 0.0;
+            real E_min = 0.0;
+            real E_max = 0.0;
+
+            dealii::FEValues<dim, dim> fe_values(*mapping_field, fe_collection[poly_degree], quad_for_l2_norm,
+                dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+            
+            for (int i = 0; i < num_u; ++i) {
+                
+                real u = u_bounds[0] + i * resolution;
+
+                real l2_squared = 0.0;
+                    
+                for (int j = 0; j < num_v; ++j) {
+                    
+                    real v = v_bounds[0] + j * resolution;
+
+                    std::array<real, nstate> soln_at_iquad;
+
+                    // computing l2_squared
+                    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                        for (unsigned int istate = 0; istate < nstate; ++istate) {          // iterates through each state variable (ρ, m, E)
+                            soln_at_iquad[istate] = soln_at_q_dim[istate][iquad];               // sets state vector do be manipulated in the loop
+                        }
+
+                        real U = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[1];
+                        real V = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[2];
+
+                        // l2_squared += (pow(u - U, 2.0) + pow(v - V, 2.0));                                   // sums together L2 norm across element excluding quad weights
+                        l2_squared += (pow(u - U, 2.0) + pow(v - V, 2.0)) * fe_values.JxW(iquad);               // sums together L2 norm across element including quad weights   
+                        std::cout << "U = " << U << ", V = " << V << ", fe_values.JxW(iquad) = " << fe_values.JxW(iquad) << ", l2_squared = " << l2_squared << std::endl;
+                    }
+
+                    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+
+                        real pressure = 0.0;
+
+                        real density = soln_at_iquad[0];
+
+                        if (nstate == dim + 2)                                          // checks if it is a NS or Euler problem
+                            pressure = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[dim+1];
+
+                        real theta = pressure/density;
+
+                        g[i][j][iquad] = (density/(pow(2*pi*theta, dim/2.0)))*exp(-l2_squared/(2*theta));
+                        std::cout << "density = " << density << ", theta = " << theta << ", l2_squared = " << l2_squared << ", g = " << g[i][j][iquad] << std::endl;
+
+                        // std::cout << "u = " << u << ", v = " << v << ": g = " << g[i][j][iquad] << std::endl;
+
+                        f_min[i][j] = std::min(f_min[i][j], g[i][j][iquad]);
+                        f_max[i][j] = std::max(f_max[i][j], g[i][j][iquad]);
+                    }
+                    // output_points[0][i][j] = u;
+                    // output_points[1][i][j] = v;
+                    // output_points[2][i][j] = f_min[i][j];
+                    // output_points[3][i][j] = f_max[i][j];
+
+                }
+
+            }
+
+            for (int i = 0; i < num_u - 1; ++i) {
+
+                real u = u_bounds[0] + i * resolution;
+                real u_ave = u + resolution / 2;
+
+                for (int j = 0; j < num_v - 1; ++j) {
+
+                    real v = v_bounds[0] + j * resolution;
+                    real v_ave = v + resolution / 2;
+
+                    real u_v_dot_product = pow(u_ave, 2.0) + pow(v_ave, 2.0);
+
+                    real f_min_ave = 0.25 * (f_min[i][j] + f_min[i + 1][j] + f_min[i][j+1] + f_min[i+1][j+1]);
+                    real f_max_ave = 0.25 * (f_max[i][j] + f_max[i + 1][j] + f_max[i][j+1] + f_max[i+1][j+1]);
+
+                    real dudv = resolution * resolution;
+
+                    rho_min += f_min_ave * dudv;
+                    rho_max += f_max_ave * dudv;
+                    
+                    if(u_ave > 0) {
+                        u_momentum_min += f_max_ave * u_ave * dudv;
+                        u_momentum_max += f_min_ave * u_ave * dudv;
+                    } else {
+                        u_momentum_min += f_min_ave * u_ave * dudv;
+                        u_momentum_max += f_max_ave * u_ave * dudv;
+                    }
+
+                    if(v_ave > 0) {
+                        v_momentum_min += f_max_ave * v_ave * dudv;
+                        v_momentum_max += f_min_ave * v_ave * dudv;
+                    } else {
+                        v_momentum_min += f_min_ave * v_ave * dudv;
+                        v_momentum_max += f_max_ave * v_ave * dudv;
+                    }
+
+                    E_min += 0.5 * u_v_dot_product * f_min_ave * dudv;
+                    E_max += 0.5 * u_v_dot_product * f_max_ave * dudv;
+                }
+            }
+
+            /////////////////////////// (2+3) ///////////////////////////
+
+            ////////////////// (4) get_alpha //////////////////
+            real alpha = 1.0;
+
+            std::vector<real> min_state_values(nstate);
+            std::vector<real> max_state_values(nstate);
+
+            std::vector<real> min_denominators(nstate);
+            std::vector<real> max_denominators(nstate);    
+
+            for (int istate = 0; istate < nstate; ++istate) {
+                
+                // initialize values using the first quad point
+                min_state_values[istate] = soln_at_q_dim[istate][0];
+                max_state_values[istate] = soln_at_q_dim[istate][0];
+                
+                // iterate through the rest of the quad points and obtain minimum and maximum values
+                for (unsigned int iquad = 1; iquad < n_quad_pts; ++iquad){
+
+                    // replace minimum value if lower than previous minimum
+                    if (soln_at_q_dim[istate][iquad] < min_state_values[istate])
+                        min_state_values[istate] = soln_at_q_dim[istate][iquad];
+
+                    if(min_state_values[istate] == 1e9)
+                        std::cout << "the solution at the quadrature point for state  " << istate << "  is  " << soln_at_q_dim[istate][iquad] << std::endl;
+                    
+                    // replace maximum value if greater than previous minimum
+                    if (soln_at_q_dim[istate][iquad] > max_state_values[istate])
+                        max_state_values[istate] = soln_at_q_dim[istate][iquad];
+                }
+
+                min_denominators[istate] = min_state_values[istate] - soln_cell_avg[istate];
+                max_denominators[istate] = max_state_values[istate] - soln_cell_avg[istate];
+            }
+
+            for (int istate = 0; istate < nstate; ++istate) {
+                real max_term = std::abs((soln_cell_max[istate] - soln_cell_avg[istate]) / max_denominators[istate]);
+                real min_term = std::abs((soln_cell_min[istate] - soln_cell_avg[istate]) / min_denominators[istate]);
+                alpha = std::min(max_term, alpha);
+                alpha = std::min(min_term, alpha);
+            }
+            ////////////////////   (4)   //////////////////////
+        }
+            
 
         // Get epsilon (lower bound for rho) for theta limiter
         if(state_min[0] < lower_bound)
