@@ -727,6 +727,7 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
             for (int istate = 0; istate < nstate; ++istate) {
                 real max_term = std::abs((max_state_values[istate] - soln_cell_avg[istate]) / max_denominators[istate]);
                 real min_term = std::abs((min_state_values[istate] - soln_cell_avg[istate]) / min_denominators[istate]);
+
                 alpha = std::min(max_term, alpha);
                 alpha = std::min(min_term, alpha);
             }
