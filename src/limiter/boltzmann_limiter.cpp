@@ -109,10 +109,7 @@ std::vector< std::vector<real> >  BoltzmannLimiter<dim, nstate, real>::get_boltz
     const double                                                                                resolution,
     const double                                                                                lower_distribution_limit,
     const double                                                                                upper_distribution_limit,
-    const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field,
-    dealii::QGaussLobatto<dim>                                                                  quad_for_l2_norm,
-    const dealii::hp::FECollection<dim>&                                                        fe_collection,
-    const int                                                                                   poly_degree)
+    dealii::FEValues<dim, dim>&                                                                 fe_values)
 {
     const int num_u = static_cast<int>((upper_distribution_limit - lower_distribution_limit) / resolution) + 1;
     if(num_u < 0) {
@@ -128,9 +125,6 @@ std::vector< std::vector<real> >  BoltzmannLimiter<dim, nstate, real>::get_boltz
     std::vector<real> f_min(num_u, std::numeric_limits<real>::max());
     std::vector<real> f_max(num_u, std::numeric_limits<real>::lowest());
     std::vector< std::vector<real> > g(num_u, std::vector<real>(n_quad_pts, 0.0));
-
-    dealii::FEValues<dim, dim> fe_values(*mapping_field, fe_collection[poly_degree], quad_for_l2_norm,
-        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
 
     for (int i = 0; i < num_u; ++i) {
 
@@ -368,9 +362,13 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
         state_min.resize(nstate,1e9);
     }
 
+    dealii::FEValues<dim, dim> fe_values(fe_collection[max_degree], volume_quadrature_collection[max_degree],
+        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+
     for (auto soln_cell : dof_handler.active_cell_iterators()) {
         if (!soln_cell->is_locally_owned()) continue;
 
+        fe_values.reinit(soln_cell);
         std::vector<dealii::types::global_dof_index> current_dofs_indices;
         // Current reference element related to this physical cell
         const int i_fele = soln_cell->active_fe_index();
@@ -510,7 +508,7 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
 
             dealii::QGaussLobatto<dim> quad_for_l2_norm(poly_degree + 1);
             // use the integrating domain limits to develop the min-max f-function against microscopic velocity (u) points
-            std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, this->resolution, integrating_limits[0], integrating_limits[1], mapping_field, quad_for_l2_norm, fe_collection, poly_degree);
+            std::vector< std::vector<real> > min_max_envelope = get_boltzmann_distribution(soln_at_q[0], n_quad_pts, this->resolution, integrating_limits[0], integrating_limits[1], fe_values);
                                                                                                                     //  ^  this is the resolution of the boltmann distribution plot
             std::vector<std::vector<real>> cell_max_and_mins = boltzmann_limits(min_max_envelope[0], min_max_envelope[1], min_max_envelope[2]);
 
@@ -557,7 +555,7 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
 
             /// (1) /////////////////////////
 
-            dealii::QGaussLobatto<2> quad_for_l2_norm(poly_degree + 1);
+            //dealii::QGaussLobatto<2> quad_for_l2_norm(poly_degree + 1);
 
             /// (2+3) get_boltzmann_distribution + boltzmann_limits ///
 
@@ -590,9 +588,9 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
             real E_min = 0.0;
             real E_max = 0.0;
 
-            dealii::FEValues<dim, dim> fe_values(*mapping_field, fe_collection[poly_degree], quad_for_l2_norm,
+            dealii::FEValues<dim, dim> fe_values_2D(fe_collection[poly_degree], volume_quadrature_collection[poly_degree],
                 dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
-            
+            fe_values_2D.reinit(soln_cell);
             for (int i = 0; i < num_u; ++i) {
                 
                 real u = u_bounds[0] + i * resolution;
@@ -615,8 +613,8 @@ void BoltzmannLimiter<dim, nstate, real>::limit(
                         real V = euler_physics->convert_conservative_to_primitive(soln_at_iquad)[2];
 
                         // l2_squared += (pow(u - U, 2.0) + pow(v - V, 2.0));                                   // sums together L2 norm across element excluding quad weights
-                        l2_squared += (pow(u - U, 2.0) + pow(v - V, 2.0)) * fe_values.JxW(iquad);               // sums together L2 norm across element including quad weights   
-                        std::cout << "U = " << U << ", V = " << V << ", fe_values.JxW(iquad) = " << fe_values.JxW(iquad) << ", l2_squared = " << l2_squared << std::endl;
+                        l2_squared += pow(pow(u - U, 2.0) + pow(v - V, 2.0),1/dim) * fe_values_2D.JxW(iquad);               // sums together L2 norm across element including quad weights   
+                        std::cout << "U = " << U << ", V = " << V << ", fe_values_2D.JxW(iquad) = " << fe_values_2D.JxW(iquad) << ", l2_squared = " << l2_squared << std::endl;
                     }
 
                     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {

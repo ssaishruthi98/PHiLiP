@@ -77,10 +77,7 @@ protected:
     const double                                                                                resolution,
     const double                                                                                lower_distribution_limit,
     const double                                                                                upper_distribution_limit,
-    const std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>>            mapping_field,
-    dealii::QGaussLobatto<dim>                                                                  quad_for_l2_norm,
-    const dealii::hp::FECollection<dim>&                                                        fe_collection,
-    const int                                                                                   poly_degree);
+    dealii::FEValues<dim, dim>&                                                                 fe_values);
 
     /// Use the Boltzmann distribution to obtain the macroscopic maxima and minima for density, momentum, and energy
     std::vector< std::vector<real>> boltzmann_limits(
