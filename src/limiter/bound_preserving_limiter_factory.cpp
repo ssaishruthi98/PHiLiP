@@ -72,17 +72,18 @@ std::unique_ptr< BoundPreservingLimiter<dim, real> >
             }
         }
     } else if (limiter_type == limiter_enum::positivity_preservingDzanic2025) {
-        if (dim == 1 && nstate == dim + 2)
+        if (nstate == dim + 2)
+        // if (dim == 1 && nstate == dim + 2)
             return std::make_unique< BoltzmannLimiter<dim, nstate, real> >(parameters_input);
         else {
             if(nstate != dim + 2) {
                 std::cout << "Error: Cannot create Boltzmann limiter for nstate_input != dim + 2" << std::endl;
                 std::abort();
             }
-            if(dim != 1) {
-                std::cout << "Error: Cannot create Boltzmann limiter for dim > 1" << std::endl;
-                std::abort();
-            }
+            // if(dim != 1) {
+            //     std::cout << "Error: Cannot create Boltzmann limiter for dim > 1" << std::endl;
+            //     std::abort();
+            // }
         }
     }
 
