@@ -522,12 +522,10 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         std::array<real, nspecies> theta_species;
         if (nspecies > 1) {
             for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
-                std::cout << nstate << "   " << dim+2+(ispecies-1) << std::endl << std::endl;
-                theta_species[ispecies] = get_density_scaling_value(soln_cell_avg[dim+2+(ispecies-1)], local_min_species_density[ispecies], lower_bound, p_avg);
+                theta_species[ispecies] = get_density_scaling_value(soln_cell_avg[dim+2+ispecies], local_min_species_density[ispecies], lower_bound, p_avg);
                 if (theta_species[ispecies] < 0.9999)
                     std::cout << "Species is limited. Species " << ispecies << " has a theta of " << theta_species[ispecies] << std::endl;
             }
-            sleep(5);
         }
         
 
