@@ -36,6 +36,9 @@ public:
     /// Euler physics pointer. Used to compute pressure.
     std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
+    /// Real gas physics pointer. Used to compute pressure.
+    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
+
     /// Function to obtain the solution cell average
     using BoundPreservingLimiterState<dim, nspecies, nstate, real>::get_soln_cell_avg;
 

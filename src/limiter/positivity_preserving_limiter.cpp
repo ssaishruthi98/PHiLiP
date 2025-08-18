@@ -36,8 +36,18 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
             parameters_input->euler_param.side_slip_angle,
             manufactured_solution_function,
             parameters_input->two_point_num_flux_type);
-    }
-    else {
+    } else if (pde_type == PDE_enum::real_gas && nstate == (dim + 2 + (nspecies-1))) {
+        using limiter_enum = Parameters::LimiterParam::LimiterType;
+        limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
+        if(limiter_type == limiter_enum::positivity_preservingZhang2010) {
+            std::cout << "Error: Zhang 2010 limiting has not been implemented for multispecies flow" << std::endl;
+            std::abort();
+        } else {
+            real_gas_physics = std::make_shared < Physics::RealGas<dim, nstate, real> >(
+                parameters_input,
+                manufactured_solution_function);
+        }
+    } else {
         std::cout << "Error: Positivity-Preserving Limiter can only be applied for pde_type==euler" << std::endl;
         std::abort();
     }
@@ -127,8 +137,10 @@ real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_theta2_Wang20
         }
         real p_lim = 0;
 
-        if (nstate == dim + 2)
+        if (nspecies == 1 && nstate == dim + 2)
             p_lim = euler_physics->compute_pressure(soln_at_iquad);
+        if (nspecies > 1 && nstate == (dim + 2 + (nspecies - 1)))
+            p_lim = real_gas_physics->compute_mixture_pressure(soln_at_iquad);
 
         if (p_lim >= 0)
             t2[iquad] = 1;
@@ -186,7 +198,10 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::write_limited_sol
             }
 
             // Verify that positivity of Total Energy is preserved after application of theta2 limiter
-            if (istate == (nstate - 1) && solution[current_dofs_indices[idof]] < 0) {
+            if (nspecies == 1 && istate == (nstate - 1) && solution[current_dofs_indices[idof]] < 0) {
+                std::cout << "Error: Total Energy is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::abort();
+            } else if (nspecies == 1 && istate == (dim + 2 - 1) && solution[current_dofs_indices[idof]] < 0) {
                 std::cout << "Error: Total Energy is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
@@ -310,13 +325,25 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nspecies, nstate, real
                     local_soln_at_q_3[istate] = 0.0;
             }
             // Update the maximum local wave speed (i.e. convective eigenvalue)
-            const real local_wave_speed_1 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_1);
-            const real local_wave_speed_2 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_2);
-
+            real local_wave_speed_1 = 0.0;
+            real local_wave_speed_2 = 0.0;
             real local_wave_speed_3 = 0.0;
-            if(dim == 3)
-                local_wave_speed_3 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_3);
+            if (nspecies==1 && nstate==dim+2+(nspecies-1)){
+                local_wave_speed_1 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_1);
+                local_wave_speed_2 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_2);
 
+                local_wave_speed_3 = 0.0;
+                if(dim == 3)
+                    local_wave_speed_3 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_3);
+            }
+            else if (nspecies>1 && nstate==dim+2+(nspecies-1)){
+                local_wave_speed_1 = this->real_gas_physics->max_convective_eigenvalue(local_soln_at_q_1);
+                local_wave_speed_2 = this->real_gas_physics->max_convective_eigenvalue(local_soln_at_q_2);
+
+                local_wave_speed_3 = 0.0;
+                if(dim == 3)
+                    local_wave_speed_3 = this->real_gas_physics->max_convective_eigenvalue(local_soln_at_q_3);
+            }
             if(local_wave_speed_1 > max_local_wave_speed_1) max_local_wave_speed_1 = local_wave_speed_1;
             if(local_wave_speed_2 > max_local_wave_speed_2) max_local_wave_speed_2 = local_wave_speed_2;
             if(dim == 3 && local_wave_speed_3 > max_local_wave_speed_3) max_local_wave_speed_3 = local_wave_speed_3;
@@ -392,6 +419,10 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
 
         const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
         real local_min_density = 1e6;
+        std::array<real,nspecies> local_min_species_density;
+        for(unsigned int ispecies = 0; ispecies < nspecies; ++ispecies) {
+            local_min_species_density[ispecies] = 1e6;
+        }
 
         for (unsigned int istate = 0; istate < nstate; ++istate) {
             soln_coeff[istate].resize(n_shape_fns);
@@ -449,13 +480,23 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             }
             soln_at_q[idim] = soln_at_q_dim;
         }
-
+        
         for (unsigned int idim = 0; idim < dim; ++idim) {
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 if (soln_coeff[0][iquad] < local_min_density)
                     local_min_density = soln_coeff[0][iquad];
                 if (soln_at_q[idim][0][iquad] < local_min_density)
                     local_min_density = soln_at_q[idim][0][iquad];
+        
+                if (nspecies > 1) {
+                    for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+                        int index = dim + 2 + ispecies;
+                        if (soln_coeff[index][iquad] < local_min_species_density[ispecies])
+                            local_min_species_density[ispecies] = soln_coeff[index][iquad];
+                        if (soln_at_q[idim][index][iquad] < local_min_species_density[ispecies])
+                            local_min_species_density[ispecies] = soln_at_q[idim][index][iquad];
+                    } 
+                }
             }
         }
 
@@ -468,33 +509,74 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         real lower_bound = this->all_parameters->limiter_param.min_density;
         real p_avg = 1e-13;
 
-        if (nstate == dim + 2) {
+        if (nspecies==1 && nstate == dim + 2) {
             // Compute average value of pressure using soln_cell_avg
             p_avg = euler_physics->compute_pressure(soln_cell_avg);
+        } else if(nspecies > 1 && nstate == dim + 2 + (nspecies-1)) {
+            // Compute average value of pressure using soln_cell_avg
+            p_avg = real_gas_physics->compute_mixture_pressure(soln_cell_avg);
         }
         
         // Obtain value used to linearly scale density
         real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
+        std::array<real, nspecies> theta_species;
+        if (nspecies > 1) {
+            for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+                std::cout << nstate << "   " << dim+2+(ispecies-1) << std::endl << std::endl;
+                theta_species[ispecies] = get_density_scaling_value(soln_cell_avg[dim+2+(ispecies-1)], local_min_species_density[ispecies], lower_bound, p_avg);
+                if (theta_species[ispecies] < 0.9999)
+                    std::cout << "Species is limited. Species " << ispecies << " has a theta of " << theta_species[ispecies] << std::endl;
+            }
+            sleep(5);
+        }
+        
 
         // Apply limiter on density values at quadrature points
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
             soln_coeff[0][ishape] = theta*(soln_coeff[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
+            if(nspecies > 1) {
+                for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+                    int index = dim + 2 + ispecies;
+                    soln_coeff[index][ishape] = theta_species[ispecies]*(soln_coeff[index][ishape] - soln_cell_avg[index]) + soln_cell_avg[index];
+                }
+            }
         }
 
         // Interpolate new density values to mixed quadrature points
         if(dim >= 1) {
             soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[0][0],
                 soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
+            if(nspecies > 1) {
+                for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+                    int index = dim + 2 + ispecies;
+                    soln_basis_GLL.matrix_vector_mult(soln_coeff[index], soln_at_q[0][index],
+                        soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
+                }
+            }
         }
 
         if(dim >= 2) {
             soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[1][0],
                 soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
+            if(nspecies > 1) {
+                for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+                    int index = dim + 2 + ispecies;
+                    soln_basis_GLL.matrix_vector_mult(soln_coeff[index], soln_at_q[1][index],
+                        soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
+                }
+            }
         }
 
         if(dim == 3) {
             soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[2][0],
                 soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator);
+            if(nspecies > 1) {
+                for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+                    int index = dim + 2 + ispecies;
+                    soln_basis_GLL.matrix_vector_mult(soln_coeff[index], soln_at_q[2][index],
+                        soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
+                }
+            }
         }
 
 
@@ -502,7 +584,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
-        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + 2) {
+        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + 2 + (nspecies-1)) {
             std::array<real, dim> theta2_quad;
             for(unsigned int idim = 0; idim < dim; ++idim) {
                 theta2_quad[idim] = get_theta2_Wang2012(soln_at_q[idim], n_quad_pts, p_avg);
@@ -525,9 +607,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                 }
             }
         }
-
-        if (limiter_type == limiter_enum::positivity_preservingZhang2010 && nstate == dim + 2) {
-
+        else if (limiter_type == limiter_enum::positivity_preservingZhang2010 && nstate == dim + 2) {
             std::array<std::vector< real >, dim> p_lim_quad;
             std::array<real, nstate> soln_at_iquad;
 
@@ -574,6 +654,10 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                             + soln_cell_avg[istate];
                 }
             }
+        }
+        else {
+            std::cout << "Error: Pressure limiting step not entered... " << std::endl << std::flush;
+            std::abort();
         }
 
         if (isnan(theta2)) {

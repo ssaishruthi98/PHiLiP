@@ -14,6 +14,8 @@ set pde_type = real_gas
 set chemistry_input_file = ../../chemistry/ReactionFiles/N2_O2.kinetics
 set initial_mixture_fractions_input_file = ../../chemistry/InitialMixtureFiles/InitialMixtureFractions_N2_O2.txt
 
+# set flux nodes to GLL (default is GL)
+set flux_nodes_type = GLL
 
 # DG formulation
 set use_weak_form = true
@@ -27,6 +29,12 @@ set use_periodic_bc = true
 
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
+
+# apply limiter
+subsection limiter
+ set bound_preserving_limiter = positivity_preservingWang2012
+ set min_density = 1e-13
+end
 
 # numerical fluxes
 set conv_num_flux = lax_friedrichs
@@ -55,5 +63,14 @@ subsection flow_solver
     set grid_left_bound = -10.0
     set grid_right_bound = 10.0
     set number_of_grid_elements_per_dimension = 16
+	subsection positivity_preserving_tests
+	 set grid_xmin = -10.0
+	 set grid_xmax = 10.0
+	 set grid_ymin = -10.0
+	 set grid_ymax = 10.0
+
+	 set number_of_grid_elements_x = 16
+	 set number_of_grid_elements_y = 16
+	end
   end
 end

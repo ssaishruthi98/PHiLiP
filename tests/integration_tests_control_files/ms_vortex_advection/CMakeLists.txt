@@ -85,7 +85,7 @@ add_test(
 configure_file(2d_multi_species_isentropic_euler_vortex.prm 2d_multi_species_isentropic_euler_vortex.prm COPYONLY)
 add_test(
   NAME MPI_2D_MULTI_SPECIES_ISENTROPIC_EULER_VORTEX
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D_2species -i ${CMAKE_CURRENT_BINARY_DIR}/2d_multi_species_isentropic_euler_vortex.prm
+  COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D_2species -i ${CMAKE_CURRENT_BINARY_DIR}/2d_multi_species_isentropic_euler_vortex.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 

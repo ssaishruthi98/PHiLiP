@@ -88,10 +88,15 @@ std::array<real,nstate> RealGas<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real RealGas<dim,nstate,real>
-::max_convective_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
     // Note: define this when max_convective_eigenvalue for multi-species are required in the future
-    const real max_eig = 0.0;
+    const real sound = compute_sound (conservative_soln);
+
+    real vel2 = compute_velocity_squared(conservative_soln);
+
+    const real max_eig = sqrt(vel2) + sound;
+
     return max_eig;
 }
 
