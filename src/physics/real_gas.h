@@ -135,11 +135,11 @@ protected:
 
     // Algorithm 5 (f_M5): Compute mixture specific total energy from conservative_soln
     real compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const;
-
+    
+public:
     // Algorithm 6 (f_M6): Compute species densities from conservative_soln 
     std::array<real,nstate-dim-1> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 
-public:
     // Algorithm 7 (f_M7): Compute mass fractions from conservative_soln 
     std::array<real,nstate-dim-1> compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const;
 

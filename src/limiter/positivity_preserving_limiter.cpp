@@ -179,6 +179,25 @@ real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_density_scali
 }
 
 template <int dim, int nspecies, int nstate, typename real>
+real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_density_scaling_value_species(
+    const double    species_avg,
+    const double    species_quad,
+    const double    mixture_avg,
+    const double    mixture_quad)
+{
+    real theta = 1.0; // Value used to linearly scale density 
+    real denominator = (species_avg*mixture_quad)-(species_quad*mixture_avg);
+
+    if (denominator > 1e-13)
+        theta = (-1.0*species_quad*mixture_avg) / denominator;
+
+    //if (theta < 0 || theta > 1)
+    //   theta = 0.0;
+
+    return theta;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
 void PositivityPreservingLimiter<dim, nspecies, nstate, real>::write_limited_solution(
     dealii::LinearAlgebra::distributed::Vector<double>& solution,
     const std::array<std::vector<real>, nstate>& soln_coeff,
@@ -489,7 +508,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                     local_min_density = soln_at_q[idim][0][iquad];
         
                 if (nspecies > 1) {
-                    for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+                    for(unsigned int ispecies = 0; ispecies < (nstate-dim-2); ++ispecies) {
                         int index = dim + 2 + ispecies;
                         if (soln_coeff[index][iquad] < local_min_species_density[ispecies])
                             local_min_species_density[ispecies] = soln_coeff[index][iquad];
@@ -508,6 +527,15 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
 
         real lower_bound = this->all_parameters->limiter_param.min_density;
         real p_avg = 1e-13;
+        real last_species_avg = 0.0;
+        if (nspecies > 1) {
+            real avg_sum = 0.0;
+            for(unsigned int ispecies = 0; ispecies < (nstate-dim-2); ++ispecies) {
+                int index = dim + 2 + ispecies;
+                avg_sum += soln_cell_avg[index];
+            }
+            last_species_avg = soln_cell_avg[0] - avg_sum;
+        }
 
         if (nspecies==1 && nstate == dim + 2) {
             // Compute average value of pressure using soln_cell_avg
@@ -519,23 +547,51 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         
         // Obtain value used to linearly scale density
         real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
-        std::array<real, nspecies> theta_species;
-        if (nspecies > 1) {
-            for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
-                theta_species[ispecies] = get_density_scaling_value(soln_cell_avg[dim+2+ispecies], local_min_species_density[ispecies], lower_bound, p_avg);
-                if (theta_species[ispecies] < 0.9999)
-                    std::cout << "Species is limited. Species " << ispecies << " has a theta of " << theta_species[ispecies] << std::endl;
-            }
-        }
-        
+
 
         // Apply limiter on density values at quadrature points
-        for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
-            soln_coeff[0][ishape] = theta*(soln_coeff[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
-            if(nspecies > 1) {
-                for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            soln_coeff[0][iquad] = theta*(soln_coeff[0][iquad] - soln_cell_avg[0]) + soln_cell_avg[0];
+            // if(nspecies > 1) {
+            //     for(unsigned int ispecies = 0; ispecies < (nstate-dim-2); ++ispecies) {
+            //         int index = dim + 2 + ispecies;
+            //         soln_coeff[index][iquad] = theta*(soln_coeff[index][iquad] - soln_cell_avg[index]) + soln_cell_avg[index];
+            //     }
+            // }
+        }
+        if(nspecies > 1) {
+            std::array<real, nstate> soln_at_iquad;
+            real theta_species = 0.0;
+            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    soln_at_iquad[istate] = soln_coeff[istate][iquad];
+                }
+
+                std::array<real,nstate-dim-1> species_densities = real_gas_physics->compute_species_densities(soln_at_iquad);
+                real theta_species_quad = 0.0;
+                
+                for(unsigned int ispecies = 0; ispecies < (nstate-dim-2); ++ispecies) {
                     int index = dim + 2 + ispecies;
-                    soln_coeff[index][ishape] = theta_species[ispecies]*(soln_coeff[index][ishape] - soln_cell_avg[index]) + soln_cell_avg[index];
+                    theta_species_quad = 0.0;
+                
+                    if (species_densities[ispecies]<0)
+                        theta_species_quad = get_density_scaling_value_species(soln_cell_avg[index],species_densities[ispecies],soln_cell_avg[0],soln_coeff[0][iquad]);
+
+                    if (theta_species_quad > theta_species)
+                        theta_species = theta_species_quad;
+                }
+
+                theta_species_quad = 0.0;
+                if (species_densities[nstate-dim-2]<0)
+                        theta_species_quad = get_density_scaling_value_species(last_species_avg,species_densities[nstate-dim-2],soln_cell_avg[0],soln_coeff[0][iquad]);
+                if (theta_species_quad > theta_species)
+                        theta_species = theta_species_quad;
+            }
+
+            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                for(unsigned int ispecies = 0; ispecies < (nstate-dim-2); ++ispecies) {
+                    int index = dim + 2 + ispecies;
+                    soln_coeff[index][iquad] = soln_coeff[index][iquad] + theta_species*((soln_cell_avg[index]/soln_cell_avg[0])*soln_coeff[0][iquad]-soln_coeff[index][iquad]);
                 }
             }
         }
@@ -545,7 +601,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[0][0],
                 soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
             if(nspecies > 1) {
-                for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+                for(unsigned int ispecies = 0; ispecies < (nstate-dim-2); ++ispecies) {
                     int index = dim + 2 + ispecies;
                     soln_basis_GLL.matrix_vector_mult(soln_coeff[index], soln_at_q[0][index],
                         soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
@@ -557,7 +613,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[1][0],
                 soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
             if(nspecies > 1) {
-                for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+                for(unsigned int ispecies = 0; ispecies < (nstate-dim-2); ++ispecies) {
                     int index = dim + 2 + ispecies;
                     soln_basis_GLL.matrix_vector_mult(soln_coeff[index], soln_at_q[1][index],
                         soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
@@ -569,14 +625,13 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[2][0],
                 soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator);
             if(nspecies > 1) {
-                for(unsigned int ispecies = 0; ispecies < (nstate-dim-1)-1; ++ispecies) {
+                for(unsigned int ispecies = 0; ispecies < (nstate-dim-2); ++ispecies) {
                     int index = dim + 2 + ispecies;
                     soln_basis_GLL.matrix_vector_mult(soln_coeff[index], soln_at_q[2][index],
                         soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
                 }
             }
         }
-
 
         real theta2 = 1.0;
         using limiter_enum = Parameters::LimiterParam::LimiterType;

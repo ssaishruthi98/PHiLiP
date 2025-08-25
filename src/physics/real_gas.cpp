@@ -237,10 +237,10 @@ inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     std::array<real,nstate-dim-1> species_densities;
     real sum = 0.0;
     for (int s=0; s<(nstate-dim-1)-1; ++s) 
-        { 
-            species_densities[s] = conservative_soln[dim+2+s]; 
-            sum += species_densities[s];
-        }
+    { 
+        species_densities[s] = conservative_soln[dim+2+s]; 
+        sum += species_densities[s];
+    }
     species_densities[(nstate-dim-1)-1] = mixture_density - sum;
 
     return species_densities;
