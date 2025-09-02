@@ -452,8 +452,11 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
         for (unsigned int idim = 0; idim < dim; ++idim) {
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                if (soln_coeff[0][iquad] < local_min_density)
-                    local_min_density = soln_coeff[0][iquad];
+                //COMMENT HERE
+                // if (soln_coeff[0][iquad] < local_min_density)
+                //     local_min_density = soln_coeff[0][iquad];
+                //UNTIL HERE
+
                 if (soln_at_q[idim][0][iquad] < local_min_density)
                     local_min_density = soln_at_q[idim][0][iquad];
             }
@@ -513,9 +516,11 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
                     theta2 = theta2_quad[idim];
             }
 
-            real theta2_soln = get_theta2_Wang2012(soln_coeff, n_quad_pts, p_avg);
-            if(theta2_soln < theta2)
-                    theta2 = theta2_soln;
+            //COMMENT HERE
+            // real theta2_soln = get_theta2_Wang2012(soln_coeff, n_quad_pts, p_avg);
+            // if(theta2_soln < theta2)
+            //         theta2 = theta2_soln;
+            //UNTIL HERE
 
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {

@@ -332,7 +332,7 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
     }
 
     // Update local maximum wave speed before calculating next time step
-    update_maximum_local_wave_speed(*dg);
+    // update_maximum_local_wave_speed(*dg);
 }
 
 template class PositivityPreservingTests<PHILIP_DIM, PHILIP_DIM+2>;
