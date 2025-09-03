@@ -12,8 +12,28 @@ PositivityPreservingTests<dim, nspecies, nstate>::PositivityPreservingTests(cons
     : CubeFlow_UniformGrid<dim, nspecies, nstate>(parameters_input)
     , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
-    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-            PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&(this->all_param)));
+    // Create pointer to Euler Physics to compute pressure if pde_type==euler
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    PDE_enum pde_type = parameters_input->pde_type;
+
+    std::shared_ptr< ManufacturedSolutionFunction<dim, double> >  manufactured_solution_function
+        = ManufacturedSolutionFactory<dim, double>::create_ManufacturedSolution(parameters_input, nstate);
+
+    if (pde_type == PDE_enum::euler && nstate == dim + 2) {
+        euler_physics = std::make_shared < Physics::Euler<dim, nstate, double> >(
+            parameters_input,
+            parameters_input->euler_param.ref_length,
+            parameters_input->euler_param.gamma_gas,
+            parameters_input->euler_param.mach_inf,
+            parameters_input->euler_param.angle_of_attack,
+            parameters_input->euler_param.side_slip_angle,
+            manufactured_solution_function,
+            parameters_input->two_point_num_flux_type);
+    } else if (pde_type == PDE_enum::real_gas && nstate == (dim + 2 + (nspecies-1))) {
+        real_gas_physics = std::make_shared < Physics::RealGas<dim, nstate, double> >(
+            parameters_input,
+            manufactured_solution_function);
+    }
 }
 
 template <int dim, int nspecies, int nstate>
@@ -261,15 +281,16 @@ double PositivityPreservingTests<dim, nspecies, nstate>::compute_integrated_entr
             for(int istate=0; istate<nstate; istate++){
                 soln_at_q[istate] = soln_at_q_vect[istate][iquad];
             }
-            
-            //#####################################################################
-            // Compute integrated quantities here
-            //#####################################################################
-            const double quadrature_entropy = this->euler_physics->compute_numerical_entropy_function(soln_at_q);
-            //Using std::cout because of cell->is_locally_owned check 
-            if (isnan(quadrature_entropy))  std::cout << "WARNING: NaN entropy detected at a node!"  << std::endl;
-            integrated_quantity += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
-            //#####################################################################
+            if (nstate == dim + 2) {
+                //#####################################################################
+                // Compute integrated quantities here
+                //#####################################################################
+                const double quadrature_entropy = this->euler_physics->compute_numerical_entropy_function(soln_at_q);
+                //Using std::cout because of cell->is_locally_owned check 
+                if (isnan(quadrature_entropy))  std::cout << "WARNING: NaN entropy detected at a node!"  << std::endl;
+                integrated_quantity += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+                //#####################################################################
+            }
         }
     }
 
@@ -291,15 +312,26 @@ void PositivityPreservingTests<dim, nspecies, nstate>::compute_unsteady_data_and
 
     // All discrete proofs use solution nodes, therefore it is best to report 
     // entropy on the solution nodes rather than by overintegrating.
-    const double current_numerical_entropy = this->compute_integrated_entropy(*dg); // no overintegration
-    if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
-    const double entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
-    this->previous_numerical_entropy = current_numerical_entropy;
+    double current_numerical_entropy = 0.0;
+    double entropy = 0.0;
+    double initial_entropy = 0.0;
+    if (nspecies == 1) {
+        current_numerical_entropy = this->compute_integrated_entropy(*dg); // no overintegration
+        if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
+        entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
 
-    if (std::isnan(entropy)){
+        if (std::isnan(entropy)){
         this->pcout << "Entropy is nan. Aborting flow simulation..." << std::endl << std::flush;
         std::abort();
+        } 
     }
+    else {
+        if (current_iteration==0)
+            std::cout << "Entropy not implemented for multispecies flow, will not be calculated." << std::endl;
+    }
+
+    this->previous_numerical_entropy = current_numerical_entropy;
+
     if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
 
     if(nstate == dim + 2)
@@ -310,13 +342,15 @@ void PositivityPreservingTests<dim, nspecies, nstate>::compute_unsteady_data_and
         unsteady_data_table->add_value("iteration", current_iteration);
         // Add values to data table
         this->add_value_to_data_table(current_time, "time", unsteady_data_table);
-        this->add_value_to_data_table(entropy,"entropy",unsteady_data_table);
-        unsteady_data_table->set_scientific("entropy", false);
-        this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
-        unsteady_data_table->set_scientific("current_numerical_entropy", false);
-        this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
-        unsteady_data_table->set_scientific("U/Uo", false);
 
+        if(nspecies==1) {
+            this->add_value_to_data_table(entropy,"entropy",unsteady_data_table);
+            unsteady_data_table->set_scientific("entropy", false);
+            this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
+            unsteady_data_table->set_scientific("current_numerical_entropy", false);
+            this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
+            unsteady_data_table->set_scientific("U/Uo", false);
+        }
 
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
@@ -326,11 +360,12 @@ void PositivityPreservingTests<dim, nspecies, nstate>::compute_unsteady_data_and
     if (current_iteration % this->all_param.ode_solver_param.print_iteration_modulo == 0) {
         // Print to console
         this->pcout << "    Iter: " << current_iteration
-                    << "    Time: " << std::setprecision(16) << current_time
-                    << "    Current Numerical Entropy:  " << current_numerical_entropy
-                    << "    Entropy: " << entropy
-                    << "    (U-Uo)/Uo: " << entropy/initial_entropy;
-
+                    << "    Time: " << std::setprecision(16) << current_time;
+        if (nspecies == 1) {
+                    this->pcout << "    Current Numerical Entropy:  " << current_numerical_entropy
+                                << "    Entropy: " << entropy
+                                << "    (U-Uo)/Uo: " << entropy/initial_entropy;
+        }
         this->pcout << std::endl;
     }
 
@@ -338,8 +373,8 @@ void PositivityPreservingTests<dim, nspecies, nstate>::compute_unsteady_data_and
     update_maximum_local_wave_speed(*dg);
 }
 
-#if PHILIP_SPECIES==1
+// #if PHILIP_SPECIES==1
 template class PositivityPreservingTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1)>;
-#endif
+// #endif
 } // FlowSolver namespace
 } // PHiLiP namespace

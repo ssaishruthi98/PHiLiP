@@ -64,6 +64,9 @@ public:
     std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
                 const std::array<real,nstate> &entropy_var) const;
 
+    /// Compute numerical entropy function -rho s 
+    std::array<real,nstate>  compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
+
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*conservative_soln*/,
@@ -96,6 +99,37 @@ public:
         const dealii::types::global_dof_index cell_index) const;
 
 protected:
+    /** Slip wall boundary conditions (No penetration)
+     *  * Given by Algorithm II of the following paper:
+     *  * * Krivodonova, L., and Berger, M.,
+     *      “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
+     *      Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+     */
+    void boundary_slip_wall (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Wall boundary condition
+    virtual void boundary_wall (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Do nothing outflow condition - essentially p0 extrapolation
+    void boundary_do_nothing (
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Custom boundary conditions for the left boundary of the astrophysical mach jet case where it is not hypersonic inflow.
+    void boundary_custom (
+        std::array<real,nstate> &soln_bc) const;
+
     /// Boundary condition handler
     void boundary_face_values (
         const int /*boundary_type*/,
@@ -116,19 +150,27 @@ protected:
 public:
     // Algorithm 20 (f_S20): Convert primitive to conservative 
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const; 
+    
+    /// Given conservative variables [density, [momentum], total energy, species density],
+    /// returns primitive variables [density, [velocities], pressure, mass fraction].
+    ///
+    /// Opposite of convert_primitive_to_conservative
+    std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const;
 
 // Details of the following algorithms are presented in Liki's Master's thesis.
 /* MAIN FUNCTIONS */
 protected:
     // Algorithm 1 (f_M1): Compute mixture density from conservative_soln
-    template<typename real2>
-    real2 compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const;
+    real compute_mixture_density ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 2 (f_M2): Compute velocities from conservative_soln 
     dealii::Tensor<1,dim,real> compute_velocities ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 3 (f_M3): Compute squared velocities from conservative_soln
     real compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Given primitive variables, returns velocities.
+    dealii::Tensor<1,dim,real> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
 
     // Algorithm 4 (f_M4): Compute specific kinetic energy from conservative_soln
     real compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;

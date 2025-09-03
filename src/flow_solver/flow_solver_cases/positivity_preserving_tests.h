@@ -63,8 +63,11 @@ class PositivityPreservingTests : public CubeFlow_UniformGrid<dim, nspecies, nst
     /// Store previous entropy
     double previous_numerical_entropy;
 
-    // euler physics pointer for computing physical quantities.
+    /// Euler physics pointer. Used to compute pressure.
     std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+
+    /// Real gas physics pointer. Used to compute pressure.
+    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
 
 };
 

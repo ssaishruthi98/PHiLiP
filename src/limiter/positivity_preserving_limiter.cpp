@@ -380,7 +380,10 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nspecies, nstate, real
                 soln_cell_avg[istate] += avg_weight_3*soln_cell_avg_dim[2][istate];
 
             if (isnan(soln_cell_avg[istate])) {
-                std::cout << "Error: Solution Cell Avg is NaN - Aborting... " << std::endl << std::flush;
+                std::cout << "Error: Solution Cell Avg for state " << istate << " is NaN - Aborting... " << std::endl 
+                          << "MU:   " << mu << std::endl 
+                          << "max_local_wave_speed_1:   " << max_local_wave_speed_1 << std::endl 
+                          << "max_local_wave_speed_2:   " << max_local_wave_speed_2 << std::endl << std::flush;
                 std::abort();
             }
         }

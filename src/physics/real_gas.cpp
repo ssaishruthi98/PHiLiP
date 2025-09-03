@@ -75,6 +75,15 @@ std::array<real,nstate> RealGas<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
+std::array<real,nstate> RealGas<dim, nstate, real>
+::compute_numerical_entropy_function ( const std::array<real,nstate> &conservative_soln ) const
+{
+    std::cout<<"Entropy variables for RealGas hasn't been done yet."<<std::endl;
+    std::abort();
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
 std::array<real,nstate> RealGas<dim,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &/*conservative_soln*/,
@@ -155,27 +164,136 @@ std::array<real,nstate> RealGas<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void RealGas<dim,nstate,real>
-::boundary_face_values (
-   const int /*boundary_type*/,
-   const dealii::Point<dim, real> &/*pos*/,
-   const dealii::Tensor<1,dim,real> &/*normal_int*/,
-   const std::array<real,nstate> &/*soln_int*/,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-   std::array<real,nstate> &/*soln_bc*/,
-   std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
+::boundary_wall (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    // Note: update this if you are using any kind of BC that is not periodic for multi-species gas 
+    // Slip wall boundary for Euler
+    boundary_slip_wall(normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+}
+
+template <int dim, int nstate, typename real>
+void RealGas<dim,nstate,real>
+::boundary_slip_wall (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    // Slip wall boundary conditions (No penetration)
+    // Given by Algorithm II of the following paper
+    // Krivodonova, L., and Berger, M.,
+    // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
+    // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+    const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
+
+    // Copy mixture density and mixture pressure and mass fractions
+    std::array<real,nstate> primitive_boundary_values;
+    primitive_boundary_values[0] = primitive_interior_values[0];
+    primitive_boundary_values[dim+2-1] = primitive_interior_values[dim+2-1];
+    for (int s=0; s<(nstate-dim-1)-1; ++s) 
+    { 
+        primitive_boundary_values[dim+2+s] = primitive_interior_values[dim+2+s];
+    }
+
+    const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
+    const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_interior_values);
+    //const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
+    real vel_int_dot_normal = 0.0;
+    for (int d=0; d<dim; d++) {
+        vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*surface_normal[d];
+    }
+    dealii::Tensor<1,dim,real> velocities_bc;
+    for (int d=0; d<dim; d++) {
+        velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
+        //velocities_bc[d] = velocities_int[d] - (vel_int_dot_normal)*surface_normal[d];
+        //velocities_bc[d] += velocities_int[d] * surface_normal.norm_square();
+    }
+    for (int d=0; d<dim; ++d) {
+        primitive_boundary_values[1+d] = velocities_bc[d];
+    }
+
+    const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_bc[istate] = modified_conservative_boundary_values[istate];
+    }
+
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_grad_bc[istate] = -soln_grad_int[istate];
+    }
+}
+
+template <int dim, int nstate, typename real>
+void RealGas<dim, nstate, real>
+::boundary_do_nothing(
+    const std::array<real, nstate>& soln_int,
+    std::array<real, nstate>& soln_bc,
+    std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_bc) const
+{
+    for (int istate = 0; istate < nstate; ++istate) {
+            soln_bc[istate] = soln_int[istate];
+            soln_grad_bc[istate] = 0;
+    }
+    
+}
+
+template <int dim, int nstate, typename real>
+void RealGas<dim, nstate, real>
+::boundary_custom(
+    std::array<real, nstate>& soln_bc) const
+{
+    std::array<real, nstate> primitive_boundary_values;
+    for (int istate = 0; istate < nstate; ++istate) {
+            primitive_boundary_values[istate] = this->all_parameters->euler_param.custom_boundary_for_each_state[istate];
+    }
+
+    const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate = 0; istate < nstate; ++istate) {
+        soln_bc[istate] = conservative_bc[istate];
+    }
+}
+
+template <int dim, int nstate, typename real>
+void RealGas<dim,nstate,real>
+::boundary_face_values (
+   const int boundary_type,
+   const dealii::Point<dim, real> &/*pos*/,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    if (boundary_type == 1001) {
+        // Wall boundary condition (slip for Euler, no-slip for Navier-Stokes; done through polymorphism)
+        boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    }
+    else if (boundary_type == 1006) {
+        // Slip wall boundary condition
+        boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    }
+    else if (boundary_type == 1007) {
+        // Do nothing bc, p0 interpolation
+        boundary_do_nothing (soln_int, soln_bc, soln_grad_bc);
+    }
+    else if (boundary_type == 1008) {
+        // Custom boundary condition, user defined in parameters
+        boundary_custom (soln_bc);
+    }
 }
 
 // Details of the following algorithms are presented in Liki's Master's thesis.
 /* MAIN FUNCTIONS */
 // Algorithm 1 (f_M1): Compute mixture density
 template <int dim, int nstate, typename real>
-template<typename real2>
-inline real2 RealGas<dim,nstate,real>
-:: compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const
+inline real RealGas<dim,nstate,real>
+:: compute_mixture_density ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real2 mixture_density = conservative_soln[0];
+    const real mixture_density = conservative_soln[0];
 
     return mixture_density;
 }
@@ -204,6 +322,15 @@ inline real RealGas<dim,nstate,real>
     }  
 
     return vel2;
+}
+
+template <int dim, int nstate, typename real>
+inline dealii::Tensor<1,dim,real> RealGas<dim,nstate,real>
+::extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const
+{
+    dealii::Tensor<1,dim,real> velocities;
+    for (int d=0; d<dim; d++) { velocities[d] = primitive_soln[1+d]; }
+    return velocities;
 }
 
 // Algorithm 4 (f_M4): Compute specific kinetic energy
@@ -386,6 +513,10 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
             else
             {
                 std::cout<<"Out of NASA CAP temperature limits."<<std::endl;
+                std::cout << "THE DIMENSIONAL TEMPERATURE IS:    " << dimensional_temperature << std::endl;
+                std::cout << "THE NASA TEMPERATURE LIMITS ARE:    " << real_gas_cap->NASACAPTemperatureLimits[s][0]
+                        << "   " << real_gas_cap->NASACAPTemperatureLimits[s][1] 
+                        << "   " << real_gas_cap->NASACAPTemperatureLimits[s][2] << std::endl;
                 std::abort();
             }
             // main computation
@@ -623,6 +754,30 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     }
 
     return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
+inline std::array<real,nstate> RealGas<dim,nstate,real>
+::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const
+{
+    std::array<real, nstate> primitive_soln;
+
+    real density = conservative_soln[0];
+    dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    real pressure = compute_mixture_pressure(conservative_soln);
+
+    primitive_soln[0] = density;
+    for (int d=0; d<dim; ++d) {
+        primitive_soln[1+d] = vel[d];
+    }
+    primitive_soln[dim+2-1] = pressure;
+    
+    for (int s=0; s<(nstate-dim-1)-1; ++s) 
+    { 
+        primitive_soln[dim+2+s] = conservative_soln[dim+2+s]/density;
+    }
+
+    return primitive_soln;
 }
 
 // Algorithm 21 (f_S21): Compute species specific heat ratio

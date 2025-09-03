@@ -437,7 +437,7 @@ protected:
     void boundary_farfield (
         std::array<real,nstate> &soln_bc) const;
 
-    /// Wall boundary condition
+    /// Do nothing outflow condition - essentially p0 extrapolation
     void boundary_do_nothing (
         const std::array<real,nstate> &soln_int,
         std::array<real,nstate> &soln_bc,
