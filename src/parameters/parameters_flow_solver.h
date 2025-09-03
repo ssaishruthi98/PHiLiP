@@ -38,6 +38,7 @@ public:
         shock_diffraction,
         astrophysical_jet,
         strong_vortex_shock_wave,
+        shock_bubble,
         acoustic_wave_air,
         acoustic_wave_species,
         multi_species_acoustic_wave,

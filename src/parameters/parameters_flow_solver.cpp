@@ -56,7 +56,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " multi_species_three_dimensional_vortex_advection|"
                           " multi_species_taylor_green_vortex|"
                           " multi_species_mixture_taylor_green_vortex|"
-                          " non_periodic_cube_flow "),
+                          " non_periodic_cube_flow |"
+                          " shock_bubble "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -95,7 +96,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " multi_species_three_dimensional_vortex_advection|"
                           " multi_species_taylor_green_vortex|"
                           " multi_species_mixture_taylor_green_vortex|"
-                          " non_periodic_cube_flow>. ");
+                          " non_periodic_cube_flow|"
+                          " shock_bubble>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -445,6 +447,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "shock_diffraction")          {flow_case_type = shock_diffraction;}
         else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
         else if (flow_case_type_string == "strong_vortex_shock_wave")   {flow_case_type = strong_vortex_shock_wave;}
+        else if (flow_case_type_string == "shock_bubble")               {flow_case_type = shock_bubble;}
         
         poly_degree = prm.get_integer("poly_degree");
         

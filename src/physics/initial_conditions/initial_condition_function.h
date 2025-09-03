@@ -509,20 +509,23 @@ public:
         Parameters::AllParameters const* const param);
 };
 
-
-/// Initial condition 0.
+/// Initial Condition Function: 2D Shock Bubble Interaction
+/** See Hu, Adams & Shu, Positivity-preserving method for 
+ * high-order conservative schemes solving compressible 
+ * Euler equations, 2013 pg. 177
+*/
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_ShockBubble : public InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 {
 protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
-    
-public:
-    /// Constructor
-    InitialConditionFunction_Zero();
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
 
-    /// Returns zero.
-    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+public:
+    /// Constructor for InitialConditionFunction_ShockBubble
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_ShockBubble(
+        Parameters::AllParameters const* const param);
 };
 
 /// Initial Condition Function: AcousticWave_Air (uniform density)
@@ -993,6 +996,20 @@ protected:
     std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
 };
 
+/// Initial condition 0.
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nspecies,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+    
+public:
+    /// Constructor
+    InitialConditionFunction_Zero();
+
+    /// Returns zero.
+    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
 
 /// Initial condition function factory
 template <int dim, int nspecies, int nstate, typename real>

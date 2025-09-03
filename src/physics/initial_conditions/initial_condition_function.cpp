@@ -942,15 +942,82 @@ real InitialConditionFunction_SVSW<dim, nspecies, nstate, real>
     return value;
 }
 
-// ========================================================
-// ZERO INITIAL CONDITION
-// ========================================================
+// ==================================================================
+// Shock Bubble Interaction (2D) -- Initial Condition
+// See Hu, Adams, and Shu. "Positivity-Preserving Method for..." 2013, pg. 177
+// ==================================================================
 template <int dim, int nspecies, int nstate, typename real>
-InitialConditionFunction_Zero<dim,nspecies,nstate,real>
-::InitialConditionFunction_Zero()
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
+InitialConditionFunction_ShockBubble<dim, nspecies, nstate, real>
+::InitialConditionFunction_ShockBubble(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>(param)
+{}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_ShockBubble<dim, nspecies, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
-    // Nothing to do here yet
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        if (x > 0.9) {
+            if (istate == 0) {
+                // density
+                value = 1.37636;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = -0.55957;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1.5698;
+            }
+        }
+        else if (pow((x-0.8),2.0)+pow(y,2.0) < pow(5.0/89.0,2.0)){
+            if (istate == 0) {
+                // density
+                value = 0.18187;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+
+        }
+    }
+    return value;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -2303,6 +2370,17 @@ inline real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,
     return value;
 }
 
+// ========================================================
+// ZERO INITIAL CONDITION
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Zero<dim,nspecies,nstate,real>
+::InitialConditionFunction_Zero()
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+{
+    // Nothing to do here yet
+}
+
 // =========================================================
 // Initial Condition Factory
 // =========================================================
@@ -2382,6 +2460,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim,nspecies,nstate,real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
         if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim,nspecies,nstate,real> >();
+    } else if (flow_type == FlowCaseEnum::shock_bubble) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockBubble<dim, nspecies, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::acoustic_wave_air) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_shared<InitialConditionFunction_AcousticWave_Air<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::acoustic_wave_species) {
@@ -2459,6 +2539,7 @@ template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP
 template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_SVSW <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_ShockBubble <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
 #endif
 
 #if PHILIP_DIM < 3 && PHILIP_SPECIES==1
