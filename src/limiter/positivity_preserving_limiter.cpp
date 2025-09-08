@@ -380,7 +380,10 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nspecies, nstate, real
                 soln_cell_avg[istate] += avg_weight_3*soln_cell_avg_dim[2][istate];
 
             if (isnan(soln_cell_avg[istate])) {
-                std::cout << "Error: Solution Cell Avg is NaN - Aborting... " << std::endl << std::flush;
+                std::cout << "Error: Solution Cell Avg for state " << istate << " is NaN - Aborting... " << std::endl 
+                          << "MU:   " << mu << std::endl 
+                          << "max_local_wave_speed_1:   " << max_local_wave_speed_1 << std::endl 
+                          << "max_local_wave_speed_2:   " << max_local_wave_speed_2 << std::endl << std::flush;
                 std::abort();
             }
         }
@@ -438,10 +441,6 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
 
         const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
         real local_min_density = 1e6;
-        std::array<real,nspecies> local_min_species_density;
-        for(unsigned int ispecies = 0; ispecies < nspecies; ++ispecies) {
-            local_min_species_density[ispecies] = 1e6;
-        }
 
         for (unsigned int istate = 0; istate < nstate; ++istate) {
             soln_coeff[istate].resize(n_shape_fns);
@@ -506,16 +505,6 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                     local_min_density = soln_coeff[0][iquad];
                 if (soln_at_q[idim][0][iquad] < local_min_density)
                     local_min_density = soln_at_q[idim][0][iquad];
-        
-                if (nspecies > 1) {
-                    for(unsigned int ispecies = 0; ispecies < (nstate-dim-2); ++ispecies) {
-                        int index = dim + 2 + ispecies;
-                        if (soln_coeff[index][iquad] < local_min_species_density[ispecies])
-                            local_min_species_density[ispecies] = soln_coeff[index][iquad];
-                        if (soln_at_q[idim][index][iquad] < local_min_species_density[ispecies])
-                            local_min_species_density[ispecies] = soln_at_q[idim][index][iquad];
-                    } 
-                }
             }
         }
 
