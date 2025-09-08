@@ -49,18 +49,18 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 0.39
   #set constant_time_step = 0.0005
-  set courant_friedrichs_lewy_number = 0.85
+  set courant_friedrichs_lewy_number = 0.5
   set adaptive_time_step = true
   set unsteady_data_table_filename = shock_bubble_energy
   subsection grid
     subsection positivity_preserving_tests
       set grid_xmin = 0.25
       set grid_xmax = 1.0
-      set grid_ymin = -0.1
+      set grid_ymin = 0.0
       set grid_ymax = 0.1
 
-      set number_of_grid_elements_x = 225
-      set number_of_grid_elements_y = 60
+      set number_of_grid_elements_x = 300
+      set number_of_grid_elements_y = 40
     end
   end
 end
