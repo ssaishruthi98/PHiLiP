@@ -819,7 +819,23 @@ template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
-    return conservative_soln[0]*0.0;
+    const std::array<real,nstate-dim-1> mass_fractions = compute_mass_fractions(conservative_soln);
+    const real temperature = compute_temperature(conservative_soln);
+    const std::array<real,nstate-dim-1> Cp = compute_species_specific_Cp(temperature);
+    const std::array<real,nstate-dim-1> Cv = compute_species_specific_Cv(temperature);
+
+    real gam = 0.0;
+    real mixture_Cp = compute_mixture_from_species(mass_fractions,Cp);
+    real mixture_Cv = compute_mixture_from_species(mass_fractions,Cv);
+
+    gam = mixture_Cp/mixture_Cv;
+    real mixture_density = conservative_soln[0];
+    // check_positive_quantity(density, "density");
+    const real mixture_pressure = compute_mixture_pressure(conservative_soln);
+
+    const real sound = sqrt(mixture_pressure*gam/mixture_density);
+    // std::cout << "THE CALCULATED SOUND IS:   " << sound << std::endl;
+    return sound;
 }
 
 // Compute mixture solution vector (without species solution)
@@ -872,8 +888,8 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
             conservative_soln[s] = uh(s);
         }
         // get mixture solution for computing quantities from Navier-Stokes object
-        std::array<double,dim+2> mixture_soln = get_mixture_solution_vector(conservative_soln);
-        mixture_soln[dim+2-1] = 1.0e10; // hacky fix warning -- does not affect vorticity calc
+        // std::array<double,dim+2> mixture_soln = get_mixture_solution_vector(conservative_soln);
+        // mixture_soln[dim+2-1] = 1.0e10; // hacky fix warning -- does not affect vorticity calc
         // get the solution gradient
         std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
         for (unsigned int s=0; s<nstate; ++s) {
@@ -917,10 +933,10 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
             computed_quantities(++current_data_index) = species_densities[s];
         }
         // Vorticity
-        dealii::Tensor<1,3,double> vorticity = this->navier_stokes_physics->compute_vorticity(mixture_soln,mixture_soln_gradient);
-        for (unsigned int d=0; d<3; ++d) {
-            computed_quantities(++current_data_index) = vorticity[d];
-        }
+        // dealii::Tensor<1,3,double> vorticity = this->navier_stokes_physics->compute_vorticity(mixture_soln,mixture_soln_gradient);
+        // for (unsigned int d=0; d<3; ++d) {
+        //     computed_quantities(++current_data_index) = vorticity[d];
+        // }
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -956,9 +972,9 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     for (unsigned int s=0; s<nstate-dim-1; ++s) {
         interpretation.push_back (DCI::component_is_scalar); // Species densities
     }
-    for (unsigned int d=0; d<3; ++d) {
-        interpretation.push_back (DCI::component_is_part_of_vector); // vorticity
-    }
+    // for (unsigned int d=0; d<3; ++d) {
+    //     interpretation.push_back (DCI::component_is_part_of_vector); // vorticity
+    // }
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -996,9 +1012,9 @@ std::vector<std::string> RealGas<dim,nstate,real>
       std::string string_species_density = string_density + "_" + real_gas_cap->Sp_name[s];
       names.push_back (string_species_density);
     }
-    for (unsigned int d=0; d<3; ++d) {
-        names.push_back ("vorticity");
-    }
+    // for (unsigned int d=0; d<3; ++d) {
+    //     names.push_back ("vorticity");
+    // }
 
     return names;
 }
