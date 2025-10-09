@@ -508,9 +508,37 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+
+/// Initial Condition Function: Real Gas Equations (primitive values)
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_RealGasBase : public InitialConditionFunction<dim, nspecies, nstate, real>
+{
+protected:
+    using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for test cases using Real Gas equations.
+    explicit InitialConditionFunction_RealGasBase(
+        Parameters::AllParameters const* const param);
+
+    /// Value of initial condition expressed in terms of conservative variables
+    real value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    virtual real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const = 0;
+
+    /// Converts value from: primitive to conservative
+    real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
+
+    // Real Gas physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
+};
+
+
 /// Initial Condition Function: AcousticWave_MultiSpecies (uniform density)
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_AcousticWave_MultiSpecies : public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_AcousticWave_MultiSpecies : public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -529,28 +557,16 @@ public:
     const double gamma_gas; ///< Constant heat capacity ratio of fluid.
     const double mach_inf; ///< Farfield Mach number.
     const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 1D Initial Condition Function: MultiSpecies_VortexAdvection 
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_VortexAdvection: public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_MultiSpecies_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
-protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
-
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
@@ -561,32 +577,15 @@ public:
      */
     InitialConditionFunction_MultiSpecies_VortexAdvection (
             Parameters::AllParameters const *const param);
-
-    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
-    const double mach_inf; ///< Farfield Mach number.
-    const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 1D Initial Condition Function: MultiSpecies_HighTemperature_VortexAdvection 
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection: public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
-protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
-
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
@@ -598,22 +597,9 @@ public:
     InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection (
             Parameters::AllParameters const *const param);
 
-    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
-    const double mach_inf; ///< Farfield Mach number.
-    const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// Initial Condition Function: MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection
@@ -654,7 +640,7 @@ protected:
 
 /// Initial Condition Function: MultiSpecies_IsentropicEulerVortex
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_IsentropicEulerVortex : public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_MultiSpecies_IsentropicEulerVortex : public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -670,27 +656,14 @@ public:
     InitialConditionFunction_MultiSpecies_IsentropicEulerVortex (
             Parameters::AllParameters const *const param);
 
-    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
-    const double mach_inf; ///< Farfield Mach number.
-    const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 2D Initial Condition Function: MultiSpecies_TwoDimensional_VortexAdvection 
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection: public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -706,31 +679,15 @@ public:
     InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection (
             Parameters::AllParameters const *const param);
 
-    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
-    const double mach_inf; ///< Farfield Mach number.
-    const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 2D Initial Condition Function: MultiSpecies_FuelDropAdvection 
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_FuelDropAdvection: public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_MultiSpecies_FuelDropAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
-protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
-
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
@@ -742,31 +699,15 @@ public:
     InitialConditionFunction_MultiSpecies_FuelDropAdvection (
             Parameters::AllParameters const *const param);
 
-    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
-    const double mach_inf; ///< Farfield Mach number.
-    const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 3D Initial Condition Function: MultiSpecies_ThreeDimensional_VortexAdvection 
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection: public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
-protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
-
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
@@ -777,32 +718,15 @@ public:
      */
     InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection (
             Parameters::AllParameters const *const param);
-
-    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
-    const double mach_inf; ///< Farfield Mach number.
-    const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 3D Initial Condition Function: MultiSpecies_TaylorGreenVortex
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_TaylorGreenVortex: public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_MultiSpecies_TaylorGreenVortex: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
-protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
-
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
@@ -817,28 +741,16 @@ public:
     const double gamma_gas; ///< Constant heat capacity ratio of fluid.
     const double mach_inf; ///< Farfield Mach number.
     const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 3D Initial Condition Function: MultiSpecies_Mixture_TaylorGreenVortex
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex: public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
-protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
-
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
@@ -853,19 +765,10 @@ public:
     const double gamma_gas; ///< Constant heat capacity ratio of fluid.
     const double mach_inf; ///< Farfield Mach number.
     const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// Initial condition 0.
