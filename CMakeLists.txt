@@ -136,6 +136,7 @@ add_custom_target(
   COMMAND make -j${MPIMAX} PHiLiP_2D_3species
   COMMAND echo 'COMPILING 3D_3species EXECUTABLE...'
   COMMAND make -j${MPIMAX} PHiLiP_3D_3species
+  COMMAND ${CMAKE_COMMAND} -DNUMBER_OF_SPECIES=1 ${CMAKE_SOURCE_DIR}
 )
 
 
