@@ -49,7 +49,7 @@ std::shared_ptr<Triangulation> GaussianBump<dim, nspecies, nstate>::generate_gri
 }
 
 template <int dim, int nspecies, int nstate>
-void GaussianBump<dim, nspecies, nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> dg) const
+void GaussianBump<dim, nspecies, nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     if constexpr(dim==3) {
         const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
@@ -76,8 +76,8 @@ void GaussianBump<dim, nspecies, nstate>::display_additional_flow_case_specific_
     }
 }
 
-#if PHILIP_DIM!=1
-    template class GaussianBump<PHILIP_DIM, 1, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+    template class GaussianBump<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 }

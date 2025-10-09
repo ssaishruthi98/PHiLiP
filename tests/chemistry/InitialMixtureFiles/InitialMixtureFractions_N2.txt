@@ -9,7 +9,5 @@ MOLE
 TRACE
 1.0E-11
 SPECIES     	FRACTIONS
-H2              0.000001
-O2              0.211525
-N2              0.788474
+N2              1.0
 END

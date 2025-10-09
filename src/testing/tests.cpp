@@ -54,7 +54,6 @@
 #include "HROM_error_post_sampling.h"
 #include "hyper_adaptive_sampling_new_error.h"
 #include "halton_sampling_run.h"
-#include "real_gas_vs_euler_primitive_to_conservative_check.h"
 #include "euler_vortex_advection_error_study.h"
 
 namespace PHiLiP {
@@ -189,7 +188,7 @@ std::string TestsBase::get_manufactured_solution_string(const Parameters::AllPar
 }
 
 //template<int dim, int nstate>
-// void TestsBase::globally_refine_and_interpolate(DGBase<dim, double> &dg) const
+// void TestsBase::globally_refine_and_interpolate(DGBase<dim, nspecies, double> &dg) const
 //{
 //    dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
 //    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
@@ -246,9 +245,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         (void) parameter_handler_input;
     }
 
-    if(test_type == Test_enum::run_control) { // TO DO: rename to grid_study
+    if(test_type == Test_enum::run_control && nspecies==1) { // TO DO: rename to grid_study
         return std::make_unique<GridStudy<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::grid_refinement_study) {
+    } else if(test_type == Test_enum::grid_refinement_study && nspecies==1) {
         return std::make_unique<GridRefinementStudy<dim,nspecies,nstate,MeshType>>(parameters_input);
     } else if(test_type == Test_enum::burgers_energy_stability) {
         if constexpr (dim==1 && nspecies==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nspecies,nstate>>(parameters_input);
@@ -276,7 +275,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         if constexpr (dim==3 && nspecies==1 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::taylor_green_scaling) {
         if constexpr (dim==3 && nspecies==1 && nstate == dim+2) return std::make_unique<EulerTaylorGreenScaling<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::optimization_inverse_manufactured) {
+    } else if(test_type == Test_enum::optimization_inverse_manufactured && nspecies==1) {
         return std::make_unique<OptimizationInverseManufactured<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_bump_optimization) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nspecies,nstate>>(parameters_input);
@@ -340,16 +339,14 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2)  return std::make_unique<BoundPreservingLimiterTests<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::naca0012_unsteady_check_quick){
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2)  return std::make_unique<NACA0012UnsteadyCheckQuick<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::real_gas_vs_euler_primitive_to_conservative_check) {
-        if constexpr (nstate==dim+2 && nspecies==1)  return std::make_unique<RealGasVsEulerPrimitiveToConservativeCheck<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::euler_vortex_advection_error_study) {
         if constexpr (dim==1 && nspecies==1 && nstate==dim+2)  return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::multi_species_vortex_advection_error_study) {
-        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+(nspecies-1))  return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);   
+        if constexpr (dim==1 && (nspecies==2) && nstate==dim+2+(nspecies-1))  return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);   
     } else if(test_type == Test_enum::multi_species_high_temperature_vortex_advection_error_study) {
-        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);       
+        if constexpr (dim==1 && (nspecies==2 || nspecies==3) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);       
     } else if(test_type == Test_enum::multi_species_calorically_perfect_euler_vortex_advection_error_study) {
-        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);                 
+        if constexpr (dim==1 && (nspecies==2) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);                 
     } else if(test_type == Test_enum::multi_species_two_dimensional_vortex_advection_error_study) {
         if constexpr (dim==2 && nspecies==2 && nstate==dim+2+(nspecies-1))  return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);           
     } else {
@@ -391,27 +388,16 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
     }
 }
 
-// Will recursively create all the possible test sizes
-//template class TestsFactory <PHILIP_DIM,1>;
-//template class TestsFactory <PHILIP_DIM,2>;
-//template class TestsFactory <PHILIP_DIM,3>;
-//template class TestsFactory <PHILIP_DIM,4>;
-//template class TestsFactory <PHILIP_DIM,5>;
-// Note: might need to change the last two instantiation from 5 to 6, but it works fine at this point.
-
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,1>;
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,2>;
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,3>;
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,4>;
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,5>;
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,6>;
-template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,7>;
 
-
-// template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1),dealii::Triangulation<PHILIP_DIM>>;
-// #if PHILIP_DIM!=1
-// template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1),dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-// #endif
+#if PHILIP_DIM + 2 + (PHILIP_SPECIES-1) > 6
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1),dealii::Triangulation<PHILIP_DIM>>;
+#endif
 
 } // Tests namespace
 } // PHiLiP namespace

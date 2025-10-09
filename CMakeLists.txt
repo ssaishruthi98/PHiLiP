@@ -15,6 +15,8 @@ set(MPIMAX 4 CACHE STRING "Default number of processors used in ctest mpirun -np
 set(ENABLE_GMSH 0 CACHE STRING "Enable GMSH access through command lines and tests.")
 set(ENABLE_GNUPLOT 0 CACHE STRING "Enable Gnu Plot outputs.")
 
+set(NUMBER_OF_SPECIES 1 CACHE STRING "Set number of species. If set to >1 executables for tests will not be made.")
+
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
 # Update submodules as needed
@@ -45,7 +47,7 @@ if(NOT GMSH_LIB)
   message(FATAL_ERROR "Could not find gmsh")
 endif()
 
-set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
+#set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)
@@ -93,35 +95,53 @@ if(NOT DOC_ONLY)
 endif() # DOC_ONLY
     
 add_custom_target(1D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 1D executables, including tests. Allows ctest -R 1D")
-add_custom_target(1D_2species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 1D executables, including tests for 2 species. Allows ctest -R 1D")
-add_custom_target(1D_3species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 1D executables, including tests for 3 species. Allows ctest -R 1D")
 add_custom_target(2D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 2D executables, including tests. Allows ctest -R 2D")
-add_custom_target(2D_2species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 2D executables, including tests for 2 species. Allows ctest -R 2D")
-add_custom_target(2D_3species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 2D executables, including tests for 3 species. Allows ctest -R 2D")
 add_custom_target(3D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 3D executables, including tests. Allows ctest -R 3D")
-add_custom_target(3D_2species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 3D executables, including tests for 2 species. Allows ctest -R 3D")
-add_custom_target(3D_3species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 3D executables, including tests for 3 species. Allows ctest -R 3D")
 SET(_dimension_targets "#
 #      make 1D             - to build all 1D executables, including tests, allow 'ctest -R 1D' 
-#      make 1D_2species             - to build all 1D executables, including tests, allow 'ctest -R 1D' 
-#      make 1D_3species             - to build all 1D executables, including tests, allow 'ctest -R 1D' 
 #      make 2D             - to build all 2D executables, including tests, allow 'ctest -R 2D'
-#      make 2D_2species             - to build all 2D executables, including tests, allow 'ctest -R 2D'
-#      make 2D_3species             - to build all 2D executables, including tests, allow 'ctest -R 2D'
-#      make 3D             - to build all 3D executables, including tests, allow 'ctest -R 3D'
-#      make 3D_2species             - to build all 3D executables, including tests, allow 'ctest -R 3D'
-#      make 3D_3species             - to build all 3D executables, including tests, allow 'ctest -R 3D' ")
+#      make 3D             - to build all 3D executables, including tests, allow 'ctest -R 3D' ")
 SET(_philip_targets "#
 #      make PHiLiP_1D      - to build main program (without tests) in 1D
-#      make PHiLiP_1D_2species      - to build main program (without tests) in 1D
-#      make PHiLiP_1D_3species      - to build main program (without tests) in 1D
 #      make PHiLiP_2D      - to build main program (without tests) in 2D
-#      make PHiLiP_2D_2species      - to build main program (without tests) in 2D
-#      make PHiLiP_2D_3species      - to build main program (without tests) in 2D
-#      make PHiLiP_3D      - to build main program (without tests) in 3D
-#      make PHiLiP_3D_2species      - to build main program (without tests) in 3D
-#      make PHiLiP_3D_3species      - to build main program (without tests) in 3D ")
+#      make PHiLiP_3D      - to build main program (without tests) in 3D ")
+
+IF (${NUMBER_OF_SPECIES} GREATER 1)
+add_custom_target(
+  ${NUMBER_OF_SPECIES}species
+  COMMAND echo 'COMPILING 1D_${NUMBER_OF_SPECIES}species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_1D_${NUMBER_OF_SPECIES}species
+  COMMAND echo 'COMPILING 2D_${NUMBER_OF_SPECIES}species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_2D_${NUMBER_OF_SPECIES}species
+  COMMAND echo 'COMPILING 3D_${NUMBER_OF_SPECIES}species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_3D_${NUMBER_OF_SPECIES}species
+)
+ENDIF()
+
+add_custom_target(
+  multispecies_compilation_check
+  COMMAND ${CMAKE_COMMAND} -DNUMBER_OF_SPECIES=1 ${CMAKE_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all -j${MPIMAX}
+  COMMAND ${CMAKE_COMMAND} -DNUMBER_OF_SPECIES=2 ${CMAKE_SOURCE_DIR}
+  COMMAND echo 'COMPILING 1D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_1D_2species
+  COMMAND echo 'COMPILING 2D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_2D_2species
+  COMMAND echo 'COMPILING 3D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_3D_2species
+  COMMAND ${CMAKE_COMMAND} -DNUMBER_OF_SPECIES=3 ${CMAKE_SOURCE_DIR}
+  COMMAND echo 'COMPILING 1D_3species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_1D_3species
+  COMMAND echo 'COMPILING 2D_3species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_2D_3species
+  COMMAND echo 'COMPILING 3D_3species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_3D_3species
+)
+
+
+IF(${NUMBER_OF_SPECIES} EQUAL 1)
 add_custom_target(unit_tests)
+ENDIF()
 
 add_custom_target(grids)
 
@@ -254,6 +274,9 @@ MESSAGE(STATUS "
 #
 # Using MPIMAX = ${MPIMAX}, which sets the default values used by ctest for the MPI runs.
 # Can use cmake ../ -DMPIMAX=XX to change this default value.
+#
+# Using NUMBER_OF_SPECIES = ${NUMBER_OF_SPECIES}, which sets the number of species used for templating functions.
+# Can use cmake ../ -DNUMBER_OF_SPECIES=XX to change this default value.
 #
 ###
 ")

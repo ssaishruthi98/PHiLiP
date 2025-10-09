@@ -4,9 +4,9 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
-LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
         std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> rk_tableau_input,
-        std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
+        std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input)
         : RungeKuttaBase<dim,nspecies,real,n_rk_stages,MeshType>(dg_input,RRK_object_input)
         , butcher_tableau(rk_tableau_input)
         , epsilon{1.0, 1.0, 1.0} 
@@ -77,9 +77,6 @@ void LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::sum
         this->pcout << std::endl;
     }
 }
-
-
-
 
 template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
 real LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::adjust_time_step (real dt)
@@ -198,9 +195,7 @@ void LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::all
         this->pcout << " evaluating inverse mass matrix..." << std::flush;
         this->dg->evaluate_mass_matrices(true); // creates and stores global inverse mass matrix
         //RRK needs both mass matrix and inverse mass matrix
-        using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-        ODEEnum ode_type = this->ode_param.ode_solver_type;
-        if (ode_type == ODEEnum::rrk_explicit_solver){
+        if (this->ode_param.use_relaxation_runge_kutta) {
             this->dg->evaluate_mass_matrices(false); // creates and stores global mass matrix
         }
         */

@@ -39,7 +39,7 @@ Parameters::AllParameters HROMErrorPostSampling<dim, nspecies, nstate>::reinit_p
 }
 
 template <int dim, int nspecies, int nstate>
-bool HROMErrorPostSampling<dim, nspecies, nstate>::getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const{
+bool HROMErrorPostSampling<dim, nspecies, nstate>::getWeightsFromFile(std::shared_ptr<DGBase<dim,nspecies,double>> &dg) const{
     bool file_found = false;
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     VectorXd weights_eig;
@@ -110,7 +110,7 @@ bool HROMErrorPostSampling<dim, nspecies, nstate>::getWeightsFromFile(std::share
     Epetra_CrsMatrix epetra_system_matrix = dg->system_matrix.trilinos_matrix();
     const int n_quad_pts = dg->volume_quadrature_collection[dg->all_parameters->flow_solver_param.poly_degree].size();
     const int length = epetra_system_matrix.NumMyRows()/(nstate*n_quad_pts);
-    int *local_elements = new int[length];
+    std::unique_ptr local_elements(std::make_unique<int[]>(length));
     int ctr = 0;
     for (const auto &cell : dg->dof_handler.active_cell_iterators())
     {
@@ -120,7 +120,7 @@ bool HROMErrorPostSampling<dim, nspecies, nstate>::getWeightsFromFile(std::share
         }
     }
 
-    Epetra_Map ColMap(rows, length, local_elements, 0, epetra_comm);
+    Epetra_Map ColMap(rows, length, local_elements.get(), 0, epetra_comm);
     ColMap.Print(std::cout);
     Epetra_Vector weights(ColMap);
     for(int i = 0; i < length; i++){
@@ -140,7 +140,7 @@ int HROMErrorPostSampling<dim, nspecies, nstate>::run_test() const
     // Create POD Petrov-Galerkin ROM with Hyper-reduction
     std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
 
-    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_hyper_reduced_petrov_galerkin->dg);
+    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(flow_solver_hyper_reduced_petrov_galerkin->dg);
     std::shared_ptr<HyperreducedAdaptiveSampling<dim,nspecies,nstate>> hyper_reduced_ROM_solver = std::make_unique<HyperreducedAdaptiveSampling<dim,nspecies,nstate>>(all_parameters, parameter_handler);
     hyper_reduced_ROM_solver->current_pod->basis = pod_petrov_galerkin->basis;
     hyper_reduced_ROM_solver->current_pod->referenceState = pod_petrov_galerkin->referenceState;

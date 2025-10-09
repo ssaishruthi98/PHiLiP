@@ -22,7 +22,7 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim, int nspecies, int nstate>
-HROMTestLocation<dim, nspecies, nstate>::HROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nstate>> rom_solution, std::shared_ptr< DGBase<dim, double> > dg_input, Epetra_Vector weights)
+HROMTestLocation<dim, nspecies, nstate>::HROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nstate>> rom_solution, std::shared_ptr< DGBase<dim, nspecies, double> > dg_input, Epetra_Vector weights)
         : TestLocationBase<dim, nspecies, nstate>(parameter, std::move(rom_solution))
         , dg(dg_input)
         , ECSW_weights(weights)
@@ -30,7 +30,7 @@ HROMTestLocation<dim, nspecies, nstate>::HROMTestLocation(const RowVectorXd& par
 }
 
 template <int dim, int nspecies, int nstate>
-void HROMTestLocation<dim, nspecies, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated){
+void HROMTestLocation<dim, nspecies, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod_updated){
 
     this->pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
@@ -125,10 +125,10 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nspecies, nstate>::gener
 
                 int numE;
                 int row_i = current_dofs_indices[0];
-                double *row = new double[local_system_matrix.NumGlobalCols()];
-                int *global_indices = new int[local_system_matrix.NumGlobalCols()];
+                std::unique_ptr row(std::make_unique<double[]>(local_system_matrix.NumGlobalCols()));
+                std::unique_ptr global_indices(std::make_unique<int[]>(local_system_matrix.NumGlobalCols()));
                 // Use the Jacobian to determine the stencil around the current element
-                local_system_matrix.ExtractGlobalRowCopy(row_i, local_system_matrix.NumGlobalCols(), numE, row, global_indices);
+                local_system_matrix.ExtractGlobalRowCopy(row_i, local_system_matrix.NumGlobalCols(), numE, row.get(), global_indices.get());
                 int neighbour_dofs_curr_cell = 0;
                 for (int i = 0; i < numE; i++){
                     neighbour_dofs_curr_cell +=1;
@@ -136,8 +136,6 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nspecies, nstate>::gener
                     neighbour_dofs_indices[neighbour_dofs_curr_cell-1] = global_indices[i];
                 }
 
-                delete[] row;
-                delete[] global_indices;
 
                 // Create L_e matrix and transposed L_e matrix for current cell
                 const Epetra_SerialComm sComm;
