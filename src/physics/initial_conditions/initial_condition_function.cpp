@@ -942,6 +942,54 @@ real InitialConditionFunction_SVSW<dim, nspecies, nstate, real>
     return value;
 }
 
+// ========================================================
+// Initial Condition - Real Gas Base
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
+::InitialConditionFunction_RealGasBase(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction<dim, nspecies, nstate, real>()
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+(nspecies-1),double>>(
+                Physics::PhysicsFactory<dim,nspecies,dim+2+(nspecies-1),double>::create_Physics(&parameters_euler));
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    std::array<real, nstate> soln_primitive;
+
+    soln_primitive[0] = primitive_value(point, 0);
+    soln_primitive[1] = primitive_value(point, 1);
+    soln_primitive[2] = primitive_value(point, 2);
+    
+    if constexpr (dim > 1)
+        soln_primitive[3] = primitive_value(point, 3);
+    if constexpr (dim > 2)
+        soln_primitive[4] = primitive_value(point, 4);
+
+    const std::array<real, nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+    value = soln_conservative[istate];
+
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point, istate);
+    return value;
+}
 
 // ========================================================
 // Acoustic Wave (Multi Species) -- Initial Condition (Uniform density)
@@ -950,18 +998,11 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_AcousticWave_MultiSpecies<dim,nspecies,nstate,real>
 ::InitialConditionFunction_AcousticWave_MultiSpecies (
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
     , gamma_gas(param->euler_param.gamma_gas)
     , mach_inf(param->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note that Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(
-                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler));
-}
+{}
 
 template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nspecies,nstate,real>
@@ -998,35 +1039,6 @@ real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nspecies,nstate,real
     return value;
 }
 
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nspecies,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 2) {
-        std::array<real,nstate> soln_primitive;
-
-        for (int i=0; i<nstate; i++)
-        {
-            soln_primitive[i] = primitive_value(point,i);
-        }
-
-        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_AcousticWave_MultiSpecies<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
-    return value;
-}
-
 // ========================================================
 // 1D Vortex advection  (Multi Species) -- Initial Condition 
 // ========================================================
@@ -1034,18 +1046,8 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real>
 ::InitialConditionFunction_MultiSpecies_VortexAdvection(
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
-    , gamma_gas(param->euler_param.gamma_gas)
-    , mach_inf(param->euler_param.mach_inf)
-    , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note that Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>( 
-                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
-}
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
 
 template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real>
@@ -1114,35 +1116,6 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,r
     return value;
 }
 
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 1) {
-        std::array<real,nstate> soln_primitive;
-
-        for (int i=0; i<nstate; i++)
-        {
-            soln_primitive[i] = primitive_value(point,i);
-        }
-
-        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_MultiSpecies_VortexAdvection<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
-    return value;
-}
-
 // ========================================================
 // 1D Vortex advection  (Multi Species, High-Temperature) -- Initial Condition 
 // ========================================================
@@ -1150,18 +1123,8 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,nspecies,nstate,real>
 ::InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection(
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
-    , gamma_gas(param->euler_param.gamma_gas)
-    , mach_inf(param->euler_param.mach_inf)
-    , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note that Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(
-                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
-}
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
 
 template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,nspecies,nstate,real>
@@ -1233,36 +1196,6 @@ real InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,n
     }
     return value;
 }
-
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,nspecies,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 1) {
-        std::array<real,nstate> soln_primitive;
-
-        for (int i=0; i<nstate; i++)
-        {
-            soln_primitive[i] = primitive_value(point,i);
-        }
-
-        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
-    return value;
-}
-
 
 // ========================================================
 // 1D Vortex advection (MS-CP Euler) -- Initial Condition 
@@ -1389,18 +1322,8 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nspecies,nstate,real>
 ::InitialConditionFunction_MultiSpecies_IsentropicEulerVortex (
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
-    , gamma_gas(param->euler_param.gamma_gas)
-    , mach_inf(param->euler_param.mach_inf)
-    , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note that Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(
-                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler));
-}
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
 
 template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nspecies,nstate,real>
@@ -1461,35 +1384,6 @@ real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nspecies,ns
     return value;
 }
 
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nspecies,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 2) {
-        std::array<real,nstate> soln_primitive;
-
-        for (int i=0; i<nstate; i++)
-        {
-            soln_primitive[i] = primitive_value(point,i);
-        }
-
-        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
-    return value;
-}
-
 // ========================================================
 // 2D Vortex advection  (Multi Species) -- Initial Condition 
 // ========================================================
@@ -1497,18 +1391,8 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim,nspecies,nstate,real>
 ::InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection(
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
-    , gamma_gas(param->euler_param.gamma_gas)
-    , mach_inf(param->euler_param.mach_inf)
-    , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note: Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-}
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
 
 template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim,nspecies,nstate,real>
@@ -1576,35 +1460,6 @@ real InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim,ns
     return value;
 }
 
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim,nspecies,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 2) {
-        std::array<real,nstate> soln_primitive;
-
-        for (int i=0; i<nstate; i++)
-        {
-            soln_primitive[i] = primitive_value(point,i);
-        }
-
-        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
-    return value;
-}
-
 // ========================================================
 // 2D fuel drop advection  (Multi Species) -- Initial Condition 
 // ========================================================
@@ -1612,18 +1467,8 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate,real>
 ::InitialConditionFunction_MultiSpecies_FuelDropAdvection(
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
-    , gamma_gas(param->euler_param.gamma_gas)
-    , mach_inf(param->euler_param.mach_inf)
-    , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note that Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>( // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-}
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
 
 template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate,real>
@@ -1689,35 +1534,6 @@ real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate
     return value;
 }
 
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 2) {
-        std::array<real,nstate> soln_primitive;
-
-        for (int i=0; i<nstate; i++)
-        {
-            soln_primitive[i] = primitive_value(point,i);
-        }
-
-        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
-    return value;
-}
-
 // ========================================================
 // 3D Vortex advection  (Multi Species) -- Initial Condition 
 // ========================================================
@@ -1725,18 +1541,8 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim,nspecies,nstate,real>
 ::InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection(
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
-    , gamma_gas(param->euler_param.gamma_gas)
-    , mach_inf(param->euler_param.mach_inf)
-    , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note: Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-}
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
 
 template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim,nspecies,nstate,real>
@@ -1808,35 +1614,6 @@ real InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim,
     return value;
 }
 
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim,nspecies,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 3) {
-        std::array<real,nstate> soln_primitive;
-
-        for (int i=0; i<nstate; i++)
-        {
-            soln_primitive[i] = primitive_value(point,i);
-        }
-
-        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
-    return value;
-}
-
 // ========================================================
 // 3D TaylorGreenVortex  (Multi Species, Uniform mass fractions) -- Initial Condition 
 // ========================================================
@@ -1844,18 +1621,11 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nspecies,nstate,real>
 ::InitialConditionFunction_MultiSpecies_TaylorGreenVortex(
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
     , gamma_gas(param->euler_param.gamma_gas)
     , mach_inf(param->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note: Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-}
+{}
 
 template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nspecies,nstate,real>
@@ -1897,35 +1667,6 @@ real InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nspecies,nstate
     return value;
 }
 
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nspecies,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 3) {
-        std::array<real,nstate> soln_primitive;
-
-        for (int i=0; i<nstate; i++)
-        {
-            soln_primitive[i] = primitive_value(point,i);
-        }
-
-        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
-    return value;
-}
-
 // ========================================================
 // 3D TaylorGreenVortex  (Multi Species, Mixture mass fractions) -- Initial Condition 
 // ========================================================
@@ -1933,18 +1674,11 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nspecies,nstate,real>
 ::InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex(
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
     , gamma_gas(param->euler_param.gamma_gas)
     , mach_inf(param->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note: Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-}
+{}
 
 template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nspecies,nstate,real>
@@ -1991,35 +1725,6 @@ real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nspecie
             value = mass_fraction_N2;
         }
     }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nspecies,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 3) {
-        std::array<real,nstate> soln_primitive;
-
-        for (int i=0; i<nstate; i++)
-        {
-            soln_primitive[i] = primitive_value(point,i);
-        }
-
-        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
     return value;
 }
 
@@ -2212,6 +1917,8 @@ template class InitialConditionFunction_LowDensity <PHILIP_DIM, PHILIP_SPECIES, 
 template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), double>;
 template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES,  PHILIP_DIM+2+(PHILIP_SPECIES-1), double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), double>;
+template class InitialConditionFunction_RealGasBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), double>;
+
 
     #if PHILIP_DIM==3 && PHILIP_SPECIES==2
     template class InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
