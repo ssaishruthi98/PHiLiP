@@ -43,7 +43,7 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
             std::cout << "Error: Zhang 2010 limiting has not been implemented for multispecies flow" << std::endl;
             std::abort();
         } else {
-            real_gas_physics = std::make_shared < Physics::RealGas<dim, nstate, real> >(
+            real_gas_physics = std::make_shared < Physics::RealGas<dim, nspecies, nstate, real> >(
                 parameters_input,
                 manufactured_solution_function);
         }
