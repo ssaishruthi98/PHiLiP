@@ -970,7 +970,7 @@ real InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
     for(int istate = 0; istate < nstate; ++istate) {
         soln_primitive[istate] = primitive_value(point, istate);
     }
-
+    
     const std::array<real, nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
     value = soln_conservative[istate];
 
