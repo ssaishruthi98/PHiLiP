@@ -535,6 +535,22 @@ protected:
     std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
+/// Initial Condition Function: 1D Sod Shock Tube - Multi-species
+/** See Gouasmi thesis
+*/
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_MultiSpecies_SodShockTube: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_MultiSpecies_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_MultiSpecies_SodShockTube (
+            Parameters::AllParameters const* const param);
+};
 
 /// Initial Condition Function: AcousticWave_MultiSpecies (uniform density)
 template <int dim, int nspecies, int nstate, typename real>
@@ -560,7 +576,7 @@ public:
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// 1D Initial Condition Function: MultiSpecies_VortexAdvection 
@@ -579,7 +595,7 @@ public:
             Parameters::AllParameters const *const param);
 protected:
     /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// 1D Initial Condition Function: MultiSpecies_HighTemperature_VortexAdvection 
@@ -599,7 +615,7 @@ public:
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// Initial Condition Function: MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection
@@ -658,7 +674,7 @@ public:
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// 2D Initial Condition Function: MultiSpecies_TwoDimensional_VortexAdvection 
@@ -681,7 +697,7 @@ public:
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// 2D Initial Condition Function: MultiSpecies_FuelDropAdvection 
@@ -701,7 +717,7 @@ public:
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// 3D Initial Condition Function: MultiSpecies_ThreeDimensional_VortexAdvection 
@@ -720,7 +736,7 @@ public:
             Parameters::AllParameters const *const param);
 protected:
     /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// 3D Initial Condition Function: MultiSpecies_TaylorGreenVortex
@@ -744,7 +760,7 @@ public:
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// 3D Initial Condition Function: MultiSpecies_Mixture_TaylorGreenVortex
@@ -768,7 +784,7 @@ public:
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// Initial condition 0.

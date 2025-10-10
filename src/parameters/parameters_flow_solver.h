@@ -38,6 +38,7 @@ public:
         shock_diffraction,
         astrophysical_jet,
         strong_vortex_shock_wave,
+        multi_species_sod_shock_tube,
         multi_species_acoustic_wave,
         multi_species_vortex_advection,
         multi_species_high_temperature_vortex_advection,

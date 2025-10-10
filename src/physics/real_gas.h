@@ -96,15 +96,36 @@ public:
         const dealii::types::global_dof_index cell_index) const;
 
 protected:
+    /** Slip wall boundary conditions (No penetration)
+     *  * Given by Algorithm II of the following paper:
+     *  * * Krivodonova, L., and Berger, M.,
+     *      “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
+     *      Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+     */
+    void boundary_slip_wall (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Wall boundary condition
+    virtual void boundary_wall (
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
     /// Boundary condition handler
     void boundary_face_values (
-        const int /*boundary_type*/,
+        const int boundary_type,
         const dealii::Point<dim, real> &/*pos*/,
-        const dealii::Tensor<1,dim,real> &/*normal*/,
-        const std::array<real,nstate> &/*soln_int*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-        std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+        const dealii::Tensor<1,dim,real> &normal,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
 
 protected:
     /// returns the solution vector without the species conservation states (only mixture)
@@ -114,6 +135,7 @@ protected:
             const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
 public:
+    virtual std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const; 
     // Algorithm 20 (f_S20): Convert primitive to conservative 
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const; 
 
@@ -129,6 +151,8 @@ protected:
 
     // Algorithm 3 (f_M3): Compute squared velocities from conservative_soln
     real compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const;
+
+    dealii::Tensor<1,dim,real> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
 
     // Algorithm 4 (f_M4): Compute specific kinetic energy from conservative_soln
     real compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;

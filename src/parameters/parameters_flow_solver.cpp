@@ -43,6 +43,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
+                          " multi_species_sod_shock_tube | "
                           " multi_species_acoustic_wave | "
                           " multi_species_vortex_advection| "
                           " multi_species_high_temperature_vortex_advection| "
@@ -81,6 +82,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
+                          " multi_species_sod_shock_tube | "
                           " multi_species_acoustic_wave | "
                           " multi_species_vortex_advection| "
                           " multi_species_high_temperature_vortex_advection| "
@@ -408,6 +410,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
         else if (flow_case_type_string == "isentropic_vortex")          {flow_case_type = isentropic_vortex;}
+        else if (flow_case_type_string == "multi_species_sod_shock_tube"){flow_case_type = multi_species_sod_shock_tube;}
         else if (flow_case_type_string == "multi_species_acoustic_wave"){flow_case_type = multi_species_acoustic_wave;}
         else if (flow_case_type_string == "multi_species_vortex_advection"){flow_case_type = multi_species_vortex_advection;}
         else if (flow_case_type_string == "multi_species_high_temperature_vortex_advection"){flow_case_type = multi_species_high_temperature_vortex_advection;}

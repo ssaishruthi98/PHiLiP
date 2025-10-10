@@ -967,14 +967,9 @@ real InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
     real value = 0.0;
     std::array<real, nstate> soln_primitive;
 
-    soln_primitive[0] = primitive_value(point, 0);
-    soln_primitive[1] = primitive_value(point, 1);
-    soln_primitive[2] = primitive_value(point, 2);
-    
-    if constexpr (dim > 1)
-        soln_primitive[3] = primitive_value(point, 3);
-    if constexpr (dim > 2)
-        soln_primitive[4] = primitive_value(point, 4);
+    for(int istate = 0; istate < nstate; ++istate) {
+        soln_primitive[istate] = primitive_value(point, istate);
+    }
 
     const std::array<real, nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
     value = soln_conservative[istate];
@@ -988,6 +983,55 @@ inline real InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
 {
     real value = 0.0;
     value = convert_primitive_to_conversative_value(point, istate);
+    return value;
+}
+
+// ========================================================
+// 1D Sod Shock tube -- Initial Condition - MultiSpecies
+// Gouasmi Thesis
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_SodShockTube<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_SodShockTube (
+        Parameters::AllParameters const* const param)
+        : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_SodShockTube<dim, nspecies, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 1 && nstate == (dim+2)+(nspecies-1)) {
+        const real x = point[0];
+        if (x < 0) {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            if (istate == 2) {
+                // pressure
+                value = 1.0;
+            }
+            if (istate == 3) {
+                // species 1 density
+                value = 1.0;
+            }
+        } else {
+            if (istate == 0) {
+                // density
+                value = 0.125;
+            }
+            if (istate == 2) {
+                // pressure
+                value = 0.1;
+            }
+            if (istate == 3) {
+                // species 1 density
+                value = 0.0;
+            }
+        }
+    }
     return value;
 }
 
@@ -1825,6 +1869,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim,nspecies,nstate,real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
         if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim,nspecies,nstate,real> >();
+    } else if (flow_type == FlowCaseEnum::multi_species_sod_shock_tube) {
+        if constexpr (dim == 1 && nspecies==2 && nstate == dim+2+(nspecies-1))  return std::make_shared<InitialConditionFunction_MultiSpecies_SodShockTube<dim,nspecies,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_AcousticWave_MultiSpecies<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) {
@@ -1936,6 +1982,7 @@ template class InitialConditionFunction_RealGasBase <PHILIP_DIM, PHILIP_SPECIES,
     template class InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
     template class InitialConditionFunction_MultiSpecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
     template class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+    template class InitialConditionFunction_MultiSpecies_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
     #endif
 
 #endif

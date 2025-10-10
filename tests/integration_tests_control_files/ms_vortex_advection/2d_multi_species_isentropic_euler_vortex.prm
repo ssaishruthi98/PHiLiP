@@ -62,15 +62,14 @@ subsection flow_solver
   subsection grid
     set grid_left_bound = -10.0
     set grid_right_bound = 10.0
-    set number_of_grid_elements_per_dimension = 16
-	subsection positivity_preserving_tests
-	 set grid_xmin = -10.0
-	 set grid_xmax = 10.0
-	 set grid_ymin = -10.0
-	 set grid_ymax = 10.0
-
-	 set number_of_grid_elements_x = 16
-	 set number_of_grid_elements_y = 16
-	end
+    set number_of_grid_elements_per_dimension = 4
+    set grid_left_bound = -10.0
+    set grid_right_bound = 10.0
+    subsection grid_rectangle
+     set grid_bottom_bound = -10.0
+     set grid_top_bound = 10.0
+     set number_of_grid_elements_x = 4
+     set number_of_grid_elements_y = 4
+	  end
   end
 end
