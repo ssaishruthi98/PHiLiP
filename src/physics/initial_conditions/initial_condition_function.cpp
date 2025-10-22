@@ -998,7 +998,7 @@ InitialConditionFunction_MultiSpeciesCaloricallyPerfectGasBase<dim, nspecies, ns
     // Euler object; create using dynamic_pointer_cast and the create_Physics factory
     // Note that Euler primitive/conservative vars are the same as NS
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::multi_species_calorically_perfect_euler;
     this->mscp_physics = std::dynamic_pointer_cast<Physics::MultiSpeciesCaloricallyPerfect<dim,nspecies,dim+2+(nspecies-1),double>>(
                 Physics::PhysicsFactory<dim,nspecies,dim+2+(nspecies-1),double>::create_Physics(&parameters_euler));
 }
