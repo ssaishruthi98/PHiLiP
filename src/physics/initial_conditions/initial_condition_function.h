@@ -535,6 +535,32 @@ protected:
     std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
+/// Initial Condition Function: MultiSpecies Calorically Perfect Gas Equations (primitive values)
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_MultiSpeciesCaloricallyPerfectGasBase : public InitialConditionFunction<dim, nspecies, nstate, real>
+{
+protected:
+    using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for test cases using Real Gas equations.
+    explicit InitialConditionFunction_MultiSpeciesCaloricallyPerfectGasBase(
+        Parameters::AllParameters const* const param);
+
+    /// Value of initial condition expressed in terms of conservative variables
+    real value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    virtual real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const = 0;
+
+    /// Converts value from: primitive to conservative
+    real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
+
+    // Multi Species Calorically Perfect Gas physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::MultiSpeciesCaloricallyPerfect<dim, nspecies, nstate, double > > mscp_physics;
+};
+
 
 /// Initial Condition Function: AcousticWave_MultiSpecies (uniform density)
 template <int dim, int nspecies, int nstate, typename real>
@@ -604,7 +630,7 @@ protected:
 
 /// Initial Condition Function: MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection: public InitialConditionFunction<dim,nspecies,nstate,real>
+class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection: public InitialConditionFunction_MultiSpeciesCaloricallyPerfectGasBase<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -620,22 +646,9 @@ public:
     InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection (
             Parameters::AllParameters const *const param);
 
-    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
-    const double mach_inf; ///< Farfield Mach number.
-    const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::MultiSpeciesCaloricallyPerfect<dim, nspecies, nstate, double > > multi_species_calorically_perfect_euler_physics;
 };
 
 /// Initial Condition Function: MultiSpecies_IsentropicEulerVortex

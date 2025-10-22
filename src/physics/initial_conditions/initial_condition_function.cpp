@@ -987,6 +987,50 @@ inline real InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
 }
 
 // ========================================================
+// Initial Condition - Multispecies Calorically Perfect Gas Base
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpeciesCaloricallyPerfectGasBase<dim, nspecies, nstate, real>
+::InitialConditionFunction_MultiSpeciesCaloricallyPerfectGasBase(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction<dim, nspecies, nstate, real>()
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->mscp_physics = std::dynamic_pointer_cast<Physics::MultiSpeciesCaloricallyPerfect<dim,nspecies,dim+2+(nspecies-1),double>>(
+                Physics::PhysicsFactory<dim,nspecies,dim+2+(nspecies-1),double>::create_Physics(&parameters_euler));
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpeciesCaloricallyPerfectGasBase<dim, nspecies, nstate, real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    std::array<real, nstate> soln_primitive;
+
+    for(int istate = 0; istate < nstate; ++istate) {
+        soln_primitive[istate] = primitive_value(point, istate);
+    }
+    
+    const std::array<real, nstate> soln_conservative = this->mscp_physics->convert_primitive_to_conservative(soln_primitive);
+    value = soln_conservative[istate];
+
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpeciesCaloricallyPerfectGasBase<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point, istate);
+    return value;
+}
+
+// ========================================================
 // Acoustic Wave (Multi Species) -- Initial Condition (Uniform density)
 // ========================================================
 template <int dim, int nspecies, int nstate, typename real>
@@ -1199,18 +1243,8 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim,nspecies,nstate,real>
 ::InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection(
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
-    , gamma_gas(param->euler_param.gamma_gas)
-    , mach_inf(param->euler_param.mach_inf)
-    , mach_inf_sqr(mach_inf*mach_inf)
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note that Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::multi_species_calorically_perfect_euler;
-    this->multi_species_calorically_perfect_euler_physics = std::dynamic_pointer_cast<Physics::MultiSpeciesCaloricallyPerfect<dim,nspecies,dim+2+nspecies-1,double>>(
-                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
-}
+    : InitialConditionFunction_MultiSpeciesCaloricallyPerfectGasBase<dim,nspecies,nstate,real>(param)
+{}
 
 template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim,nspecies,nstate,real>
@@ -1236,13 +1270,13 @@ real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvect
         const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
         const real y_H2 = (y_H2_0 - a_1*coeff*exp);
 
-        const std::array Rs = this->multi_species_calorically_perfect_euler_physics->compute_Rs(this->multi_species_calorically_perfect_euler_physics->Ru);
+        const std::array Rs = this->mscp_physics->compute_Rs(this->mscp_physics->Ru);
         real y_O2;
         real R_mixture;
         // For a 2 species test
         if constexpr(nspecies==2 && nstate==dim+2+nspecies-1) {
             y_O2 = 1.0 - y_H2;
-            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->multi_species_calorically_perfect_euler_physics->R_ref;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->mscp_physics->R_ref;
         }
         // For a 3 species test
         if constexpr(nspecies==3 && nstate==dim+2+nspecies-1) {
@@ -1250,22 +1284,22 @@ real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvect
             const real a_2 = 0.03;
             y_O2 = (y_O2_0 - a_2*coeff*exp);
             const real y_N2 = 1.0 - y_H2 - y_O2;
-            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->multi_species_calorically_perfect_euler_physics->R_ref;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->mscp_physics->R_ref;
         }
         const real density = pressure/(R_mixture*temperature);
 
         // dimensionalized above, non-dimensionalized below
         if(istate==0) {
             // mixture density
-            value = density / this->multi_species_calorically_perfect_euler_physics->density_ref;
+            value = density / this->mscp_physics->density_ref;
         }
         if(istate==1) {
             // x-velocity
-            value = velocity / this->multi_species_calorically_perfect_euler_physics->u_ref;
+            value = velocity / this->mscp_physics->u_ref;
         }
         if(istate==2) {
             // pressure
-            value = pressure / (this->multi_species_calorically_perfect_euler_physics->density_ref*this->multi_species_calorically_perfect_euler_physics->u_ref_sqr);
+            value = pressure / (this->mscp_physics->density_ref*this->mscp_physics->u_ref_sqr);
         }
         if(istate==3){
             // other species density (N2)
@@ -1278,35 +1312,6 @@ real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvect
             }
         }
     }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim,nspecies,nstate,real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr(dim == 1) {
-        std::array<real,nstate> soln_primitive;
-
-        for (int i=0; i<nstate; i++)
-        {
-            soln_primitive[i] = primitive_value(point,i);
-        }
-
-        const std::array<real,nstate> soln_conservative = this->multi_species_calorically_perfect_euler_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
-    }
-    return value;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point,istate);
     return value;
 }
 
