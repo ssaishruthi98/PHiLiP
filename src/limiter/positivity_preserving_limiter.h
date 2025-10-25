@@ -30,6 +30,10 @@ public:
     /// Flow solver parameters
     const Parameters::FlowSolverParam flow_solver_param; 
 
+    /// Store PDE Type
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    const PDE_enum pde_type;
+
     /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
     std::shared_ptr<BoundPreservingLimiterState<dim, nspecies, nstate, real>> tvbLimiter;
 
@@ -38,6 +42,9 @@ public:
 
     /// Real gas physics pointer. Used to compute pressure.
     std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
+
+    /// Multi-species calorically perfect gas physics pointer. Used to compute pressure.
+    std::shared_ptr < Physics::MultiSpeciesCaloricallyPerfect<dim, nspecies, nstate, double > > mscp_gas_physics;
 
     /// Function to obtain the solution cell average
     using BoundPreservingLimiterState<dim, nspecies, nstate, real>::get_soln_cell_avg;
@@ -112,6 +119,8 @@ protected:
     real dx; ///< Value required to compute solution cell average in 2D/3D, calculated using xmax and xmin parameters
     real dy; ///< Value required to compute solution cell average in 2D/3D, calculated using ymax and ymin parameters
     real dz; ///< Value required to compute solution cell average in 2D/3D, calculated using zmax and zmin parameters
+
+
 }; // End of PositivityPreservingLimiter Class
 } // PHiLiP namespace
 

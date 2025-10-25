@@ -15,18 +15,16 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
     const Parameters::AllParameters* const parameters_input)
     : BoundPreservingLimiterState<dim,nspecies,nstate,real>::BoundPreservingLimiterState(parameters_input)
     , flow_solver_param(parameters_input->flow_solver_param)
+    , pde_type(parameters_input->pde_type)
     , dx((flow_solver_param.grid_right_bound-flow_solver_param.grid_left_bound)/flow_solver_param.number_of_grid_elements_x)
     , dy((flow_solver_param.grid_top_bound-flow_solver_param.grid_bottom_bound)/flow_solver_param.number_of_grid_elements_y)
     , dz((flow_solver_param.grid_z_upper_bound-flow_solver_param.grid_z_lower_bound)/flow_solver_param.number_of_grid_elements_z)
 {
-    // Create pointer to Euler Physics to compute pressure if pde_type==euler
-    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    PDE_enum pde_type = parameters_input->pde_type;
-
     std::shared_ptr< ManufacturedSolutionFunction<dim, real> >  manufactured_solution_function
         = ManufacturedSolutionFactory<dim, real>::create_ManufacturedSolution(parameters_input, nstate);
 
-    if (pde_type == PDE_enum::euler && nstate == dim + 2) {
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    if (this->pde_type == PDE_enum::euler && nstate == dim + 2) {
         euler_physics = std::make_shared < Physics::Euler<dim, nstate, real> >(
             parameters_input,
             parameters_input->euler_param.ref_length,
@@ -36,14 +34,20 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
             parameters_input->euler_param.side_slip_angle,
             manufactured_solution_function,
             parameters_input->two_point_num_flux_type);
-    } else if (pde_type == PDE_enum::real_gas && nstate == (dim + 2 + (nspecies-1))) {
+    } else if ((this->pde_type == PDE_enum::real_gas
+                || this->pde_type == PDE_enum::multi_species_calorically_perfect_euler)
+                && nstate == (dim + 2 + (nspecies-1))) {
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
         if(limiter_type == limiter_enum::positivity_preservingZhang2010) {
             std::cout << "Error: Zhang 2010 limiting has not been implemented for multispecies flow" << std::endl;
             std::abort();
-        } else {
+        } else if(this->pde_type == PDE_enum::real_gas){
             real_gas_physics = std::make_shared < Physics::RealGas<dim, nspecies, nstate, real> >(
+                parameters_input,
+                manufactured_solution_function);
+        } else if(this->pde_type == PDE_enum::multi_species_calorically_perfect_euler){
+            mscp_gas_physics = std::make_shared < Physics::MultiSpeciesCaloricallyPerfect<dim, nspecies, nstate, real> >(
                 parameters_input,
                 manufactured_solution_function);
         }
@@ -54,7 +58,7 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
 
     // Create pointer to TVB Limiter class if use_tvb_limiter==true && dim == 1
     if (parameters_input->limiter_param.use_tvb_limiter) {
-        if (dim == 1 && nspecies == 1 && nstate <=  dim + 2 + (nspecies - 1)) {
+        if (dim == 1 && nstate ==  dim + 2 + (nspecies - 1)) {
             tvbLimiter = std::make_shared < TVBLimiter<dim, nspecies, nstate, real> >(parameters_input);
         }
         else {
@@ -137,10 +141,13 @@ real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_theta2_Wang20
         }
         real p_lim = 0;
 
-        if (nspecies == 1 && nstate == dim + 2)
+        using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+        if (this->pde_type == PDE_enum::euler && nspecies == 1 && nstate == dim + 2)
             p_lim = euler_physics->compute_pressure(soln_at_iquad);
-        if (nspecies > 1 && nstate == (dim + 2 + (nspecies - 1)))
+        if (this->pde_type == PDE_enum::real_gas == 1 && nspecies > 1 && nstate == (dim + 2 + (nspecies - 1)))
             p_lim = real_gas_physics->compute_mixture_pressure(soln_at_iquad);
+        if (this->pde_type == PDE_enum::multi_species_calorically_perfect_euler && nspecies > 1 && nstate == (dim + 2 + (nspecies - 1)))
+            p_lim = mscp_gas_physics->compute_mixture_pressure(soln_at_iquad);
 
         if (p_lim >= 0)
             t2[iquad] = 1;
@@ -347,6 +354,7 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nspecies, nstate, real
             real local_wave_speed_1 = 0.0;
             real local_wave_speed_2 = 0.0;
             real local_wave_speed_3 = 0.0;
+            using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
             if (nspecies==1 && nstate==dim+2+(nspecies-1)){
                 local_wave_speed_1 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_1);
                 local_wave_speed_2 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_2);
@@ -355,13 +363,21 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nspecies, nstate, real
                 if(dim == 3)
                     local_wave_speed_3 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_3);
             }
-            else if (nspecies>1 && nstate==dim+2+(nspecies-1)){
+            else if (pde_type == PDE_enum::real_gas && nstate==dim+2+(nspecies-1)){
                 local_wave_speed_1 = this->real_gas_physics->max_convective_eigenvalue(local_soln_at_q_1);
                 local_wave_speed_2 = this->real_gas_physics->max_convective_eigenvalue(local_soln_at_q_2);
 
                 local_wave_speed_3 = 0.0;
                 if(dim == 3)
                     local_wave_speed_3 = this->real_gas_physics->max_convective_eigenvalue(local_soln_at_q_3);
+            }
+            else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler && nstate==dim+2+(nspecies-1)){
+                local_wave_speed_1 = this->mscp_gas_physics->max_convective_eigenvalue(local_soln_at_q_1);
+                local_wave_speed_2 = this->mscp_gas_physics->max_convective_eigenvalue(local_soln_at_q_2);
+
+                local_wave_speed_3 = 0.0;
+                if(dim == 3)
+                    local_wave_speed_3 = this->mscp_gas_physics->max_convective_eigenvalue(local_soln_at_q_3);
             }
             if(local_wave_speed_1 > max_local_wave_speed_1) max_local_wave_speed_1 = local_wave_speed_1;
             if(local_wave_speed_2 > max_local_wave_speed_2) max_local_wave_speed_2 = local_wave_speed_2;
@@ -529,9 +545,12 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         if (nspecies==1 && nstate == dim + 2) {
             // Compute average value of pressure using soln_cell_avg
             p_avg = euler_physics->compute_pressure(soln_cell_avg);
-        } else if(nspecies > 1 && nstate == dim + 2 + (nspecies-1)) {
+        } else if(this->pde_type == PDE_enum::real_gas && nstate == dim + 2 + (nspecies-1)) {
             // Compute average value of pressure using soln_cell_avg
             p_avg = real_gas_physics->compute_mixture_pressure(soln_cell_avg);
+        } else if(this->pde_type == PDE_enum::multi_species_calorically_perfect_euler && nstate == dim + 2 + (nspecies-1)) {
+            // Compute average value of pressure using soln_cell_avg
+            p_avg = mscp_gas_physics->compute_mixture_pressure(soln_cell_avg);
         }
         
         // Obtain value used to linearly scale density
@@ -550,13 +569,17 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         }
         if(nspecies > 1) {
             std::array<real, nstate> soln_at_iquad;
-            real theta_species = 0.0;
+            real theta_species = 1.0;
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     soln_at_iquad[istate] = soln_coeff[istate][iquad];
                 }
-
-                std::array<real,nstate-dim-1> species_densities = real_gas_physics->compute_species_densities(soln_at_iquad);
+                std::array<real,nstate-dim-1> species_densities;
+                if(this->pde_type==PDE_enum::real_gas)
+                    species_densities = real_gas_physics->compute_species_densities(soln_at_iquad);
+                else if(this->pde_type==PDE_enum::multi_species_calorically_perfect_euler)
+                    species_densities = mscp_gas_physics->compute_species_densities(soln_at_iquad);
+                
                 real theta_species_quad = 0.0;
                 
                 for(unsigned int ispecies = 0; ispecies < (nstate-dim-2); ++ispecies) {

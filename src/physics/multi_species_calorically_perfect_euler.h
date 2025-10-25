@@ -22,11 +22,23 @@ public:
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
-private:
-    const std::array<real,nspecies> Cp;
-    const std::array<real,nspecies> Cv;
+    std::array<real,nspecies> Cp;
+    std::array<real,nspecies> Cv;
 
-public:
+    /// Function to set species Cp - checks if custom Cp is passed in, if not, it calculates based on NASA CAP
+    std::array<real,nspecies> set_species_Cp ( const real temperature ) const;
+    /// Function to set species Cv - checks if custom Cv is passed in, if not, it calculates based on NASA CAP
+    std::array<real,nspecies> set_species_Cv ( const real temperature ) const;
+    /// Maximum convective eigenvalue
+    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+    /// Evaluate speed of sound from conservative variables
+    real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
+    /// Maximum convective normal eigenvalue (used in Lax-Friedrichs)
+    /** See the book I do like CFD, equation 3.6.18 */
+    real max_convective_normal_eigenvalue (
+        const std::array<real,nstate> &soln,
+        const dealii::Tensor<1,dim,real> &normal) const override;
+
     /// Destructor
     ~MultiSpeciesCaloricallyPerfect() {};
 

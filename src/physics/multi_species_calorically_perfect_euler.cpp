@@ -15,12 +15,12 @@ MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>::MultiSpeciesCaloricall
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
     : RealGas<dim,nspecies,nstate,real>(parameters_input,manufactured_solution_function,has_nonzero_diffusion,has_nonzero_physical_source)
-    , Cp(this->compute_species_specific_Cp(298.15/this->temperature_ref))
-    , Cv(this->compute_species_specific_Cv(298.15/this->temperature_ref))
 {
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
         std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>(parameters_input));
 
+    this->Cp = set_species_Cp(298.15/this->temperature_ref);
+    this->Cv = set_species_Cv(298.15/this->temperature_ref);
     for (int s=0; s<(nspecies); ++s) 
     {
         this->gamma[s] = Cp[s]/Cv[s];
@@ -68,6 +68,91 @@ MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>::MultiSpeciesCaloricall
 //     // }
 //     return conv_flux;
 // }
+
+/*************************************** Shruthi's functions to make the MS Sod Shock Tube work ***************************************/
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
+::set_species_Cp( const real /*temperature*/ ) const
+{
+    std::array<real,nspecies> Cp;
+    if(this->all_parameters->euler_param.use_custom_heat_capacities) {
+        std::vector<double> custom_Cp_values = this->all_parameters->euler_param.custom_Cp;
+        for(int ispecies = 0; ispecies < nspecies; ++ispecies){
+            Cp[ispecies] = custom_Cp_values[ispecies];
+        }
+    } else {
+        std::cout << "Set custom species Cp" << std::endl;
+        std::abort();
+        // Cp = this->compute_species_specific_Cp(temperature);
+    }
+    return Cp;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
+::set_species_Cv( const real /*temperature*/ ) const
+{
+    std::array<real,nspecies> Cv;
+    if(this->all_parameters->euler_param.use_custom_heat_capacities) {
+        std::vector<double> custom_Cv_values = this->all_parameters->euler_param.custom_Cv;
+        for(int ispecies = 0; ispecies < nspecies; ++ispecies){
+            Cv[ispecies] = custom_Cv_values[ispecies];
+        }
+    } else {
+        std::cout << "Set custom species Cv" << std::endl;
+        std::abort();
+        // Cv = this->compute_species_specific_Cv(temperature);
+    }
+    return Cv;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
+::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
+{
+    const real sound = compute_sound(conservative_soln);
+    real vel2 = this->compute_velocity_squared(conservative_soln);
+
+    const real max_eig = sqrt(vel2) + sound;
+
+    return max_eig;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
+    const dealii::Tensor<1,dim,real> vel = this->compute_velocities(conservative_soln);
+
+    const real sound = compute_sound (conservative_soln);
+
+    real vel_dot_n = 0.0;
+    for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
+    const real max_normal_eig = abs(vel_dot_n) + sound;
+
+    return max_normal_eig;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
+::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
+{
+    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
+    const std::array<real,nspecies> gamma = compute_species_specific_heat_ratio(conservative_soln);
+    const std::array<real,nspecies> mass_fractions = this->compute_mass_fractions(conservative_soln);
+    const real mixture_gamma = this->compute_mixture_from_species(mass_fractions,gamma);
+
+    real mixture_density = conservative_soln[0];
+    // check_positive_quantity(density, "density");
+    const real mixture_pressure = this->compute_mixture_pressure(conservative_soln);
+
+    const real sound = sqrt(mixture_pressure*mixture_gamma/mixture_density);
+    return sound;
+}
+/*************************************** end ***************************************/
 
 /// f_M14: compute_temperature
 template <int dim, int nspecies, int nstate, typename real>

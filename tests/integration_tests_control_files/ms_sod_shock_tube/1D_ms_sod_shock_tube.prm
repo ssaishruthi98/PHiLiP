@@ -5,7 +5,7 @@
 set dimension = 1
 set number_of_species = 2
 set run_type = flow_simulation
-set pde_type = real_gas
+set pde_type = multi_species_calorically_perfect_euler
 set chemistry_input_file = ../../chemistry/ReactionFiles/N2_O2.kinetics
 set initial_mixture_fractions_input_file = ../../chemistry/InitialMixtureFiles/InitialMixtureFractions_N2_O2.txt
 
@@ -28,9 +28,9 @@ set conv_num_flux = lax_friedrichs
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
   set min_density = 1e-13
-  #set use_tvb_limiter = true
-  #set max_delta_x = 0.0
-  #set tuning_parameter_for_each_state = 0,0,0,0
+  set use_tvb_limiter = true
+  set max_delta_x = 0.0
+  set tuning_parameter_for_each_state = 0,0,0,0
 end
 
 # ODE solver
@@ -45,7 +45,10 @@ end
 
 # freestream Mach number
 subsection euler
-  set mach_infinity = 3.0
+  set mach_infinity = 0.1
+  set use_custom_heat_capacities = true
+  set custom_Cp = 1.4, 1.6
+  set custom_Cv = 1.0, 1.0
 end
 
 subsection flow_solver
@@ -59,7 +62,7 @@ subsection flow_solver
     set grid_left_bound = -0.5
     set grid_right_bound = 0.5
     subsection grid_rectangle
-      set number_of_grid_elements_x = 300
+      set number_of_grid_elements_x = 500
     end
   end
 end

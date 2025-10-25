@@ -24,6 +24,9 @@ set(SOURCE
 set(ParameterLib ParametersLibrary)
 add_library(${ParameterLib} STATIC ${SOURCE})
 
+# Replace occurences of PHILIP_SPECIES with user set cache variable in the code
+target_compile_definitions(${ParameterLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 # Setup target with deal.II
 if(NOT DOC_ONLY)
     DEAL_II_SETUP_TARGET(${ParameterLib})

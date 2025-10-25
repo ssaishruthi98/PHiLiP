@@ -528,7 +528,6 @@ int FlowSolver<dim, nspecies, nstate>::run() const
 
             // update time step in flow_solver_case
             flow_solver_case->set_time_step(time_step);
-
             ode_solver->step_in_time(time_step,false);
 
             // Compute the unsteady quantities, write to the dealii table, and output to file

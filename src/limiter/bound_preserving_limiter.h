@@ -9,6 +9,7 @@
 #include "physics/physics_factory.h"
 #include "physics/euler.h"
 #include "physics/real_gas.h"
+#include "physics/multi_species_calorically_perfect_euler.h"
 
 namespace PHiLiP {
 
