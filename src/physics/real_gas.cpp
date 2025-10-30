@@ -181,8 +181,10 @@ void RealGas<dim,nspecies,nstate,real>
     // Copy density and pressure
     std::array<real,nstate> primitive_boundary_values;
     primitive_boundary_values[0] = primitive_interior_values[0];
-    primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
-
+    primitive_boundary_values[dim+1] = primitive_interior_values[dim+1];
+    for(int s=0; s<nspecies-1; ++s) {
+        primitive_boundary_values[dim+2+s] = primitive_interior_values[dim+2+s];
+    }
     const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
     const dealii::Tensor<1,dim,real> velocities_int = extract_velocities_from_primitive(primitive_interior_values);
     //const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
@@ -413,6 +415,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
             }
             else
             {
+                std::cout<<"Computing species specific Cp."<<std::endl;
                 std::cout<<"Out of NASA CAP temperature limits."<<std::endl;
                 std::cout << "NASA CAP LIMITS:   " << std::endl
                           << real_gas_cap->NASACAPTemperatureLimits[s][0] << std::endl
@@ -477,6 +480,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
             }
             else
             {
+                std::cout<<"Computing species specific enthalpy."<<std::endl;
                 std::cout<<"Out of NASA CAP temperature limits."<<std::endl;
                 std::cout << "NASA CAP LIMITS:   " << std::endl
                         << real_gas_cap->NASACAPTemperatureLimits[s][0] << std::endl
@@ -669,7 +673,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
     }
-    primitive_soln[nstate-1] = pressure;
+    primitive_soln[dim+1] = pressure;
 
     return primitive_soln;
 }
@@ -725,6 +729,11 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     // specific kinetic energy
     const real specific_kinetic_energy = 0.50*vel2;
     // species specific enthalpy
+    // std::cout << "TEMPERATURE:   " << temperature << std::endl;
+    // std::cout << "mixture_pressure:   " << mixture_pressure << std::endl;
+    // std::cout << "mixture_density:   " << mixture_density << std::endl;
+    // std::cout << "mixture_gas_constant:   " << mixture_gas_constant << std::endl;
+    // std::cout << "this->u_ref_sqr:   " << this->u_ref_sqr << std::endl;
     const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
     // species energy
     for (int s=0; s<nspecies; ++s) 
