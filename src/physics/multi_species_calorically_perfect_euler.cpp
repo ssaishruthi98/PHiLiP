@@ -149,7 +149,7 @@ inline real MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
     // check_positive_quantity(density, "density");
     const real mixture_pressure = this->compute_mixture_pressure(conservative_soln);
 
-    const real sound = sqrt(mixture_pressure*mixture_gamma/mixture_density);
+    const real sound = sqrt((mixture_pressure*mixture_gamma/mixture_density)/(this->mach_ref_sqr));
     return sound;
 }
 /*************************************** end ***************************************/
@@ -172,15 +172,56 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
 ::compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real mixture_density = conservative_soln[0]; // TO DO: use compute_mixture_density
-    const std::array<real,nspecies> gamma = compute_species_specific_heat_ratio(conservative_soln);
+    // const real mixture_density = conservative_soln[0]; // TO DO: use compute_mixture_density
+    // const std::array<real,nspecies> gamma = compute_species_specific_heat_ratio(conservative_soln);
+    // const std::array<real,nspecies> mass_fractions = this->compute_mass_fractions(conservative_soln);
+    // const real mixture_gamma = this->compute_mixture_from_species(mass_fractions,gamma);
+    // const real E = this->compute_mixture_specific_total_energy(conservative_soln);
+    // const real k = this->compute_specific_kinetic_energy(conservative_soln);
+    // const real mixture_pressure = mixture_density*(mixture_gamma*this->gam_ref-1.0)*(E-k);
+
+    // return mixture_pressure;
+
+    const real mixture_density = conservative_soln[0];
     const std::array<real,nspecies> mass_fractions = this->compute_mass_fractions(conservative_soln);
     const real mixture_gamma = this->compute_mixture_from_species(mass_fractions,gamma);
-    const real E = this->compute_mixture_specific_total_energy(conservative_soln);
-    const real k = this->compute_specific_kinetic_energy(conservative_soln);
-    const real mixture_pressure = mixture_density*(mixture_gamma*this->gam_ref-1.0)*(E-k);
+    const real tot_energy  = conservative_soln[dim+2-1];
+    
+    const real vel2 = this->compute_velocity_squared(conservative_soln);
+    real mixture_pressure = ((mixture_gamma-1.0)*(tot_energy - 0.5*mixture_density*vel2))/mixture_density;
 
+    // if(mixture_pressure < 0.1) {
+    //     std::cout << "DENSITY:        " << mixture_density << std::endl
+    //               << "TOTAL ENERGY:   " << tot_energy << std::endl
+    //               << "VEL SQR:        " << vel2 << std::endl
+    //               << "PRESSURE:       " << mixture_pressure << std::endl;
+    //               sleep(2);
+    // }
     return mixture_pressure;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
+::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const
+{
+    std::array<real, nstate> primitive_soln;
+
+    real density = conservative_soln[0];
+    dealii::Tensor<1,dim,real> vel = this->compute_velocities(conservative_soln);
+    real pressure = compute_mixture_pressure(conservative_soln);
+
+    primitive_soln[0] = density;
+    for (int d=0; d<dim; ++d) {
+        primitive_soln[1+d] = vel[d];
+    }
+    primitive_soln[nstate-(nspecies-1)-1] = pressure;
+
+    /* species densities */
+    for (int s=0; s<nspecies-1; ++s) 
+    {
+        primitive_soln[dim+2+s] = conservative_soln[dim+2+s];
+    }
+    return primitive_soln;
 }
 
 /// f_S19: primitive to conservative
@@ -201,7 +242,7 @@ inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nspecies,nstat
     std::array<real,nspecies> mass_fractions;
     const std::array<real,nspecies> gamma_s = compute_species_specific_heat_ratio(primitive_soln);
     const real mixture_pressure = primitive_soln[dim+2-1];
-
+    // std::cout << "mixture_pressure: " << mixture_pressure << std::endl;
     /* mixture density */
     conservative_soln[0] = mixture_density;
 
@@ -231,8 +272,11 @@ inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nspecies,nstat
     // specific kinetic energy
     const real specific_kinetic_energy = 0.50*vel2;  
     // mixture energy
-    const real mixture_specific_total_energy = specific_kinetic_energy + mixture_pressure/(mixture_density*(mixture_gamma*this->gam_ref-1.0));
+    const real mixture_specific_total_energy = mixture_density*specific_kinetic_energy + mixture_pressure/((mixture_gamma-1.0));
     conservative_soln[dim+2-1] = mixture_density*mixture_specific_total_energy;
+    
+    // std::cout << "mixture_energy: " << conservative_soln[dim+2-1] << " and " << mixture_specific_total_energy << std::endl;
+    // std::cout << "mixture_density: " << mixture_density << std::endl;
 
     /* species densities */
     for (int s=0; s<(nspecies)-1; ++s) 

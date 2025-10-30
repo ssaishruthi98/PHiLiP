@@ -177,8 +177,13 @@ void RealGas<dim,nspecies,nstate,real>
     // Krivodonova, L., and Berger, M.,
     // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
     // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+    // for(int istate = 0; istate < nstate; ++istate) {
+    //     std::cout << "STATE " << istate << " :  " << soln_int[istate] << std::endl;
+    // }
     const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
-
+    // for(int istate = 0; istate < nstate; ++istate) {
+    //     std::cout << "PSTATE " << istate << " :  " << primitive_interior_values[istate] << std::endl;
+    // }
     // Copy density and pressure
     std::array<real,nstate> primitive_boundary_values;
     primitive_boundary_values[0] = primitive_interior_values[0];
@@ -757,12 +762,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const real mixture_gas_constant = compute_mixture_from_species(mass_fractions,Rs);
     // temperature
     const real temperature = mixture_pressure/(mixture_density*mixture_gas_constant) * (this->u_ref_sqr/(this->R_ref*this->temperature_ref));
-    std::cout << "MIXTURE_PRESSURE:  " << mixture_pressure << std::endl
-              << "MIXTURE DENSITY:   " << mixture_density << std::endl
-              << "MIXTURE GAS CONST: " << mixture_gas_constant << std::endl
-              << "VEL REF SQR:       " << this->u_ref_sqr << std::endl
-              << "R REF:             " << this->R_ref << std::endl
-              << "TEMP REF:          " << this->temperature_ref << std::endl;
+
     // specific kinetic energy
     const real specific_kinetic_energy = 0.50*vel2;
     // species specific enthalpy

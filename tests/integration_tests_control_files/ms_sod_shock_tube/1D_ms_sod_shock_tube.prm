@@ -38,7 +38,7 @@ subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.000000000001
-  #set output_solution_every_x_steps = 100
+  #set output_solution_every_x_steps = 1
   set output_solution_every_dt_time_intervals = 0.01
   set runge_kutta_method = ssprk3_ex 
 end
@@ -47,7 +47,7 @@ end
 subsection euler
   set mach_infinity = 0.1
   set use_custom_heat_capacities = true
-  set custom_Cp = 1.4, 1.6
+  set custom_Cp = 1.4, 1.4
   set custom_Cv = 1.0, 1.0
 end
 
