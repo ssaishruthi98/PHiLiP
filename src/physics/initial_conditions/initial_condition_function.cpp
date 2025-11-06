@@ -1004,43 +1004,58 @@ real InitialConditionFunction_MultiSpecies_SodShockTube<dim, nspecies, nstate, r
     real value = 0.0;
     if constexpr (dim == 1 && nstate == (dim+2 + nspecies - 1)) {
         const real x = point[0];
-        const real T_l = 375.0; // [K]
-        const real T_r = 300.0; // [K]
-        const real pressure_l = 101325; // [N/m^2]
-        const real pressure_r = 10132.5; // [N/m^2]
+        // const real T_l = 315.0; // [K]
+        // const real T_r = 315.0; // [K]
+        // const real pressure_l = 101325; // [N/m^2]
+        // const real pressure_r = 10132.5; // [N/m^2]
 
 
-        const std::array<real,nspecies> Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        // const std::array<real,nspecies> Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
         real y_N2 = 0.79;
-        real y_O2;
-        real R_mixture;
-        // For a 2 species test
-        if constexpr(nspecies==2 && nstate==dim+2+nspecies-1) {
-            y_O2 = 1.0 - y_N2;
-            R_mixture = (y_N2*Rs[0] + y_O2*Rs[1])*this->real_gas_physics->R_ref;
-        }
+        // real y_O2;
+        // real R_mixture;
+        // // For a 2 species test
+        // if constexpr(nspecies==2 && nstate==dim+2+nspecies-1) {
+        //     y_O2 = 1.0 - y_N2;
+        //     R_mixture = (y_N2*Rs[0] + y_O2*Rs[1])*this->real_gas_physics->R_ref;
+        // }
 
+        // const real density_l = (pressure_l/(R_mixture*T_l))/this->real_gas_physics->density_ref;
         if (x < 0) {
             if (istate == 0) {
                 // density
-                value = (pressure_l/(R_mixture*T_l))/this->real_gas_physics->density_ref;
+                // value = (pressure_l/(R_mixture*T_l));///this->real_gas_physics->density_ref;
+                value = 1.0;
             }
-            if (istate == dim+1) {
+            if (istate == 1) {
+                // velocity
+                // value = sqrt(pressure_l/density_l);
+                value = 0.0;
+            }
+            if (istate == 2) {
                 // pressure
-                value = pressure_l/(this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+                // value = pressure_l/(this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+                value = 1.0;
             }
-            if (istate == nstate-1) {
+            if (istate == 3) {
                 // pressure
                 value = y_N2;
             }
         } else {
             if (istate == 0) {
                 // density
-                value = (pressure_r/(R_mixture*T_r))/this->real_gas_physics->density_ref;
+                // value = (pressure_r/(R_mixture*T_r));///this->real_gas_physics->density_ref;
+                value = 0.125;
+            }
+            if (istate == 1) {
+                // velocity
+                // value = sqrt(pressure_l/density_l);
+                value = 0.0;
             }
             if (istate == dim+1) {
                 // pressure
-                value = pressure_r/(this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+                // value = pressure_r/(this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+                value = 0.1;
             }
             if (istate == nstate-1) {
                 // pressure

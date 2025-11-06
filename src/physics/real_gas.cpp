@@ -458,6 +458,7 @@ template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 ::compute_species_specific_enthalpy ( const real temperature ) const
 {
+    // std::cout << "THE TEMPERATURE PASSED TO SPECIES ENTHALPY IS:   " << temperature << std::endl;
     const real dimensional_temperature = compute_dimensional_temperature(temperature);
     std::array<real,nspecies>h;
     const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
