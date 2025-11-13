@@ -42,7 +42,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " double_mach_reflection | "
                           " shock_diffraction | "
                           " astrophysical_jet | "
-                          " strong_vortex_shock_wave |"),
+                          " strong_vortex_shock_wave |"
+                          " multi_species_high_temperature_vortex_advection|"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -67,7 +68,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " double_mach_reflection | "
                           " shock_diffraction | "
                           " astrophysical_jet | "
-                          " strong_vortex_shock_wave >. ");
+                          " strong_vortex_shock_wave | "
+                          " multi_species_high_temperature_vortex_advection >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -411,6 +413,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "shock_diffraction")          {flow_case_type = shock_diffraction;}
         else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
         else if (flow_case_type_string == "strong_vortex_shock_wave")   {flow_case_type = strong_vortex_shock_wave;}
+        else if (flow_case_type_string == "multi_species_high_temperature_vortex_advection")   
+                                                                        {flow_case_type = multi_species_high_temperature_vortex_advection;}
         
         poly_degree = prm.get_integer("poly_degree");
         

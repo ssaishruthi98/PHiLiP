@@ -133,7 +133,7 @@ ModelFactory<dim,nspecies,nstate,real>
             RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;  
             // Create Reynolds-Averaged Navier-Stokes (RANS) model with one-equation model  
             if(rans_model_type == RANSModel_enum::SA_negative){
-                if constexpr (nstate==dim+3) {
+                if constexpr (nstate==dim+3 && nspecies==1) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // SA negative model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -      
@@ -185,19 +185,17 @@ ModelFactory<dim,nspecies,nstate,real>
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
-#if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range of nstate
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
+// Define a sequence of indices representing the range of nstate
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
 
-    // Define a macro to instantiate functions for a specific index
-    #define INSTANTIATE_FOR_NSTATE(r, data, index) \
-        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
-#endif
+// Define a macro to instantiate functions for a specific index
+#define INSTANTIATE_FOR_NSTATE(r, data, index) \
+    template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
 } // Physics namespace
 } // PHiLiP namespace
 

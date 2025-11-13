@@ -35,7 +35,7 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
         std::abort();
     }
 
-    if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::central_flux) {
+    if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::central_flux && nspecies==1) {
         if constexpr (nstate<=5) {
             return std::make_unique< Central<dim, nspecies, nstate, real> > (physics_input);
         }
@@ -48,12 +48,12 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
             return create_euler_based_convective_numerical_flux(conv_num_flux_type, pde_type, model_type, physics_input);
         }
     }
-    else if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux) {
+    else if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux && nspecies==1) {
         if constexpr (nstate<=5) {
             return std::make_unique< EntropyConserving<dim, nspecies, nstate, real> > (physics_input);
         }
     } 
-    else if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_lax_friedrichs_dissipation) {
+    else if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_lax_friedrichs_dissipation && nspecies==1) {
         if constexpr (nstate<=5) {
             return std::make_unique< EntropyConservingWithLaxFriedrichsDissipation<dim, nspecies, nstate, real> > (physics_input);
         }
@@ -106,16 +106,16 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
         std::abort();
     }
 #endif
-    if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::roe) {
+    if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::roe && nspecies==1) {
         if constexpr (dim+2==nstate) return std::make_unique< RoePike<dim, nspecies, nstate, real> > (euler_based_physics_to_be_passed);
     } 
-    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::l2roe) {
+    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::l2roe && nspecies==1) {
         if constexpr (dim+2==nstate) return std::make_unique< L2Roe<dim, nspecies, nstate, real> > (euler_based_physics_to_be_passed);
     } 
-    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation) {
+    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation && nspecies==1) {
         if constexpr (dim+2==nstate) return std::make_unique< EntropyConservingWithRoeDissipation<dim, nspecies, nstate, real> > (euler_based_physics_to_be_passed);
     }
-    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation) {
+    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation && nspecies==1) {
         if constexpr (dim+2==nstate) return std::make_unique< EntropyConservingWithL2RoeDissipation<dim, nspecies, nstate, real> > (euler_based_physics_to_be_passed);
     }
 
@@ -146,18 +146,18 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
     return nullptr;
 }
 
-#if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range [1, 6]
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate functions for a specific index
-    #define INSTANTIATE_FOR_NSTATE(r, data, index) \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadType >; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadType >; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType >; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType >; 
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
-#endif
+// Define a sequence of indices representing the range [1, 6]
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+
+// Define a macro to instantiate functions for a specific index
+#define INSTANTIATE_FOR_NSTATE(r, data, index) \
+template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadType >; \
+template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadType >; \
+template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType >; \
+template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType >; 
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+
 } // NumericalFlux namespace
 } // PHiLiP namespace

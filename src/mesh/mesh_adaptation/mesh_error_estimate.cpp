@@ -80,7 +80,8 @@ DualWeightedResidualError<dim, nspecies, nstate, real, MeshType>::DualWeightedRe
     coarse_fe_index.reinit(this->dg->triangulation->n_active_cells());
 
     // create functional
-    functional = FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(this->dg->all_parameters->functional_param, this->dg);
+    if(nspecies==1)
+        functional = FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(this->dg->all_parameters->functional_param, this->dg);
 
     // looping over the cells
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators()) 

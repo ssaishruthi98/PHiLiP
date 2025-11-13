@@ -36,6 +36,8 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim,nspec
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
     } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+3> >(parameters_input);
+    } else if (pde_type == PDE_enum::real_gas) {
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+nspecies+1> >(parameters_input);
     } 
 #if PHILIP_DIM==3
     else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
@@ -106,12 +108,16 @@ dealii::UpdateFlags PhysicsPostprocessor<dim,nspecies,nstate>::get_needed_update
     return this->physics->post_get_needed_update_flags();
 }
 
+#if PHILIP_SPECIES==1
 template class PhysicsPostprocessor < PHILIP_DIM, PHILIP_SPECIES, 1 >;
 template class PhysicsPostprocessor < PHILIP_DIM, PHILIP_SPECIES, 2 >;
 template class PhysicsPostprocessor < PHILIP_DIM, PHILIP_SPECIES, 3 >;
 template class PhysicsPostprocessor < PHILIP_DIM, PHILIP_SPECIES, 4 >;
 template class PhysicsPostprocessor < PHILIP_DIM, PHILIP_SPECIES, 5 >;
 template class PhysicsPostprocessor < PHILIP_DIM, PHILIP_SPECIES, 6 >;
+#else
+template class PhysicsPostprocessor < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1 >;
+#endif
 
 } // Postprocess namespace
 } // PHiLiP namespace

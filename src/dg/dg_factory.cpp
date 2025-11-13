@@ -22,54 +22,56 @@ DGFactory<dim,nspecies,real,MeshType>
     const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
 
     if (parameters_input->use_weak_form) {
-        if (pde_type == PDE_enum::advection) {
+        if (pde_type == PDE_enum::advection && nspecies==1) {
             return std::make_shared< DGWeak<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::advection_vector) {
+        } else if (pde_type == PDE_enum::advection_vector && nspecies==1) {
             return std::make_shared< DGWeak<dim,nspecies,2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::diffusion) {
+        } else if (pde_type == PDE_enum::diffusion && nspecies==1) {
             return std::make_shared< DGWeak<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::convection_diffusion) {
+        } else if (pde_type == PDE_enum::convection_diffusion && nspecies==1) {
             return std::make_shared< DGWeak<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_inviscid) {
+        } else if (pde_type == PDE_enum::burgers_inviscid && nspecies==1) {
             return std::make_shared< DGWeak<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_viscous) {
+        } else if (pde_type == PDE_enum::burgers_viscous && nspecies==1) {
             return std::make_shared< DGWeak<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_rewienski) {
+        } else if (pde_type == PDE_enum::burgers_rewienski && nspecies==1) {
             return std::make_shared< DGWeak<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::euler) {
+        } else if (pde_type == PDE_enum::euler && nspecies==1) {
             return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::navier_stokes) {
+        } else if (pde_type == PDE_enum::navier_stokes && nspecies==1) {
             return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
+        } else if ((pde_type == PDE_enum::physics_model && nspecies==1) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGWeak<dim,nspecies,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        }
+        } else if (pde_type == PDE_enum::real_gas) {
+            return std::make_shared< DGWeak<dim,nspecies,dim+nspecies+1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        } 
 #if PHILIP_DIM==3
         else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
             return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
 #endif
     } else {
-        if (pde_type == PDE_enum::advection) {
+        if (pde_type == PDE_enum::advection && nspecies==1) {
             return std::make_shared< DGStrong<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::advection_vector) {
+        } else if (pde_type == PDE_enum::advection_vector && nspecies==1) {
             return std::make_shared< DGStrong<dim,nspecies,2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::diffusion) {
+        } else if (pde_type == PDE_enum::diffusion && nspecies==1) {
             return std::make_shared< DGStrong<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::convection_diffusion) {
+        } else if (pde_type == PDE_enum::convection_diffusion && nspecies==1) {
             return std::make_shared< DGStrong<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_inviscid) {
+        } else if (pde_type == PDE_enum::burgers_inviscid && nspecies==1) {
             return std::make_shared< DGStrong<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_viscous) {
+        } else if (pde_type == PDE_enum::burgers_viscous && nspecies==1) {
             return std::make_shared< DGStrong<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_rewienski) {
+        } else if (pde_type == PDE_enum::burgers_rewienski && nspecies==1) {
             return std::make_shared< DGStrong<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::euler) {
+        } else if (pde_type == PDE_enum::euler && nspecies==1) {
             return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::navier_stokes) {
+        } else if (pde_type == PDE_enum::navier_stokes && nspecies==1) {
             return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
+        } else if ((pde_type == PDE_enum::physics_model && nspecies==1) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGStrong<dim,nspecies,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        }
+        } 
 #if PHILIP_DIM==3
         else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
             return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
@@ -103,12 +105,11 @@ DGFactory<dim,nspecies,real,MeshType>
     return create_discontinuous_galerkin(parameters_input, degree, degree, triangulation_input);
 }
 
-#if PHILIP_SPECIES==1
-    template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
-    template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    #if PHILIP_DIM!=1
-    template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    #endif
+
+template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+#if PHILIP_DIM!=1
+template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // PHiLiP namespace

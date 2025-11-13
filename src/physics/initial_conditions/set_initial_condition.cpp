@@ -247,5 +247,7 @@ void SetInitialCondition<dim,nspecies,nstate,real>::read_values_from_file_and_pr
     #define INSTANTIATE_SET_IC(r, data, index) \
         template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, index, double>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SET_IC, _, POSSIBLE_NSTATE)
+#else
+    template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
 #endif
 }//end of namespace PHILIP

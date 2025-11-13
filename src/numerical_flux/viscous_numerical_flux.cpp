@@ -327,36 +327,35 @@ std::array<real, nstate> BassiRebay2<dim,nspecies,nstate,real>
     return auxiliary_flux_dot_n;
 }
 
-#if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range [1, 6]
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate functions for a specific index
-    #define INSTANTIATE_FOR_NSTATE(r, data, index) \
-        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
-#endif
+// Define a sequence of indices representing the range [1, 6]
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+
+// Define a macro to instantiate functions for a specific index
+#define INSTANTIATE_FOR_NSTATE(r, data, index) \
+    template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
 } // NumericalFlux namespace
 } // PHiLiP namespace

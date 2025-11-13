@@ -40,6 +40,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
+    prm.declare_entry("number_of_species", "-1",
+                      dealii::Patterns::Integer(),
+                      "Number of species");
+
     prm.declare_entry("run_type", "integration_test",
                       dealii::Patterns::Selection(
                       " integration_test | "
@@ -274,7 +278,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler |"
                       " mhd |"
                       " navier_stokes |"
-                      " physics_model"),
+                      " physics_model |"
+                      " real_gas"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -287,7 +292,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler | "
                       "  mhd |"
                       "  navier_stokes |"
-                      "  physics_model>.");
+                      "  physics_model |"
+                      "  real_gas >.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
@@ -396,6 +402,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing main input..." << std::endl;
 
     dimension = prm.get_integer("dimension");
+    number_of_species = prm.get_integer("number_of_species");
 
     const std::string run_type_string = prm.get("run_type");
     if      (run_type_string == "integration_test") { run_type = integration_test; }
@@ -661,7 +668,10 @@ const std::string test_string = prm.get("test_type");
               nstate = dimension+3;
         }
     }
-    
+    else if (pde_string == "real_gas") {
+        pde_type = real_gas;
+        nstate = dimension+number_of_species+1;
+    }
     pcout << "Parsing time refinement study subsection..." << std::endl;
     time_refinement_study_param.parse_parameters (prm);
     

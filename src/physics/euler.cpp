@@ -1550,7 +1550,6 @@ dealii::UpdateFlags Euler<dim,nspecies,nstate,real>
            ;
 }
 
-#if PHILIP_SPECIES==1
 // Instantiate explicitly
 template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >;
 template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType    >;
@@ -1639,7 +1638,6 @@ template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPE
 template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 //==============================================================================
-#endif
 } // Physics namespace
 } // PHiLiP namespace
 

@@ -479,127 +479,126 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nspecies,nstate,rea
     return numerical_flux_dot_n;
 }
 
+// Define a sequence of indices representing the range [1, 6]
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+
+// Define a macro to instantiate functions for a specific index
+#define INSTANTIATE_UPTO_NSTATE6(r, data, index) \
+    template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_UPTO_NSTATE6, _, POSSIBLE_NSTATE)
+
+// Removes nstate 6 from list, if you want to compile the function in INSTANTIATE_UPTO_NSTATE5 for nstate 6, then comment the two lines defining new nstate list
+#undef POSSIBLE_NSTATE
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
+
+#define INSTANTIATE_UPTO_NSTATE5(r, data, index) \
+    template class Central<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class Central<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class Central<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class Central<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class Central<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+    \
+    template class ZeroRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+    template class ZeroRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+    template class ZeroRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+    template class ZeroRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+    template class ZeroRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_UPTO_NSTATE5, _, POSSIBLE_NSTATE)
 #if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range [1, 6]
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+// Instantiation for NSTATE = DIM + 2
+template class RoePike<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class RoePike<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
+template class RoePike<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
+template class RoePike<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
+template class RoePike<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
 
-    // Define a macro to instantiate functions for a specific index
-    #define INSTANTIATE_UPTO_NSTATE6(r, data, index) \
-        template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_UPTO_NSTATE6, _, POSSIBLE_NSTATE)
+template class L2Roe<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class L2Roe<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
+template class L2Roe<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
+template class L2Roe<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
+template class L2Roe<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
 
-    // Removes nstate 6 from list, if you want to compile the function in INSTANTIATE_UPTO_NSTATE5 for nstate 6, then comment the two lines defining new nstate list
-    #undef POSSIBLE_NSTATE
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
+template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
+template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
+template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
+template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
 
-    #define INSTANTIATE_UPTO_NSTATE5(r, data, index) \
-        template class Central<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class Central<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class Central<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class Central<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class Central<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class EntropyConservingBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
-        \
-        template class ZeroRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class ZeroRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class ZeroRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class ZeroRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class ZeroRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_UPTO_NSTATE5, _, POSSIBLE_NSTATE)
+template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
+template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
+template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
+template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
 
-    // Instantiation for NSTATE = DIM + 2
-    template class RoePike<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-    template class RoePike<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
-    template class RoePike<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
-    template class RoePike<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-    template class RoePike<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
+template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
+template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
+template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
+template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
 
-    template class L2Roe<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-    template class L2Roe<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
-    template class L2Roe<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
-    template class L2Roe<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-    template class L2Roe<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
+template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
+template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
+template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
+template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
 
-    template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-    template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
-    template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
-    template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-    template class EntropyConservingWithRoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
-
-    template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-    template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
-    template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
-    template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-    template class EntropyConservingWithL2RoeDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
-
-    template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-    template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
-    template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
-    template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-    template class RoeBaseRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
-
-    template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-    template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
-    template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
-    template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-    template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
-
-    template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-    template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
-    template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
-    template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-    template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
+template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType >;
+template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType >;
+template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
+template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
 #endif
 } // NumericalFlux namespace
 } // PHiLiP namespace

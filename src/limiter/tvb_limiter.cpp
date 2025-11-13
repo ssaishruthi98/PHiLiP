@@ -299,13 +299,11 @@ void TVBLimiter<dim, nspecies, nstate, real>::limit(
     }
 }
 
-#if PHILIP_DIM==1 && PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range [1, 6]
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+// Define a sequence of indices representing the range [1, 6]
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate Limiter Function for a specific index
-    #define INSTANTIATE_LIMITER(r, data, index) \
-        template class TVBLimiter <PHILIP_DIM, PHILIP_SPECIES, index, double>;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
-#endif
+// Define a macro to instantiate Limiter Function for a specific index
+#define INSTANTIATE_LIMITER(r, data, index) \
+    template class TVBLimiter <PHILIP_DIM, PHILIP_SPECIES, index, double>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
 } // PHiLiP namespace

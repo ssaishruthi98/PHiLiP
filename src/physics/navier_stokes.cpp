@@ -956,7 +956,6 @@ void NavierStokes<dim,nspecies,nstate,real>
     }
 }
 
-#if PHILIP_SPECIES==1
 // Instantiate explicitly
 template class NavierStokes < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double >;
 template class NavierStokes < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType  >;
@@ -1090,6 +1089,5 @@ template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_SPECIES, 
 template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType   >::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
 template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType>::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
 template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType>::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
-#endif
 } // Physics namespace
 } // PHiLiP namespace

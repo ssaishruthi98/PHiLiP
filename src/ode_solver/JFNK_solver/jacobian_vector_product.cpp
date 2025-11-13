@@ -74,14 +74,10 @@ void JacobianVectorProduct<dim,nspecies,real,MeshType>::vmult (dealii::LinearAlg
 
 }
 
-#if PHILIP_SPECIES==1
-    template class JacobianVectorProduct<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
-    template class JacobianVectorProduct<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    #if PHILIP_DIM != 1
-    template class JacobianVectorProduct<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    #endif
+template class JacobianVectorProduct<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+template class JacobianVectorProduct<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+#if PHILIP_DIM != 1
+template class JacobianVectorProduct<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
-
-
 }
 }

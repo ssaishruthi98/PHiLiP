@@ -19,20 +19,21 @@ DGBaseState<dim, nspecies, nstate, real, MeshType>::DGBaseState(const Parameters
 
     pde_model_double = Physics::ModelFactory<dim, nspecies, nstate, real>::create_Model(parameters_input);
     pde_physics_double = Physics::PhysicsFactory<dim, nspecies, nstate, real>::create_Physics(parameters_input, pde_model_double);
+    if(nspecies==1) {
+        pde_model_fad = Physics::ModelFactory<dim, nspecies, nstate, FadType>::create_Model(parameters_input);
+        pde_physics_fad = Physics::PhysicsFactory<dim, nspecies, nstate, FadType>::create_Physics(parameters_input, pde_model_fad);
 
-    pde_model_fad = Physics::ModelFactory<dim, nspecies, nstate, FadType>::create_Model(parameters_input);
-    pde_physics_fad = Physics::PhysicsFactory<dim, nspecies, nstate, FadType>::create_Physics(parameters_input, pde_model_fad);
+        pde_model_rad = Physics::ModelFactory<dim, nspecies, nstate, RadType>::create_Model(parameters_input);
+        pde_physics_rad = Physics::PhysicsFactory<dim, nspecies, nstate, RadType>::create_Physics(parameters_input, pde_model_rad);
 
-    pde_model_rad = Physics::ModelFactory<dim, nspecies, nstate, RadType>::create_Model(parameters_input);
-    pde_physics_rad = Physics::PhysicsFactory<dim, nspecies, nstate, RadType>::create_Physics(parameters_input, pde_model_rad);
+        pde_model_fad_fad = Physics::ModelFactory<dim, nspecies, nstate, FadFadType>::create_Model(parameters_input);
+        pde_physics_fad_fad =
+            Physics::PhysicsFactory<dim, nspecies, nstate, FadFadType>::create_Physics(parameters_input, pde_model_fad_fad);
 
-    pde_model_fad_fad = Physics::ModelFactory<dim, nspecies, nstate, FadFadType>::create_Model(parameters_input);
-    pde_physics_fad_fad =
-        Physics::PhysicsFactory<dim, nspecies, nstate, FadFadType>::create_Physics(parameters_input, pde_model_fad_fad);
-
-    pde_model_rad_fad = Physics::ModelFactory<dim, nspecies, nstate, RadFadType>::create_Model(parameters_input);
-    pde_physics_rad_fad =
-        Physics::PhysicsFactory<dim, nspecies, nstate, RadFadType>::create_Physics(parameters_input, pde_model_rad_fad);
+        pde_model_rad_fad = Physics::ModelFactory<dim, nspecies, nstate, RadFadType>::create_Model(parameters_input);
+        pde_physics_rad_fad =
+            Physics::PhysicsFactory<dim, nspecies, nstate, RadFadType>::create_Physics(parameters_input, pde_model_rad_fad);
+    }
 
     reset_numerical_fluxes();
 }
@@ -233,5 +234,11 @@ real DGBaseState<dim, nspecies, nstate, real, MeshType>::evaluate_CFL(std::vecto
         template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
         template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+#else
+    #if PHILIP_DIM!=1
+    template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
+    template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::Triangulation<PHILIP_DIM>>;
 #endif
 }  // namespace PHiLiP

@@ -35,6 +35,7 @@ AllRealGasConstants::AllRealGasConstants (const Parameters::AllParameters *const
     //          READ SPECIES FILE
     //-------------------------------------------
     readspecies(namechem);
+    InitEOSVariables();
 }
 
 //===============================================
@@ -242,6 +243,7 @@ void AllRealGasConstants::readspecies(std::string reactionFilename)
     H_T = dvector(N_species); 
     S_T = dvector(N_species); 
     Cp_T = dvector(N_species);
+    Cv_T = dvector(N_species);
     MechParametersArr = dmatrix(N_mechs,3);
     MechParametersLowPressure = dmatrix(N_mechs,3); 
     MechParametersTroe = dmatrix(N_mechs,4); 
@@ -811,6 +813,109 @@ void AllRealGasConstants::InitEOSVariables()
         /* Get species energy of formation at T_ref */
         GetSpeciesEnergyFormation(Sp_EnergyFormation);
     }
+}
+
+void AllRealGasConstants::GetNASACAP_TemperatureIndex(double T, int *Sp_TempIndex)
+{
+	double PercentOutRange;
+
+	for(int i=0; i<N_species; i++)
+	{
+		Sp_TempIndex[i] = -1; // initialize
+		if((T >= NASACAPTemperatureLimits[i][0]) && (T < NASACAPTemperatureLimits[i][1]))
+		{
+			Sp_TempIndex[i] = 0; // low temp
+		}
+		else if((T >= NASACAPTemperatureLimits[i][1]) && (T < NASACAPTemperatureLimits[i][2]))
+		{
+			Sp_TempIndex[i] = 1; // mid temp
+		}
+		else if((T >= NASACAPTemperatureLimits[i][2]) && (T <= NASACAPTemperatureLimits[i][3]))
+		{
+			Sp_TempIndex[i] = 2; // high temp
+		}
+		else
+		{
+			// Outside temperature range
+			if(T < NASACAPTemperatureLimits[i][0])
+			{
+				PercentOutRange = 1.0 - T/NASACAPTemperatureLimits[i][0];
+				PercentOutRange *= 100.0;
+				if(PercentOutRange < 20.0)
+				{
+					Sp_TempIndex[i] = 0;
+				}
+				else
+				{
+					// Extrapolation -- Wilkhoit
+					// NOTE: THE FOLLOWING IS TEMPORARY -- freeze temp at 20% out of range
+					// T = 0.8*NASACAPTemperatureLimits[i][0]; // COMMENT TO UNFREEZE
+					Sp_TempIndex[i] = 0;
+				}
+			}
+			else if(T > NASACAPTemperatureLimits[i][3])
+			{
+				PercentOutRange = T/NASACAPTemperatureLimits[i][3] - 1.0;
+				PercentOutRange *= 100.0;
+				if(PercentOutRange < 20.0)
+				{
+					Sp_TempIndex[i] = 2;
+				}
+				else
+				{
+					// Extrapolation -- Wilkhoit
+					// NOTE: THE FOLLOWING IS TEMPORARY -- freeze temp at 20% out of range
+					// T = 1.2*NASACAPTemperatureLimits[i][3]; // COMMENT TO UNFREEZE
+					Sp_TempIndex[i] = 2;
+				}
+			}
+		}
+	}
+}
+
+void AllRealGasConstants::NASACAP_GetHSCp(double *H_T, double *S_T, double *Cp_T, double *Cv_T, double RT)
+{
+	// return H, S, and Cp  (in J/mol-K)
+	double T = RT/R_universal;
+    // this->pcout << std::endl << "temperature in argc: " << T << "  R_universal:  " << R_universal << std::endl;
+	GetNASACAP_TemperatureIndex(T, Sp_TempIndex);
+    // std::cout << std::endl << "JULIEN # OF SPECIES: " << N_species << std::endl;
+	for(int i=0; i<N_species; i++)
+	{
+        // std::cout << "Julien Cp incremental value:  ";
+
+		if (Sp_TempIndex[i] != -1)
+		{
+			int T_Index = Sp_TempIndex[i];
+			Cp_T[i] = 0.0;
+			S_T[i] = -0.5*NASACAPCoeffs[i][0][T_Index]*pow(T, -2.0) - NASACAPCoeffs[i][1][T_Index]/T + NASACAPCoeffs[i][2][T_Index]*log(T);
+			H_T[i] = -NASACAPCoeffs[i][0][T_Index]*pow(T, -2.0) + NASACAPCoeffs[i][1][T_Index]*log(T)/T;
+
+			for(int j=0; j<7; j++)
+			{
+				Cp_T[i] += NASACAPCoeffs[i][j][T_Index]*pow(T, double(j-2));
+                // std::cout << Cp_T[i] << ", ";
+				if(j > 1)
+				{
+					H_T[i] += NASACAPCoeffs[i][j][T_Index]*pow(T, double(j-2))/(double(j-1));
+				}
+				if(j > 2)
+				{
+					S_T[i] += NASACAPCoeffs[i][j][T_Index]*pow(T, double(j-2))/(double(j-2));	
+				}
+			}
+			H_T[i] += NASACAPCoeffs[i][7][T_Index]/T;
+			S_T[i] += NASACAPCoeffs[i][8][T_Index];
+			
+			Cp_T[i] *= R_universal; // [J/mol-K]
+			Cv_T[i] = Cp_T[i] - R_universal; // [J/mol-K] 
+            Cv_T[i] /= R_universal;
+			Cp_T[i] /= R_universal;
+			// H_T[i] *= RT; // [J/mol]
+			// S_T[i] *= R_universal; // [J/mol-K]
+		}
+        // std::cout<<std::endl;
+	}
 }
 
 } // RealGasConstants namespace

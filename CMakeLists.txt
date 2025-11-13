@@ -15,6 +15,8 @@ set(MPIMAX 4 CACHE STRING "Default number of processors used in ctest mpirun -np
 set(ENABLE_GMSH 0 CACHE STRING "Enable GMSH access through command lines and tests.")
 set(ENABLE_GNUPLOT 0 CACHE STRING "Enable Gnu Plot outputs.")
 
+set(NUMBER_OF_SPECIES 2 CACHE STRING "Set number of species. If set to >1 executables for tests will not be made.")
+
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
 # Update submodules as needed
@@ -103,7 +105,10 @@ SET(_philip_targets "#
 #      make PHiLiP_1D      - to build main program (without tests) in 1D
 #      make PHiLiP_2D      - to build main program (without tests) in 2D
 #      make PHiLiP_3D      - to build main program (without tests) in 3D ")
+
+if(${NUMBER_OF_SPECIES} EQUAL 1)
 add_custom_target(unit_tests)
+endif()
 
 add_custom_target(grids)
 

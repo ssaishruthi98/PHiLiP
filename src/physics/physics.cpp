@@ -226,30 +226,29 @@ real2 PhysicsBase<dim,nspecies,nstate,real>
         
     return (real2)BIG_NUMBER;
 }
-#if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range of nstate
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
 
-    // Define a macro to instantiate functions for a specific index
-    #define INSTANTIATE_FOR_NSTATE(r, data, index) \
-        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, double >; \
-        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, FadType >; \
-        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadType >; \
-        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, FadFadType >; \
-        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadFadType >; \
-        /* -- handle_non_physical_result */ \
-        template double PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, double >::handle_non_physical_result<double>(const std::string message) const; \
-        template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, FadType >::handle_non_physical_result<FadType>(const std::string message) const; \
-        template RadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadType >::handle_non_physical_result<RadType>(const std::string message) const; \
-        template FadFadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const; \
-        template RadFadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const; \
-        /* instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian() */ \
-        template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, double >::handle_non_physical_result<FadType>(const std::string message) const; \
-        template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadType >::handle_non_physical_result<FadType>(const std::string message) const; \
-        template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const; \
-        template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
-#endif
+// Define a sequence of indices representing the range of nstate
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
+
+// Define a macro to instantiate functions for a specific index
+#define INSTANTIATE_FOR_NSTATE(r, data, index) \
+    template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, double >; \
+    template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, FadType >; \
+    template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadType >; \
+    template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, FadFadType >; \
+    template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadFadType >; \
+    /* -- handle_non_physical_result */ \
+    template double PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, double >::handle_non_physical_result<double>(const std::string message) const; \
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, FadType >::handle_non_physical_result<FadType>(const std::string message) const; \
+    template RadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadType >::handle_non_physical_result<RadType>(const std::string message) const; \
+    template FadFadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const; \
+    template RadFadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const; \
+    /* instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian() */ \
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, double >::handle_non_physical_result<FadType>(const std::string message) const; \
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadType >::handle_non_physical_result<FadType>(const std::string message) const; \
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const; \
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, index, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
 } // Physics namespace
 } // PHiLiP namespace
 

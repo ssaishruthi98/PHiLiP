@@ -17,7 +17,8 @@ SET(SOURCE
     large_eddy_simulation.cpp
     reynolds_averaged_navier_stokes.cpp
     negative_spalart_allmaras_rans_model.cpp
-    model_factory.cpp)
+    model_factory.cpp
+    real_gas.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library
@@ -40,7 +41,7 @@ foreach(dim RANGE 1 3)
     target_compile_definitions(${PhysicsLib} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${PhysicsLib} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${PhysicsLib} PRIVATE PHILIP_SPECIES=2)
 
     # Setup target with deal.II
     unset(PhysicsLib)

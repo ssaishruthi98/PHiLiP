@@ -78,6 +78,8 @@ void CubeFlow_UniformGrid<dim, nspecies, nstate>::update_maximum_local_wave_spee
     #if PHILIP_DIM==2
         template class CubeFlow_UniformGrid <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
     #endif
+#else
+    template class CubeFlow_UniformGrid<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1>;
 #endif
 } // FlowSolver namespace
 } // PHiLiP namespace

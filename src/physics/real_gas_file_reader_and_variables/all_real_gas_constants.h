@@ -150,7 +150,7 @@ public:
 
         double *Sp_W, *Le_k, **NASACoeffsLowT, **NASACoeffsHighT, *VibEnergy_MacheretFridman_mech,
          **TemperatureLimits, *omega_dot, **omega_dot_mech, *H0, *S0, *Cp0, *H_T,
-          *S_T, *Cp_T, **MechParametersArr, **MechParametersLowPressure,
+          *S_T, *Cp_T, *Cv_T, **MechParametersArr, **MechParametersLowPressure,
            **MechParametersTroe, **MechMixtureCoeffs, *K_f, *K_r,
             *MechDeltaH_RT, *MechDeltaS_R, *q_mech, **MechTempExps,
              **MechEqConstCoeffs, **Sp_ElecDegeneracy, **Sp_CharElecTemp,
@@ -172,6 +172,9 @@ public:
         int *TraceSpFlag;
     /*}
     ReactiveVars reactive;*/
+    /*tryingout functions from eos in gas_constants*/
+    void GetNASACAP_TemperatureIndex(double, int*);
+    void NASACAP_GetHSCp(double*, double*, double*, double*, double);
 
 protected:
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0

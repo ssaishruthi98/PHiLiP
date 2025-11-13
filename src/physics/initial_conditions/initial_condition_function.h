@@ -6,7 +6,7 @@
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
 #include "../euler.h" // for FreeStreamInitialConditions
-
+#include "../real_gas.h" // for RealGasBase
 namespace PHiLiP {
 
 /// Initial condition function used to initialize a particular flow setup/case
@@ -506,6 +506,51 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+/// Initial Condition Function: Real Gas Equations (primitive values)
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_RealGasBase : public InitialConditionFunction<dim, nspecies, nstate, real>
+{
+protected:
+    using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for test cases using Real Gas equations.
+    explicit InitialConditionFunction_RealGasBase(
+        Parameters::AllParameters const* const param);
+
+    /// Value of initial condition expressed in terms of conservative variables
+    real value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    virtual real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const = 0;
+
+    /// Converts value from: primitive to conservative
+    real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
+
+    // Real Gas physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
+};
+
+/// 1D Initial Condition Function: MultiSpecies_HighTemperature_VortexAdvection 
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+{
+public:
+    /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+     *  This sets the public attribute n_components = nstate, which can then be accessed
+     *  by all the other functions
+     *  Reference: TBD
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
+     */
+    InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection (
+            Parameters::AllParameters const *const param);
+
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+};
 
 /// Initial condition 0.
 template <int dim, int nspecies, int nstate, typename real>

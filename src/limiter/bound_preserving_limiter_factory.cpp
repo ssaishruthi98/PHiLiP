@@ -62,7 +62,7 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
         return std::make_unique< MaximumPrincipleLimiter<dim, nspecies, nstate, real> >(parameters_input);
     } else if (limiter_type == limiter_enum::positivity_preservingZhang2010
                 || limiter_type == limiter_enum::positivity_preservingWang2012) {
-        if (nstate == dim + 2)
+        if (nspecies==1 && nstate == dim + 2)
             return std::make_unique< PositivityPreservingLimiter<dim, nspecies, nstate, real> >(parameters_input);
         else {
             if(nstate != dim + 2) {
@@ -77,13 +77,11 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
     return nullptr;
 }
 
-#if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range [1, 6]
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+// Define a sequence of indices representing the range [1, 6]
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate Limiter Factory Function for a specific index
-    #define INSTANTIATE_LIMITER(r, data, index) \
-        template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, index, double>;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
-#endif
+// Define a macro to instantiate Limiter Factory Function for a specific index
+#define INSTANTIATE_LIMITER(r, data, index) \
+    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, index, double>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
 } // PHiLiP namespace
