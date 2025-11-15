@@ -12,7 +12,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -80,7 +80,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -138,7 +138,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -206,7 +206,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -274,7 +274,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -340,7 +340,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -398,7 +398,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -460,7 +460,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -519,7 +519,7 @@ foreach(dim RANGE 1 3)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -580,7 +580,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -641,7 +641,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -723,7 +723,7 @@ foreach(dim RANGE 1 2)
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})

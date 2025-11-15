@@ -16,7 +16,7 @@ foreach(dim RANGE 1 3)
     target_compile_definitions(${OptimizationLib} PRIVATE PHILIP_DIM=${dim})
     # Replace occurences of PHILIP_SPECIES with 1 in the code
     # NOTE: PHILIP_SPECIES will become user defined in a future PR
-    target_compile_definitions(${OptimizationLib} PRIVATE PHILIP_SPECIES=1)
+    target_compile_definitions(${OptimizationLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Library dependency
     string(CONCAT GridsLib Grids_${dim}D)

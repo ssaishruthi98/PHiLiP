@@ -62,11 +62,16 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
         return std::make_unique< MaximumPrincipleLimiter<dim, nspecies, nstate, real> >(parameters_input);
     } else if (limiter_type == limiter_enum::positivity_preservingZhang2010
                 || limiter_type == limiter_enum::positivity_preservingWang2012) {
-        if (nstate == dim + 2)
+        if (nstate == dim + 2 && nspecies==1)
             return std::make_unique< PositivityPreservingLimiter<dim, nspecies, nstate, real> >(parameters_input);
         else {
             if(nstate != dim + 2) {
                 std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
+            }
+            if(nspecies != 1) {
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nspecies != 1" << std::endl;
+                std::cout << "The Positivity-Preserving limiter will be extended to multispecies in a future implementation." << std::endl;
                 std::abort();
             }
         }
@@ -77,13 +82,11 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
     return nullptr;
 }
 
-#if PHILIP_SPECIES==1
-    // Define a sequence of nstate in the range [1, 6]
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+// Define a sequence of nstate in the range [1, 6]
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate Limiter Factory Function for a specific nstate
-    #define INSTANTIATE_LIMITER(r, data, nstate) \
-        template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, nstate, double>;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
-#endif
+// Define a macro to instantiate Limiter Factory Function for a specific nstate
+#define INSTANTIATE_LIMITER(r, data, nstate) \
+    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, nstate, double>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
 } // PHiLiP namespace

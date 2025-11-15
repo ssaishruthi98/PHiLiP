@@ -52,14 +52,14 @@ PhysicsFactory<dim,nspecies,nstate,real>
     const double                     diffusion_coefficient = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_coefficient;
 
     if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
-        if constexpr (nstate<=2) 
+        if constexpr (nstate<=2 && nspecies==1) 
             return std::make_shared < ConvectionDiffusion<dim,nspecies,nstate,real> >(
                 parameters_input,
                 true, false,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::diffusion) {
-        if constexpr (nstate==1) 
+        if constexpr (nstate==1 && nspecies==1) 
             return std::make_shared < ConvectionDiffusion<dim,nspecies,nstate,real> >(
                 parameters_input,
                 false, true,
@@ -67,7 +67,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 manufactured_solution_function,
                 parameters_input->test_type);
     } else if (pde_type == PDE_enum::convection_diffusion) {
-        if constexpr (nstate==1) 
+        if constexpr (nstate==1 && nspecies==1) 
             return std::make_shared < ConvectionDiffusion<dim,nspecies,nstate,real> >(
                 parameters_input,
                 true, true,
@@ -75,7 +75,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 manufactured_solution_function,
                 parameters_input->test_type);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
-        if constexpr (nstate==dim) 
+        if constexpr (nstate==dim && nspecies==1) 
             return std::make_shared < Burgers<dim,nspecies,nstate,real> >(
                 parameters_input,
                 parameters_input->burgers_param.diffusion_coefficient,
@@ -84,7 +84,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 manufactured_solution_function,
                 parameters_input->test_type);
     } else if (pde_type == PDE_enum::burgers_viscous) {
-        if constexpr (nstate==dim)
+        if constexpr (nstate==dim && nspecies==1)
             return std::make_shared < Burgers<dim,nspecies,nstate,real> >(
                 parameters_input,
                 parameters_input->burgers_param.diffusion_coefficient,
@@ -92,7 +92,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 diffusion_tensor,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::burgers_rewienski) {
-        if constexpr (nstate==dim)
+        if constexpr (nstate==dim && nspecies==1)
             return std::make_shared < BurgersRewienski<dim,nspecies,nstate,real> >(
                 parameters_input,
                 parameters_input->burgers_param.rewienski_a,
@@ -103,7 +103,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 diffusion_tensor,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::euler) {
-        if constexpr (nstate==dim+2) {
+        if constexpr (nstate==dim+2 && nspecies==1) {
             return std::make_shared < Euler<dim,nspecies,nstate,real> > (
                 parameters_input,
                 parameters_input->euler_param.ref_length,
@@ -115,14 +115,14 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 parameters_input->two_point_num_flux_type);
         }
     } else if (pde_type == PDE_enum::mhd) {
-        if constexpr (nstate == 8) 
+        if constexpr (nstate == 8 && nspecies==1) 
             return std::make_shared < MHD<dim,nspecies,nstate,real> > (
                 parameters_input,
                 parameters_input->euler_param.gamma_gas,
                 diffusion_tensor, 
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::navier_stokes) {
-        if constexpr (nstate==dim+2) {
+        if constexpr (nstate==dim+2 && nspecies==1) {
             return std::make_shared < NavierStokes<dim,nspecies,nstate,real> > (
                 parameters_input,
                 parameters_input->euler_param.ref_length,
@@ -141,7 +141,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 parameters_input->two_point_num_flux_type);
         }
     } else if (pde_type == PDE_enum::physics_model) {
-        if constexpr (nstate>=dim+2) {
+        if constexpr (nstate>=dim+2 && nspecies==1) {
             return create_Physics_Model(parameters_input,
                                         manufactured_solution_function,
                                         model_input);
@@ -191,7 +191,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
     if (model_type == Model_enum::large_eddy_simulation) {
         has_nonzero_diffusion = true; // because of SGS model term
         has_nonzero_physical_source = false; // LES has no physical source terms
-        if constexpr ((nstate==dim+2) && (dim==3)) {
+        if constexpr ((nstate==dim+2) && (dim==3) && (nspecies==1)) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             // -- Assign nstates for the baseline physics (constexpr because template parameter)
             constexpr int nstate_baseline_physics = dim+2;
@@ -228,7 +228,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
         has_nonzero_physical_source = true; // RANS (baseline part) has physical source terms
         if (rans_model_type == RANSModel_enum::SA_negative)
         {
-            if constexpr (nstate==dim+3) {
+            if constexpr (nstate==dim+3 && nspecies==1) {
                 // Assign baseline physics type (and corresponding nstates) based on the physics model type
                 // -- Assign nstates for the baseline physics (constexpr because template parameter)
                 constexpr int nstate_baseline_physics = dim+2;
@@ -269,19 +269,18 @@ PhysicsFactory<dim,nspecies,nstate,real>
     return nullptr;
 }
 
-#if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range of nstate
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
 
-    // Define a macro to instantiate functions for a specific nstate
-    #define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
-        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
-        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType>; \
-        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType>; \
-        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
-        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
-#endif
+// Define a sequence of indices representing the range of nstate
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
+
+// Define a macro to instantiate functions for a specific nstate
+#define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
+    template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+    template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType>; \
+    template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType>; \
+    template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
+    template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
 } // Physics namespace
 } // PHiLiP namespace
 

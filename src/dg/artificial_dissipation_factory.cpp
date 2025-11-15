@@ -24,7 +24,7 @@ ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipatio
 
         case artificial_dissipation_enum::physical:
         {
-            if constexpr(dim+2==nstate)
+            if constexpr(dim+2==nstate && nspecies==1)
             {
                 std::cout<<"Physical Artifical Dissipation pointer created"<<std::endl;
                 return std::make_shared<PhysicalArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
@@ -34,7 +34,7 @@ ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipatio
 
         case artificial_dissipation_enum::enthalpy_conserving_laplacian:
         {
-            if constexpr(dim+2==nstate)
+            if constexpr(dim+2==nstate && nspecies==1)
             {
                 std::cout<<"Enthalpy Conserving Laplacian Artifical Dissipation pointer created"<<std::endl;
                 return std::make_shared<EnthalpyConservingArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
@@ -48,13 +48,11 @@ ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipatio
     return nullptr;
 }
 
-#if PHILIP_SPECIES==1
-    // Define a sequence of possible nstate in the range [1, 6]
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+// Define a sequence of possible nstate in the range [1, 6]
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate ArtificialDissipationFactory for a specific index
-    #define INSTANTIATE_ADFactory(r, data, nstate) \
-    template class ArtificialDissipationFactory <PHILIP_DIM, PHILIP_SPECIES, nstate>;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_ADFactory, _, POSSIBLE_NSTATE)
-#endif
+// Define a macro to instantiate ArtificialDissipationFactory for a specific index
+#define INSTANTIATE_ADFactory(r, data, nstate) \
+template class ArtificialDissipationFactory <PHILIP_DIM, PHILIP_SPECIES, nstate>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_ADFactory, _, POSSIBLE_NSTATE)
 } // namespace PHiLiP

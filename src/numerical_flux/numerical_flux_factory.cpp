@@ -44,17 +44,17 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
         return std::make_unique< LaxFriedrichs<dim, nspecies, nstate, real> > (physics_input);
     } 
     else if(is_euler_based) {
-        if constexpr (dim+2==nstate) {
+        if constexpr (dim+2==nstate && nspecies==1) {
             return create_euler_based_convective_numerical_flux(conv_num_flux_type, pde_type, model_type, physics_input);
         }
     }
     else if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux) {
-        if constexpr (nstate<=5) {
+        if constexpr (nstate<=5 && nspecies==1) {
             return std::make_unique< EntropyConserving<dim, nspecies, nstate, real> > (physics_input);
         }
     } 
     else if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_lax_friedrichs_dissipation) {
-        if constexpr (nstate<=5) {
+        if constexpr (nstate<=5 && nspecies==1) {
             return std::make_unique< EntropyConservingWithLaxFriedrichsDissipation<dim, nspecies, nstate, real> > (physics_input);
         }
     } 
@@ -82,7 +82,7 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
 
     if(pde_type!=PDE_enum::euler && 
         pde_type!=PDE_enum::navier_stokes && 
-        !(pde_type==PDE_enum::physics_model && model_type==Model_enum::large_eddy_simulation)) 
+        !(pde_type==PDE_enum::physics_model && model_type==Model_enum::large_eddy_simulation) && nspecies==1) 
     {
         std::cout << "Invalid convective numerical flux for pde_type. Aborting..." << std::endl;
         std::abort();
@@ -106,16 +106,16 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
         std::abort();
     }
 #endif
-    if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::roe) {
+    if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::roe && nspecies==1) {
         if constexpr (dim+2==nstate) return std::make_unique< RoePike<dim, nspecies, nstate, real> > (euler_based_physics_to_be_passed);
     } 
-    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::l2roe) {
+    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::l2roe && nspecies==1) {
         if constexpr (dim+2==nstate) return std::make_unique< L2Roe<dim, nspecies, nstate, real> > (euler_based_physics_to_be_passed);
     } 
-    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation) {
+    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation && nspecies==1) {
         if constexpr (dim+2==nstate) return std::make_unique< EntropyConservingWithRoeDissipation<dim, nspecies, nstate, real> > (euler_based_physics_to_be_passed);
     }
-    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation) {
+    else if(conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation && nspecies==1) {
         if constexpr (dim+2==nstate) return std::make_unique< EntropyConservingWithL2RoeDissipation<dim, nspecies, nstate, real> > (euler_based_physics_to_be_passed);
     }
 
@@ -134,11 +134,11 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
     std::shared_ptr <Physics::PhysicsBase<dim, nspecies, nstate, real>> physics_input,
     std::shared_ptr<ArtificialDissipationBase<dim, nspecies, nstate>>  artificial_dissipation_input)
 {
-    if(diss_num_flux_type == AllParam::symm_internal_penalty) {
+    if(diss_num_flux_type == AllParam::symm_internal_penalty && nspecies==1) {
         return std::make_unique < SymmetricInternalPenalty<dim, nspecies, nstate, real> > (physics_input,artificial_dissipation_input);
-    } else if(diss_num_flux_type == AllParam::bassi_rebay_2) {
+    } else if(diss_num_flux_type == AllParam::bassi_rebay_2 && nspecies==1) {
         return std::make_unique < BassiRebay2<dim, nspecies, nstate, real> > (physics_input,artificial_dissipation_input);
-    } else if(diss_num_flux_type == AllParam::central_visc_flux) {
+    } else if(diss_num_flux_type == AllParam::central_visc_flux && nspecies==1) {
         return std::make_unique < CentralViscousNumericalFlux<dim, nspecies, nstate, real> > (physics_input,artificial_dissipation_input);
     }
 
@@ -146,18 +146,17 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
     return nullptr;
 }
 
-#if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range [1, 6]
-    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate functions for a specific nstate
-    #define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType >; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType >; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType >; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType >; 
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
-#endif
+// Define a sequence of indices representing the range [1, 6]
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+
+// Define a macro to instantiate functions for a specific nstate
+#define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
+template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType >; \
+template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType >; \
+template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType >; \
+template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType >; 
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
 } // NumericalFlux namespace
 } // PHiLiP namespace
