@@ -56,6 +56,9 @@ public:
     
      /// Reads in data from chemistry file
     void readspecies(std::string reactionFilename);
+    
+     /// Determine the  
+    std::array<int,nspecies>GetNASACAP_TemperatureIndex ( const real temperature ) const;
 
      /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (
@@ -157,13 +160,16 @@ public:
 
 protected:
     // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
-    std::array<real,nspecies> compute_species_specific_Cp ( const real temperature ) const;
+    // Modified by Shruthi
+    std::array<real,nspecies> compute_species_specific_molar_Cp ( const real temperature ) const;
 
     // Algorithm 12 (f_M12): Compute species specific heat at constant volume from temperature
-    std::array<real,nspecies>compute_species_specific_Cv ( const real temperature ) const;
+    // Modified by Shruthi
+    std::array<real,nspecies>compute_species_specific_molar_Cv ( const real temperature ) const;
 
     // Algorithm 13 (f_M13): Compute species specific enthalpy from temperature
-    std::array<real,nspecies> compute_species_specific_enthalpy ( const real temperature ) const;   
+    // Modified by Shruthi
+    std::array<real,nspecies> compute_species_specific_molar_enthalpy ( const real temperature ) const;   
 
     // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
     std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
