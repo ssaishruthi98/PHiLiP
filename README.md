@@ -4,7 +4,7 @@ Transonic NACA0012 with adaptive refinement         |  Viscous NACA0012 with Rec
 
 Double Mach Reflection         |  Mach 80 Astrophysical Jet | Daru Tenaud Shock Tube
 :-------------------------:|:-------------------------:|:-------------------------: 
-<img width="240" src='doc/gallery/dmr.gif'/>  |  <img width="250" src='doc/gallery/astrojet.gif'/> | <img width="240" src='doc/gallery/darutenaud.gif'/>
+<img width="245" src='doc/gallery/dmr.gif'/>  |  <img width="250" src='doc/gallery/astrojet.gif'/> | <img width="245" src='doc/gallery/darutenaud.gif'/>
 
 
 # Table of Contents
