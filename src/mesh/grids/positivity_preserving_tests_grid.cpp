@@ -1,5 +1,6 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/fe/mapping_manifold.h>
 
 #include <Sacado.hpp>
 #include "positivity_preserving_tests_grid.h"
@@ -241,6 +242,38 @@ void svsw_grid(
     }
 }
 
+template<int dim, typename TriangulationType>
+void explosion_problem_grid(
+    TriangulationType&  grid) 
+{
+    // dealii::GridGenerator::hyper_ball_balanced(grid);
+    // grid.refine_global(3);
+    // grid.reset_all_manifolds();
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    p1[0] = -1.0; p1[1] = -1.0;
+    p2[0] = 1.0; p2[1] = 1.0;
+    if(dim==3) {
+        p1[2] = -1.0; p2[2] = 1.0;
+    }
+    std::vector<unsigned int> n_subdivisions(dim);
+
+    n_subdivisions[0] = 10;
+    n_subdivisions[1] = 10;
+    if(dim==3)
+        n_subdivisions[2] = 10;
+    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
+    
+    for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {
+       // Set a dummy boundary ID
+       cell->set_material_id(9002);
+       for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
+           if (cell->face(face)->at_boundary() && cell->face(face)->boundary_id()!=dealii::numbers::flat_manifold_id) 
+                cell->face(face)->set_boundary_id (1007);
+       }
+    }
+}
+
 #if PHILIP_DIM==1
 template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
@@ -258,5 +291,9 @@ template void astrophysical_jet_grid<2, dealii::parallel::distributed::Triangula
 template void svsw_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
+#endif
+#if PHILIP_DIM > 1
+template void explosion_problem_grid<PHILIP_DIM, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>(
+    dealii::parallel::distributed::Triangulation<PHILIP_DIM>&    grid);
 #endif
 } // namespace PHiLiP::Grids

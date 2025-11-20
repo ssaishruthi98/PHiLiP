@@ -505,6 +505,50 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
 }
 
 // ========================================================
+// 3D Explosion Problem
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ExplosionProblem<dim,nstate,real>
+::InitialConditionFunction_ExplosionProblem (
+        Parameters::AllParameters const* const param)
+        : InitialConditionFunction_EulerBase<dim,nstate,real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_ExplosionProblem<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim > 1 && nstate == (dim+2)) {
+        const real x = point[0];
+        const real y = point[1];
+        real z = 0.0;
+        if (dim==3)
+            z = point[2];
+        if ((pow(x,2.0)+pow(y,2.0)+pow(z,2.0)) < pow(0.5,2.0)) {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            if (istate == nstate - 1) {
+                // pressure
+                value = 1.0;
+            }
+        } else {
+            if (istate == 0) {
+                // density
+                value = 0.125;
+            }
+            if (istate == nstate - 1) {
+                // pressure
+                value = 0.1;
+            }
+        }
+    }
+    return value;
+}
+
+// ========================================================
 // 1D Leblanc Shock tube -- Initial Condition
 // See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
 // ========================================================
@@ -1020,6 +1064,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::sod_shock_tube) {
         if constexpr (dim == 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
+    } else if (flow_type == FlowCaseEnum::explosion_problem) {
+        if constexpr (dim > 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_ExplosionProblem<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::low_density) {
         if constexpr (dim < 3 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LowDensity<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube) {
@@ -1072,6 +1118,7 @@ template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM
 
 #if PHILIP_DIM>1
 template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_ExplosionProblem <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 
 #if PHILIP_DIM==2
