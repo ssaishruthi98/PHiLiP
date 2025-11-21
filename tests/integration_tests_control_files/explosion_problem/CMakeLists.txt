@@ -25,7 +25,7 @@ set_tests_labels(3D_EXPLOSION_PROBLEM   EXPLOSION_PROBLEM
 configure_file(2D_explosion_problem.prm 2D_explosion_problem.prm COPYONLY)
 add_test(
   NAME 2D_EXPLOSION_PROBLEM
-  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_explosion_problem.prm
+  COMMAND mpirun -n 4 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_explosion_problem.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 set_tests_labels(2D_EXPLOSION_PROBLEM   EXPLOSION_PROBLEM

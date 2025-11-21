@@ -2,6 +2,7 @@
 #include "mesh/grids/positivity_preserving_tests_grid.h"
 #include "mesh/grids/straight_periodic_cube.hpp"
 #include <deal.II/grid/grid_generator.h>
+#include "mesh/gmsh_reader.hpp"
 #include "physics/physics_factory.h"
 
 namespace PHiLiP {
@@ -66,7 +67,10 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
             Grids::svsw_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
     else if (dim>1 && flow_case_type == flow_case_enum::explosion_problem) {
-            Grids::explosion_problem_grid<dim>(*grid);
+        const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
+        const bool use_mesh_smoothing = false;
+        std::shared_ptr<HighOrderGrid<dim,double>> explosion_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+        return explosion_mesh->triangulation;
     }
     return grid;
 }
@@ -335,7 +339,7 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
     }
 
     // Update local maximum wave speed before calculating next time step
-    update_maximum_local_wave_speed(*dg);
+    // update_maximum_local_wave_speed(*dg);
 }
 
 template class PositivityPreservingTests<PHILIP_DIM, PHILIP_DIM+2>;
