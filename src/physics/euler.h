@@ -477,6 +477,12 @@ protected:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
+
+    /** Evaluate density gradient magnitude from conservative variables and gradient of conservative variables 
+     * */
+    real compute_density_gradient_magnitude (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 };
 
 } // Physics namespace

@@ -1437,6 +1437,26 @@ void Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+real Euler<dim,nstate,real>
+::compute_density_gradient_magnitude (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Get density gradient
+    dealii::Tensor<1,dim,real> density_gradient;
+    for (int d=0; d<dim; d++) {
+        density_gradient[d] = conservative_soln_gradient[0][d];
+    }
+    // compute magnitude
+    real density_gradient_magnitude = 0.0;
+    for (int d=0; d<dim; d++) {
+        density_gradient_magnitude += density_gradient[d]*density_gradient[d];
+    }
+    density_gradient_magnitude = sqrt(density_gradient_magnitude);
+    return density_gradient_magnitude;
+}
+
+template <int dim, int nstate, typename real>
 dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_vector (
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &duh,
@@ -1457,8 +1477,16 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
         const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive<real>(conservative_soln);
         // if (primitive_soln[0] < 0) this->pcout << evaluation_points << std::endl;
 
+        std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
+        for (unsigned int s=0; s<nstate; ++s) {
+            for (unsigned int d=0; d<dim; ++d) {
+                conservative_soln_gradient[s][d] = duh[s][d];
+            }
+        }
         // Density
         computed_quantities(++current_data_index) = primitive_soln[0];
+        // Density Gradient
+        computed_quantities(++current_data_index) = compute_density_gradient_magnitude(conservative_soln,conservative_soln_gradient);
         // Velocities
         for (unsigned int d=0; d<dim; ++d) {
             computed_quantities(++current_data_index) = primitive_soln[1+d];
@@ -1497,6 +1525,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Eu
     namespace DCI = dealii::DataComponentInterpretation;
     std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nstate,real>::post_get_data_component_interpretation (); // state variables
     interpretation.push_back (DCI::component_is_scalar); // Density
+    interpretation.push_back (DCI::component_is_scalar); // Density Gradient Magnitude
     for (unsigned int d=0; d<dim; ++d) {
         interpretation.push_back (DCI::component_is_part_of_vector); // Velocity
     }
@@ -1524,6 +1553,7 @@ std::vector<std::string> Euler<dim,nstate,real>
 {
     std::vector<std::string> names = PhysicsBase<dim,nstate,real>::post_get_names ();
     names.push_back ("density");
+    names.push_back ("density_gradient_magnitude");
     for (unsigned int d=0; d<dim; ++d) {
       names.push_back ("velocity");
     }
@@ -1547,6 +1577,7 @@ dealii::UpdateFlags Euler<dim,nstate,real>
     //return update_values | update_gradients;
     return dealii::update_values
            | dealii::update_quadrature_points
+           | dealii::update_gradients
            ;
 }
 
