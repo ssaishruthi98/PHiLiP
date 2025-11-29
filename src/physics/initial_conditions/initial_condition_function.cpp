@@ -525,7 +525,12 @@ real InitialConditionFunction_ExplosionProblem<dim, nstate, real>
         real z = 0.0;
         if (dim==3)
             z = point[2];
-        if ((pow(x,2.0)+pow(y,2.0)+pow(z,2.0)) < 0.4) {
+        
+        real radius = pow(x,2.0)+pow(y,2.0);
+        if(dim==3)
+            radius += pow(z-1,2.0);
+            
+        if ( radius < 0.4) {
             if (istate == 0) {
                 // density
                 value = 1.0;

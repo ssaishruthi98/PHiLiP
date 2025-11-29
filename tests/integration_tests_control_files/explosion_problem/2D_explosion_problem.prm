@@ -36,7 +36,7 @@ subsection ODE solver
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.01
   #set output_solution_every_x_steps = 100
-  set output_solution_every_dt_time_intervals = 0.01
+  set output_solution_every_dt_time_intervals = 0.05
   set runge_kutta_method = ssprk3_ex 
 end
 
@@ -52,17 +52,20 @@ subsection flow_solver
   set courant_friedrichs_lewy_number = 0.5
   set adaptive_time_step = true
   set unsteady_data_table_filename = explosion_energy
+  set output_restart_files = true
+  set restart_files_directory_name = restart_files
+  set output_restart_files_every_x_steps = 500
   subsection grid
     set input_mesh_filename = ../../meshes/explosion_disk
-    set grid_left_bound = -1.0
-    set grid_right_bound = 1.0
+    set grid_left_bound = -2.0
+    set grid_right_bound = 2.0
     subsection grid_rectangle
-      set grid_top_bound = 1.0
-      set grid_bottom_bound = -1.0
+      set grid_top_bound = 2.0
+      set grid_bottom_bound = -2.0
      #set grid_z_upper_bound = 1.0
      #set grid_z_lower_bound = -1.0
-      set number_of_grid_elements_x = 269
-      set number_of_grid_elements_y = 269
+      set number_of_grid_elements_x = 962
+      set number_of_grid_elements_y = 962
      #set number_of_grid_elements_z = 7
     end
   end
