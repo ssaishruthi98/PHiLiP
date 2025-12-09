@@ -887,7 +887,7 @@ inline real RealGas<dim,nspecies,nstate,real>
     // check_positive_quantity(density, "density");
     const real mixture_pressure = compute_mixture_pressure(conservative_soln);
 
-    const real sound = sqrt(mixture_pressure*gam/mixture_density) * (this->u_ref/(sqrt(gam*this->R_ref*this->T_ref)));
+    const real sound = sqrt(mixture_pressure*gam/mixture_density) * (this->u_ref/(sqrt(gam*this->R_ref*this->temperature_ref)));
     return sound;
 }
 
