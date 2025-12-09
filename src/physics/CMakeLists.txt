@@ -16,7 +16,8 @@ SET(SOURCE
     large_eddy_simulation.cpp
     reynolds_averaged_navier_stokes.cpp
     negative_spalart_allmaras_rans_model.cpp
-    model_factory.cpp)
+    model_factory.cpp
+    real_gas.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library
