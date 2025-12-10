@@ -50,6 +50,11 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
 {
     // Note: modify this when you change the number of species. nstate == dim+2+nspecies-1
     static_assert(nstate==dim+2+nspecies-1, "Physics::RealGas() should be created with nstate=(PHILIP_DIM+2)+(PHILIP_SPECIES-1)"); // Note: update this with nspecies in the future
+    if(parameters_input->chemistry_input_file=="") {
+        this->pcout << "Name of chemistry file containing NASA CAP data for species has not been passed in. Aborting..." << std::endl;
+        std::abort(); 
+    }
+    readspecies(parameters_input->chemistry_input_file);
 }
 
 // Helper function to read chemistry file
