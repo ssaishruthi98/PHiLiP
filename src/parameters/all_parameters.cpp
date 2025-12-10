@@ -40,6 +40,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
+    prm.declare_entry("species", "-1",
+                      dealii::Patterns::Integer(),
+                      "Number of species");
+
     prm.declare_entry("run_type", "integration_test",
                       dealii::Patterns::Selection(
                       " integration_test | "
@@ -271,10 +275,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " burgers_inviscid | "
                       " burgers_viscous | "
                       " burgers_rewienski | "
-                      " euler |"
-                      " mhd |"
-                      " navier_stokes |"
-                      " physics_model"),
+                      " euler | "
+                      " mhd | "
+                      " navier_stokes | "
+                      " physics_model | "
+                      " real_gas |"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -285,9 +290,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  burgers_viscous | "
                       "  burgers_rewienski | "
                       "  euler | "
-                      "  mhd |"
-                      "  navier_stokes |"
-                      "  physics_model>.");
+                      "  mhd | "
+                      "  navier_stokes | "
+                      "  physics_model | "
+                      "  real_gas>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
@@ -388,6 +394,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing main input..." << std::endl;
 
     dimension = prm.get_integer("dimension");
+    species = prm.get_integer("species");
 
     const std::string run_type_string = prm.get("run_type");
     if      (run_type_string == "integration_test") { run_type = integration_test; }
@@ -649,6 +656,9 @@ const std::string test_string = prm.get("test_type");
             if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative)
               nstate = dimension+3;
         }
+    } else if (pde_string == "euler") {
+        pde_type = real_gas;
+        nstate = dimension+species+1;
     }
     
     pcout << "Parsing time refinement study subsection..." << std::endl;

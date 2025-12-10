@@ -72,6 +72,9 @@ public:
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Number of species. Note that it has to match the CMake variable NUMBER_OF_SPECIES
+    unsigned int species;
+
     /// Run type
     enum RunType {
         integration_test,
@@ -231,6 +234,7 @@ public:
         mhd,
         navier_stokes,
         physics_model,
+        real_gas
     };
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;

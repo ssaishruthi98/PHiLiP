@@ -462,6 +462,54 @@ inline real InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 }
 
 // ========================================================
+// Initial Condition - Real Gas Base
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
+::InitialConditionFunction_RealGasBase(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction<dim, nspecies, nstate, real>()
+{
+    // Real Gas object; create using dynamic_pointer_cast and the create_Physics factory
+    PHiLiP::Parameters::AllParameters parameters_real_gas = *param;
+    parameters_real_gas.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+nspecies+1,double>>(
+                Physics::PhysicsFactory<dim,nspecies,dim+nspecies+1,double>::create_Physics(&parameters_real_gas));
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    std::array<real, nstate> soln_primitive;
+
+    soln_primitive[0] = primitive_value(point, 0);
+    soln_primitive[1] = primitive_value(point, 1);
+    soln_primitive[2] = primitive_value(point, 2);
+    
+    if constexpr (dim > 1)
+        soln_primitive[3] = primitive_value(point, 3);
+    if constexpr (dim > 2)
+        soln_primitive[4] = primitive_value(point, 4);
+
+    const std::array<real, nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+    value = soln_conservative[istate];
+
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point, istate);
+    return value;
+}
+
+// ========================================================
 // 1D Sod Shock tube -- Initial Condition
 // See Chen & Shu, Entropy stable high order..., 2017, Pg. 25
 // 2D and 3D can be run by extruding grid in those directions
@@ -1100,5 +1148,6 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction_ConvDiff <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
     template class InitialConditionFunction_ConvDiffEnergy <PHILIP_DIM, PHILIP_SPECIES,1,double>;
     template class InitialConditionFunction_EulerBase <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,double>;
+    template class InitialConditionFunction_RealGasBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1,double>;
 #endif
 } // PHiLiP namespace

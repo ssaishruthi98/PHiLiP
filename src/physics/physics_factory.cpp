@@ -17,6 +17,7 @@
 #include "mhd.h"
 #include "navier_stokes.h"
 #include "physics_model.h"
+#include "real_gas.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -146,7 +147,11 @@ PhysicsFactory<dim,nspecies,nstate,real>
                                         manufactured_solution_function,
                                         model_input);
         }
-    } else {
+    } else if (pde_type == PDE_enum::real_gas) {
+        if constexpr (nstate==dim+nspecies+1) {
+            return std::make_shared < RealGas<dim,nspecies,nstate,real> > (parameters_input);
+        }
+    }  else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) diffusion_tensor;
         (void) advection_vector;

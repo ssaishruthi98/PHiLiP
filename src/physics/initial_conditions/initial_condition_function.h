@@ -6,6 +6,7 @@
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
 #include "../euler.h" // for FreeStreamInitialConditions
+#include "../real_gas.h" // for RealGasBase
 
 namespace PHiLiP {
 
@@ -84,6 +85,33 @@ protected:
 private:
     // Euler physics pointer. Used to convert primitive to conservative.
     std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
+};
+
+/// Initial Condition Function: Euler Equations (primitive values)
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_RealGasBase : public InitialConditionFunction<dim, nspecies, nstate, real>
+{
+protected:
+    using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for test cases using Euler equations.
+    explicit InitialConditionFunction_RealGasBase(
+        Parameters::AllParameters const* const param);
+
+    /// Value of initial condition expressed in terms of conservative variables
+    real value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    virtual real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const = 0;
+
+    /// Converts value from: primitive to conservative
+    real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
+
+private:
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
