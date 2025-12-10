@@ -317,6 +317,8 @@ public:
      *  Note: Currently only used in weak dg. */
     double matching_surface_jac_det_tolerance;
 
+    std::string chemistry_input_file; ///< Name of file containing NASA CAP data for species
+
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.
