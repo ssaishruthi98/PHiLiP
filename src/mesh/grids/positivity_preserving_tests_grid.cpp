@@ -132,7 +132,7 @@ void shock_diffraction_grid(
                         cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
                     }
                     else {
-                        cell->face(face)->set_boundary_id(1009); // y_bottom, Do Nothing Outflow 
+                        cell->face(face)->set_boundary_id(1007); // y_bottom, Do Nothing Outflow 
                     }
                 }
                 else if (face == 3) {

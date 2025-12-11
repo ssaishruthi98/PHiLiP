@@ -2,6 +2,7 @@
 #include "mesh/grids/positivity_preserving_tests_grid.h"
 #include "mesh/grids/straight_periodic_cube.hpp"
 #include <deal.II/grid/grid_generator.h>
+#include "mesh/gmsh_reader.hpp"
 #include "physics/physics_factory.h"
 
 namespace PHiLiP {
@@ -53,8 +54,14 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
         || flow_case_type == flow_case_enum::shu_osher_problem)) {
         Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
-    else if (dim==2 && flow_case_type == flow_case_enum::shock_diffraction) {
+    else if (dim==2 && flow_case_type == flow_case_enum::shock_diffraction && this->all_param.flow_solver_param.input_mesh_filename == "") {
         Grids::shock_diffraction_grid<dim>(*grid, &this->all_param.flow_solver_param);
+    }
+    else if (dim==2 && flow_case_type == flow_case_enum::shock_diffraction) {
+        const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
+        const bool use_mesh_smoothing = false;
+        std::shared_ptr<HighOrderGrid<dim,double>> svsw_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+        return svsw_mesh->triangulation;
     }
     else if (dim==2 && flow_case_type == flow_case_enum::astrophysical_jet) {
         Grids::astrophysical_jet_grid<dim>(*grid, &this->all_param.flow_solver_param);
@@ -62,8 +69,15 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
     else if (dim==2 && flow_case_type == flow_case_enum::double_mach_reflection) {
             Grids::double_mach_reflection_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
-    else if (dim==2 && flow_case_type == flow_case_enum::strong_vortex_shock_wave) {
+    else if (dim==2 && flow_case_type == flow_case_enum::strong_vortex_shock_wave && this->all_param.flow_solver_param.input_mesh_filename == "") {
+        std::cout << "MESH FILE NAME:   " << this->all_param.flow_solver_param.input_mesh_filename << std::endl;
             Grids::svsw_grid<dim>(*grid, &this->all_param.flow_solver_param);
+    }
+    else if (dim==2 && flow_case_type == flow_case_enum::strong_vortex_shock_wave) {
+        const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
+        const bool use_mesh_smoothing = false;
+        std::shared_ptr<HighOrderGrid<dim,double>> svsw_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+        return svsw_mesh->triangulation;
     }
     return grid;
 }
@@ -332,7 +346,7 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
     }
 
     // Update local maximum wave speed before calculating next time step
-    update_maximum_local_wave_speed(*dg);
+    // update_maximum_local_wave_speed(*dg);
 }
 
 template class PositivityPreservingTests<PHILIP_DIM, PHILIP_DIM+2>;

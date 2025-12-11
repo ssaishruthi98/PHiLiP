@@ -723,16 +723,19 @@ real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
 {
     real value = 0.0;
     const real x = point[0];
-    //real y = point[1];
+    real y = point[1];
     if constexpr (dim == 2 && nstate == (dim + 2)) {
-        if (x <= 0.5) {
+        // if (x <= 3.4) {
+        if (x <= 3.4 && y >= 6) {
             if (istate == 0) {
                 // density
-                value = 7.041132906907898;
+                // value = 7.041132906907898;
+                value = 8.0;
             }
             else if (istate == 1) {
                 // x-velocity
-                value = 4.07794695481336;
+                // value = 4.07794695481336;
+                value = 8.25;
             }
             else if (istate == 2) {
                 // y-velocity
@@ -740,7 +743,8 @@ real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
             }
             else if (istate == 3) {
                 // pressure
-                value = 30.05945;
+                // value = 30.05945;
+                value = 116.5;
             }
         }
         else {
