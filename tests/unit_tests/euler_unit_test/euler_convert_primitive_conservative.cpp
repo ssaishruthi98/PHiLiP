@@ -3,6 +3,7 @@
 
 #include "assert_compare_array.h"
 #include "parameters/parameters.h"
+#include "physics/manufactured_solution.h"
 #include "physics/euler.h"
 
 const double TOLERANCE = 1E-12;
@@ -19,9 +20,15 @@ int main (int argc, char * argv[])
     //default parameters
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler); // default fills options
+    parameter_handler.enter_subsection("manufactured solution convergence study");
+    parameter_handler.set("use_manufactured_source_term", true);
+    parameter_handler.set("manufactured_solution_type", "sine_solution");
+    parameter_handler.leave_subsection();
     PHiLiP::Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler);
-    PHiLiP::Physics::Euler<dim, nstate, double> euler_physics = PHiLiP::Physics::Euler<dim, nstate, double>(&all_parameters,a,c,a,b,b);
+    std::shared_ptr< PHiLiP::ManufacturedSolutionFunction<dim,double> > manufactured_solution_function = 
+                PHiLiP::ManufacturedSolutionFactory<dim, double>::create_ManufacturedSolution(&all_parameters, nstate);
+    PHiLiP::Physics::Euler<dim, nstate, double> euler_physics = PHiLiP::Physics::Euler<dim, nstate, double>(&all_parameters,a,c,a,b,b,manufactured_solution_function);
 
     const double min = 0.0;
     const double max = 1.0;
