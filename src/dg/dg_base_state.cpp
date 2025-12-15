@@ -232,5 +232,11 @@ real DGBaseState<dim, nspecies, nstate, real, MeshType>::evaluate_CFL(std::vecto
         template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
         template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::Triangulation<PHILIP_DIM>>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+#else
+    template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
 }  // namespace PHiLiP

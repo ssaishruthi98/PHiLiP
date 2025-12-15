@@ -299,7 +299,7 @@ void TVBLimiter<dim, nspecies, nstate, real>::limit(
     }
 }
 
-#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+#if PHILIP_DIM==1
     // Define a sequence of nstate in the range [1, 6]
     #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 

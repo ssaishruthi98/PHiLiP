@@ -58,10 +58,10 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
     } else if (flux_nodes_type != flux_nodes_enum::GLL) {
         std::cout << "Error: Can only use limiter with GLL flux nodes" << std::endl;
         std::abort();
-    } else if (limiter_type == limiter_enum::maximum_principle) {
+    } else if (limiter_type == limiter_enum::maximum_principle && nspecies==1) {
         return std::make_unique< MaximumPrincipleLimiter<dim, nspecies, nstate, real> >(parameters_input);
-    } else if (limiter_type == limiter_enum::positivity_preservingZhang2010
-                || limiter_type == limiter_enum::positivity_preservingWang2012) {
+    } else if ((limiter_type == limiter_enum::positivity_preservingZhang2010
+                || limiter_type == limiter_enum::positivity_preservingWang2012) && nspecies==1) {
         if (nstate == dim + 2 && nspecies==1)
             return std::make_unique< PositivityPreservingLimiter<dim, nspecies, nstate, real> >(parameters_input);
         else {

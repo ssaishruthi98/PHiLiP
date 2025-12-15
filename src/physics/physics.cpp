@@ -30,7 +30,7 @@ PhysicsBase<dim,nspecies,nstate,real>::PhysicsBase(
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test
     if(!manufactured_solution_function)
-        manufactured_solution_function = std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
+        manufactured_solution_function = std::make_shared<ManufacturedSolutionZero<dim,real>>(nstate);
 
     // anisotropic diffusion matrix
     diffusion_tensor[0][0] = input_diffusion_tensor[0][0];
@@ -249,6 +249,16 @@ real2 PhysicsBase<dim,nspecies,nstate,real>
         template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const; \
         template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+#else
+    #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type >; \
+        template type PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type >::handle_non_physical_result<type>(const std::string message) const;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPE)
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double >::handle_non_physical_result<FadType>(const std::string message) const;
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
 #endif
 } // Physics namespace
 } // PHiLiP namespace

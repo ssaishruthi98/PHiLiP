@@ -341,7 +341,7 @@ std::string MetricToMeshGenerator<dim, nspecies, nstate, real, MeshType> :: get_
 }
 
 // Instantiations
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
     // Define a sequence of nstate in the range [1, 5]
     #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 

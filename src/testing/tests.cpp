@@ -364,7 +364,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         // This template parameters dim and nstate match the runtime parameters
         // then create the selected test with template parameters dim and nstate
         // Otherwise, keep decreasing nstate and dim until it matches
-        if(nstate == parameters_input->nstate) 
+        if(nspecies > 1)
+            return TestsFactory<dim,nspecies,dim+nspecies+1>::select_mesh(parameters_input,parameter_handler_input);
+        else if(nstate == parameters_input->nstate) 
             return TestsFactory<dim,nspecies,nstate>::select_mesh(parameters_input,parameter_handler_input);
         else if constexpr (nstate > 1)
             return TestsFactory<dim,nspecies,nstate-1>::create_test(parameters_input,parameter_handler_input);
@@ -382,16 +384,18 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
     }
 }
 
-// Will recursively create all the possible test sizes
-//template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,1>;
-//template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,2>;
-//template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,3>;
-//template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,4>;
-//template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5>;
-template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::Triangulation<PHILIP_DIM>>;
-template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM!=1
-template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::Triangulation<PHILIP_DIM>>;
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
+#else
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1,dealii::Triangulation<PHILIP_DIM>>;
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
 } // Tests namespace
 } // PHiLiP namespace

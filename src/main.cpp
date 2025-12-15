@@ -62,7 +62,7 @@ int main (int argc, char *argv[])
 
         const int max_dim = PHILIP_DIM;
         const int max_species = PHILIP_SPECIES;
-        const int max_nstate = 5;
+        const int max_nstate = PHILIP_DIM+PHILIP_SPECIES+1;
 
         if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::flow_simulation) {
             std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_species,max_nstate>::create_flow_solver(&all_parameters,parameter_handler);

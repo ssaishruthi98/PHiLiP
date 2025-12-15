@@ -1275,27 +1275,35 @@ using RadFadType = codi_HessianComputationType; ///< Nested reverse-forward mode
     // Define a sequence of the types to be used for instantiation
     #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)
 
-    // Define a macro to instantiate Convection Diffusion Functions for a specific nstate
-    #define INSTANTIATE_MANUFACTURED_SOLN(r, data, nstate) \
-        template class ManufacturedSolutionFunction<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionZero<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionSine<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionCosine<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionAdd<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionExp<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionPoly<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionEvenPoly<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionAtan<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionSShock<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionQuadratic<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionNavahBase<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionNavah_MS1<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionNavah_MS2<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionNavah_MS3<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionNavah_MS4<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionNavah_MS5<PHILIP_DIM, nstate>; \
-        template class ManufacturedSolutionFactory<PHILIP_DIM, nstate>;
+    // Define a macro to instantiate Manufactured Solution Functions for a specific type
+    #define INSTANTIATE_MANUFACTURED_SOLN(r, data, type) \
+        template class ManufacturedSolutionFunction<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionZero<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionSine<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionCosine<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionAdd<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionExp<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionPoly<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionEvenPoly<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionAtan<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionSShock<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionQuadratic<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionNavahBase<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionNavah_MS1<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionNavah_MS2<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionNavah_MS3<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionNavah_MS4<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionNavah_MS5<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionFactory<PHILIP_DIM, type>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_MANUFACTURED_SOLN, _, POSSIBLE_TYPE)
+#else 
+    // Define a sequence of the types to be used for instantiation
+    #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)        
+    #define INSTANTIATE_MANUFACTURED_SOLN(r, data, type) \
+        template class ManufacturedSolutionFunction<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionZero<PHILIP_DIM, type>; \
+        template class ManufacturedSolutionFactory<PHILIP_DIM, type>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_MANUFACTURED_SOLN, _, POSSIBLE_TYPE)
 #endif
 }

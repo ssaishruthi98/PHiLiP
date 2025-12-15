@@ -91,6 +91,8 @@ void PeriodicCubeFlow<dim,nspecies,nstate>::display_additional_flow_case_specifi
     #if PHILIP_DIM==2
         template class PeriodicCubeFlow <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
     #endif
+#else
+    template class PeriodicCubeFlow <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1>;
 #endif
 
 } // FlowSolver namespace

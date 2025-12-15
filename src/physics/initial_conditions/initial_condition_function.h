@@ -109,8 +109,7 @@ protected:
     /// Converts value from: primitive to conservative
     real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
 
-private:
-    // Euler physics pointer. Used to convert primitive to conservative.
+    // Real Gas physics pointer. Used to convert primitive to conservative.
     std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
@@ -534,6 +533,24 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+/// 1D Initial Condition Function: MultiSpecies_VortexAdvection 
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_MultiSpecies_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+{
+public:
+    /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+     *  This sets the public attribute n_components = nstate, which can then be accessed
+     *  by all the other functions
+     *  Reference: TBD
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
+     */
+    InitialConditionFunction_MultiSpecies_VortexAdvection (
+            Parameters::AllParameters const *const param);
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+};
 
 /// Initial condition 0.
 template <int dim, int nspecies, int nstate, typename real>

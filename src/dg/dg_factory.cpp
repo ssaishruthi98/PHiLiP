@@ -42,7 +42,9 @@ DGFactory<dim,nspecies,real,MeshType>
             return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if ((pde_type == PDE_enum::physics_model && nspecies==1) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGWeak<dim,nspecies,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        }
+        } else if (pde_type == PDE_enum::real_gas) {
+            return std::make_shared< DGWeak<dim,nspecies,dim+nspecies+1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        } 
 #if PHILIP_DIM==3
         else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation) && nspecies==1) {
             return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);

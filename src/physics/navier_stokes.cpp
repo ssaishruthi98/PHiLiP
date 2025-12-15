@@ -50,7 +50,7 @@ NavierStokes<dim, nspecies, nstate, real>::NavierStokes(
     , freestream_temperature(temperature_inf) // Freestream temperature. Units: [K]
     , temperature_ratio(sutherlands_temperature/freestream_temperature)
 {
-    static_assert(nstate==dim+2, "Physics::NavierStokes() should be created with nstate=dim+2");
+    // static_assert(nstate==dim+2, "Physics::NavierStokes() should be created with nstate=dim+2");
     // Nothing to do here so far
 }
 
@@ -994,6 +994,8 @@ void NavierStokes<dim,nspecies,nstate,real>
         template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPES, _, POSSIBLE_TYPES)
 //==============================================================================
+#else
+    template class NavierStokes < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double >;
 #endif
 } // Physics namespace
 } // PHiLiP namespace

@@ -243,6 +243,8 @@ double FlowSolverCaseBase<dim, nspecies, nstate>::get_time_step() const
     #define INSTANTIATE_FLOWSOLVER(r, data, nstate) \
         template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,nstate>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FLOWSOLVER, _, POSSIBLE_NSTATE)
+#else
+    template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1>;
 #endif
 
 } // FlowSolver namespace

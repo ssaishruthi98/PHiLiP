@@ -662,7 +662,7 @@ const std::string test_string = prm.get("test_type");
             if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative)
               nstate = dimension+3;
         }
-    } else if (pde_string == "euler") {
+    } else if (pde_string == "real_gas") {
         pde_type = real_gas;
         nstate = dimension+species+1;
     }

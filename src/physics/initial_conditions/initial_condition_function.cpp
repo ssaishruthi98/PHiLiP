@@ -990,6 +990,83 @@ real InitialConditionFunction_SVSW<dim, nspecies, nstate, real>
 }
 
 // ========================================================
+// 1D Vortex advection  (Multi Species) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_VortexAdvection(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 1) {
+        const real x = point[0];
+        const real x_0 = 5.0;
+        const real r = sqrt((x-x_0)*(x-x_0));
+        const real T_0 = 300.0; // [K]
+        const real big_gamma = 50.0;
+        const real gamma_0 = 1.4;
+        const real y_H2_0 = 0.01277;
+        const real a_1 = 0.005;
+        const real pi = 6.28318530717958623200 / 2; // pi
+
+        const real pressure = 101325; // [N/m^2]
+        const real velocity = 100.0; // [m/s]
+        const real exp = std::exp(0.50*(1-r*r));
+        const real coeff = 2*pi/(gamma_0*big_gamma);
+        const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        const real y_H2 = (y_H2_0 - a_1*coeff*exp);
+
+        const std::array<real,nspecies> Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        real y_O2;
+        real R_mixture;
+        // For a 2 species test
+        if constexpr(nspecies==2 && nstate==dim+2+nspecies-1) {
+            y_O2 = 1.0 - y_H2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->real_gas_physics->R_ref;
+        }
+        // For a 3 species test
+        if constexpr(nspecies==3 && nstate==dim+2+nspecies-1) {
+            const real y_O2_0 = 0.101;
+            const real a_2 = 0.03;
+            y_O2 = (y_O2_0 - a_2*coeff*exp);
+            const real y_N2 = 1.0 - y_H2 - y_O2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->real_gas_physics->R_ref;
+        }
+        const real density = pressure/(R_mixture*temperature);
+
+        // dimensionalized above, non-dimensionalized below
+        if(istate==0) {
+            // mixture density
+            value = density / this->real_gas_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = velocity / this->real_gas_physics->u_ref;
+        }
+        if(istate==2) {
+            // pressure
+            value = pressure / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+        }
+        if(istate==3){
+            // other species density (N2)
+            value = y_H2;
+        }
+        if(istate==4){
+            // other species density (O2)
+            value = y_O2;
+        }
+    }
+    return value;
+}
+
+// ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
 template <int dim, int nspecies, int nstate, typename real>
@@ -1086,7 +1163,9 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nspecies, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
         if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim, nspecies, nstate, real> >();
-    }else {
+    } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) {
+        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real> >(param);
+    } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
     }
@@ -1148,6 +1227,16 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction_ConvDiff <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
     template class InitialConditionFunction_ConvDiffEnergy <PHILIP_DIM, PHILIP_SPECIES,1,double>;
     template class InitialConditionFunction_EulerBase <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,double>;
+#else
+    template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     template class InitialConditionFunction_RealGasBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1,double>;
+    #if PHILIP_DIM==1 && PHILIP_SPECIES==2
+        template class InitialConditionFunction_MultiSpecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    #endif
+
+    #if PHILIP_DIM==1 && PHILIP_SPECIES==3
+        template class InitialConditionFunction_MultiSpecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    #endif
 #endif
 } // PHiLiP namespace

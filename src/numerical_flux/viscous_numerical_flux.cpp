@@ -357,6 +357,14 @@ std::array<real, nstate> BassiRebay2<dim,nspecies,nstate,real>
         template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
         template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+#else
+    #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPE)
 #endif
 } // NumericalFlux namespace
 } // PHiLiP namespace

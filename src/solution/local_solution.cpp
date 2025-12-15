@@ -54,7 +54,7 @@ LocalSolution<real, dim, nspecies, n_components>::evaluate_reference_gradients(c
     return gradients;
 }
 
-#if PHILIP_SPECIES==1
+
 // Define a sequence of indices representing the range [1, 7]
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
 
@@ -66,5 +66,7 @@ LocalSolution<real, dim, nspecies, n_components>::evaluate_reference_gradients(c
     template class LocalSolution<FadFadType, PHILIP_DIM, PHILIP_SPECIES, nstate>; \
     template class LocalSolution<RadFadType, PHILIP_DIM, PHILIP_SPECIES, nstate>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+#if (PHILIP_DIM+PHILIP_SPECIES+1) > 7 && (PHILIP_DIM+PHILIP_SPECIES+1)!=14
+    template class LocalSolution<double, PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1>;
 #endif
 }  // namespace PHiLiP

@@ -39,7 +39,7 @@ ModelFactory<dim,nspecies,nstate,real>
         // Large Eddy Simulation (LES)
         // -------------------------------------------------------------------------------
         if (model_type == Model_enum::large_eddy_simulation) {
-            if constexpr ((nstate==dim+2) && (dim==3)) {
+            if constexpr ((nstate==dim+2) && (dim==3) && nspecies==1) {
                 // Create Large Eddy Simulation (LES) model based on the SGS model type
                 using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
                 SGS_enum sgs_model_type = parameters_input->physics_model_param.SGS_model_type;
@@ -197,6 +197,8 @@ ModelFactory<dim,nspecies,nstate,real>
         template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
         template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+#else
+    template class ModelFactory<2,3,6,double>;
 #endif
 } // Physics namespace
 } // PHiLiP namespace

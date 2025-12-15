@@ -5,7 +5,7 @@
 #include "physics.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
-#include "navier_stokes.h"
+// #include "navier_stokes.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -50,7 +50,7 @@ public:
     const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
     const double density_ref; ///< reference mixture density: [kg/m^3]
     /// Pointer to Navier-Stokes physics object
-    std::unique_ptr< NavierStokes<dim,nspecies,dim+2,real> > navier_stokes_physics;
+    // std::unique_ptr< NavierStokes<dim,nspecies,dim+2,real> > navier_stokes_physics;
 
 public:
     

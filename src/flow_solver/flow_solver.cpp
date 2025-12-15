@@ -86,9 +86,9 @@ FlowSolver<dim, nspecies, nstate>::FlowSolver(
     }
     dg->solution.update_ghost_values();
 
-    if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
+    if((ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
-       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver){
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver) && nspecies == 1){
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(dg);
         ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg, pod);
     } else {
@@ -102,7 +102,7 @@ FlowSolver<dim, nspecies, nstate>::FlowSolver(
     const bool unsteady_FOM_POD_bool = all_param.reduced_order_param.output_snapshot_every_x_timesteps != 0 && !(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver);
-    if(unsteady_FOM_POD_bool){
+    if(unsteady_FOM_POD_bool && nspecies == 1){
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix(
             dg,
             &dg->system_matrix
@@ -606,14 +606,14 @@ int FlowSolver<dim,nspecies,nstate>::run() const
                 }
             }
             // Add snapshots to snapshot matrix
-            if(unsteady_FOM_POD_bool){
+            if(unsteady_FOM_POD_bool && nspecies==1){
                 const bool is_snapshot_iteration = (ode_solver->current_iteration % all_param.reduced_order_param.output_snapshot_every_x_timesteps == 0);
                 if(is_snapshot_iteration) time_pod->addSnapshot(dg->solution);
             }
         } // close while
 
         // Print POD Snapshots to file
-        if(unsteady_FOM_POD_bool){
+        if(unsteady_FOM_POD_bool && nspecies==1){
             std::ofstream snapshot_file("solution_snapshots_iteration_" + std::to_string(ode_solver->current_iteration) + ".txt"); // Change ode_solver->current_iteration to size of matrix
             unsigned int precision = 16;
             time_pod->dealiiSnapshotMatrix.print_formatted(snapshot_file, precision, true, 0, "0"); 
@@ -664,6 +664,8 @@ int FlowSolver<dim,nspecies,nstate>::run() const
         template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,nstate>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FLOWSOLVER, _, POSSIBLE_NSTATE)
     #endif
+#else
+    template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1>;
 #endif
 } // FlowSolver namespace
 } // PHiLiP namespace

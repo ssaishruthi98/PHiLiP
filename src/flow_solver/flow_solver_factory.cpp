@@ -129,6 +129,11 @@ FlowSolverFactory<dim,nspecies,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
+    }  else if (flow_type == FlowCaseEnum::multi_species_vortex_advection){
+        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1){
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
     } else {
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver_factory.cpp" << std::endl;
         std::abort();
@@ -149,7 +154,9 @@ std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim,nspecies,nstate>
         // This template parameters dim and nstate match the runtime parameters
         // then create the selected flow case with template parameters dim and nstate
         // Otherwise, keep decreasing nstate and dim until it matches
-        if(nstate == parameters_input->nstate) 
+        if(nspecies > 1)
+            return FlowSolverFactory<dim,nspecies,dim+nspecies+1>::select_flow_case(parameters_input,parameter_handler_input);
+        else if(nstate == parameters_input->nstate) 
             return FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(parameters_input,parameter_handler_input);
         else if constexpr (nstate > 1)
             return FlowSolverFactory<dim,nspecies,nstate-1>::create_flow_solver(parameters_input,parameter_handler_input);
@@ -168,7 +175,7 @@ std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim,nspecies,nstate>
 }
 
 template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES,1>;
-template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES,5>;
+template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1>;
 } // FlowSolver namespace
 } // PHiLiP namespace
 

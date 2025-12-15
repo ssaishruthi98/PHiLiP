@@ -31,22 +31,22 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     , tol(1.0e-14) /// []
     , density_ref(1.225) /// [kg/m^3]
     // Note: nspecies = nspecies
-    , navier_stokes_physics(std::make_unique < NavierStokes<dim,nspecies,dim+2,real> > (
-            parameters_input,
-            parameters_input->euler_param.ref_length,
-            parameters_input->euler_param.gamma_gas,
-            parameters_input->euler_param.mach_inf,
-            parameters_input->euler_param.angle_of_attack,
-            parameters_input->euler_param.side_slip_angle,
-            parameters_input->navier_stokes_param.prandtl_number,
-            parameters_input->navier_stokes_param.reynolds_number_inf,
-            parameters_input->navier_stokes_param.use_constant_viscosity,
-            parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
-            parameters_input->navier_stokes_param.temperature_inf,
-            parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
-            parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-            manufactured_solution_function,
-            parameters_input->two_point_num_flux_type))
+    // , navier_stokes_physics(std::make_unique < NavierStokes<dim,nspecies,dim+2,real> > (
+    //         parameters_input,
+    //         parameters_input->euler_param.ref_length,
+    //         parameters_input->euler_param.gamma_gas,
+    //         parameters_input->euler_param.mach_inf,
+    //         parameters_input->euler_param.angle_of_attack,
+    //         parameters_input->euler_param.side_slip_angle,
+    //         parameters_input->navier_stokes_param.prandtl_number,
+    //         parameters_input->navier_stokes_param.reynolds_number_inf,
+    //         parameters_input->navier_stokes_param.use_constant_viscosity,
+    //         parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+    //         parameters_input->navier_stokes_param.temperature_inf,
+    //         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+    //         parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+    //         manufactured_solution_function,
+    //         parameters_input->two_point_num_flux_type))
 {
     // Note: modify this when you change the number of species. nstate == dim+2+nspecies-1
     static_assert(nstate==dim+2+nspecies-1, "Physics::RealGas() should be created with nstate=(PHILIP_DIM+2)+(PHILIP_SPECIES-1)"); // Note: update this with nspecies in the future
@@ -141,6 +141,7 @@ void RealGas<dim, nspecies, nstate, real>
     std::getline(chemfile, line);
     std::getline(chemfile, line);
     std::getline(chemfile, line);
+    int NumElecPolys = (int)stof(line);
 
     std::cout << "Total chemical elements: " << N_elements << std::endl;
     std::cout << "Total species: " << nspecies << std::endl;
@@ -173,14 +174,24 @@ void RealGas<dim, nspecies, nstate, real>
         
         std::cout << species_name[i] << " with a molecular weight of "<< species_weight[i] << std::endl;
 
-        if(NonEqFlag == 1)
+        line = line.substr(sz1);
+        sz1 = 0;
+        std::cout << "\n Vibrational Temperature: \t" <<  stod(line,&sz1);
+        line = line.substr(sz1);
+        sz1 = 0;
+        std::cout << "\n Species Enthalpy Formation: \t" <<  stod(line,&sz1); // [J/mol]
+        line = line.substr(sz1);
+        sz1 = 0;
+        std::cout << "\n Milikan White Constant: \t" << stod(line,&sz1);
+        line = line.substr(sz1);
+        sz1 = 0;
+        std::cout << "\n Ion Flag: \t" << (int)stof(line,&sz1) << std::endl << std::endl;            
+
+        for(int j=0; j<4; j++)
         {
-            for(int j=0; j<4; j++)
-            {
-                line = line.substr(sz1);
-                sz1 = 0;
-                NASACAPTemperatureLimits[i][j] = std::stod(line,&sz1);
-            }
+            line = line.substr(sz1);
+            sz1 = 0;
+            NASACAPTemperatureLimits[i][j] = std::stod(line,&sz1);
         }
 
         // Init
@@ -213,6 +224,15 @@ void RealGas<dim, nspecies, nstate, real>
             line = line.substr(sz1);
             sz1 = 0;
         }
+
+        getline(chemfile, line);
+        getline(chemfile, line);
+        getline(chemfile, line);
+        getline(chemfile, line);
+        for(int k=0; k<NumElecPolys; k++)
+        {
+            getline(chemfile, line);
+        }
     }
 }
 
@@ -226,6 +246,9 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 	for(int ispecies=0; ispecies<nspecies; ispecies++)
 	{
 		species_tempindex[ispecies] = -1; // initialize
+        // std::cout << "Lower limit: " << NASACAPTemperatureLimits[ispecies][0] << "  Middle:  " << NASACAPTemperatureLimits[ispecies][1]
+        //           << "   Upper limit: " << NASACAPTemperatureLimits[ispecies][2] << std::endl;
+        // std::cout << "The temperature passed in: " << temperature << std::endl;
 		if((temperature >= NASACAPTemperatureLimits[ispecies][0]) && (temperature < NASACAPTemperatureLimits[ispecies][1]))
 		{
 			species_tempindex[ispecies] = 0; // low temp
@@ -541,7 +564,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 {
     const real dimensional_temperature = compute_dimensional_temperature(temperature);
     std::array<real,nspecies> Cp;
-    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(temperature);
+    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
     // species loop
     for (int s=0; s<nspecies; ++s) 
     { 
@@ -583,7 +606,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 {
     const real dimensional_temperature = compute_dimensional_temperature(temperature);
     std::array<real,nspecies>h;
-    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(temperature);
+    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
     /// species loop
     for (int s=0; s<nspecies; ++s) 
     { 
@@ -946,7 +969,7 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
             conservative_soln[s] = uh(s);
         }
         // get mixture solution for computing quantities from Navier-Stokes object
-        std::array<double,dim+2> mixture_soln = get_mixture_solution_vector(conservative_soln);
+        // std::array<double,dim+2> mixture_soln = get_mixture_solution_vector(conservative_soln);
         // mixture_soln[dim+2-1] = 1.0e10; // hacky fix warning -- does not affect vorticity calc
         // get the solution gradient
         std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
@@ -956,7 +979,7 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
             }
         }
         // get mixture solution gradient for computing quantities from Navier-Stokes object
-        const std::array<dealii::Tensor<1,dim,double>,dim+2> mixture_soln_gradient = get_mixture_solution_gradient(conservative_soln_gradient);
+        // const std::array<dealii::Tensor<1,dim,double>,dim+2> mixture_soln_gradient = get_mixture_solution_gradient(conservative_soln_gradient);
         // Mixture density
         computed_quantities(++current_data_index) = compute_mixture_density(conservative_soln);
         // Velocities
@@ -991,10 +1014,10 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
             computed_quantities(++current_data_index) = species_densities[s];
         }
         // Vorticity
-        dealii::Tensor<1,3,double> vorticity = this->navier_stokes_physics->compute_vorticity(mixture_soln,mixture_soln_gradient);
-        for (unsigned int d=0; d<3; ++d) {
-            computed_quantities(++current_data_index) = vorticity[d];
-        }
+        // dealii::Tensor<1,3,double> vorticity = this->navier_stokes_physics->compute_vorticity(mixture_soln,mixture_soln_gradient);
+        // for (unsigned int d=0; d<3; ++d) {
+        //     computed_quantities(++current_data_index) = vorticity[d];
+        // }
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -1030,9 +1053,9 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     for (unsigned int s=0; s<nspecies; ++s) {
         interpretation.push_back (DCI::component_is_scalar); // Species densities
     }
-    for (unsigned int d=0; d<3; ++d) {
-        interpretation.push_back (DCI::component_is_part_of_vector); // vorticity
-    }
+    // for (unsigned int d=0; d<3; ++d) {
+    //     interpretation.push_back (DCI::component_is_part_of_vector); // vorticity
+    // }
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1070,9 +1093,9 @@ std::vector<std::string> RealGas<dim,nspecies,nstate,real>
       std::string string_species_density = string_density + "_" + this->species_name[s];
       names.push_back (string_species_density);
     }
-    for (unsigned int d=0; d<3; ++d) {
-        names.push_back ("vorticity");
-    }
+    // for (unsigned int d=0; d<3; ++d) {
+    //     names.push_back ("vorticity");
+    // }
 
     return names;
 }
@@ -1088,10 +1111,10 @@ dealii::UpdateFlags RealGas<dim,nspecies,nstate,real>
 }
 
 // Instantiate explicitly
-template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double     >;
-template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, FadType    >;
-template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, RadType    >;
-template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, FadFadType >;
-template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, RadFadType >;
+template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double     >;
+template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadType    >;
+template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadType    >;
+template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadFadType >;
+template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadFadType >;
 } // Physics namespace
 } // PHiLiP namespace

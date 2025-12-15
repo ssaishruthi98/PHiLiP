@@ -570,6 +570,17 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nspecies,nstate,rea
         template class RoePikeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type>; \
         template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPE)
+#else
+    #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class NumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class Central<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class LaxFriedrichs<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPE)
 #endif
 } // NumericalFlux namespace
 } // PHiLiP namespace

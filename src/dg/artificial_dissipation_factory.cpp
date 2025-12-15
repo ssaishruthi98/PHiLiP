@@ -18,7 +18,8 @@ ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipatio
     {
         case artificial_dissipation_enum::laplacian:
         {
-            return std::make_shared<LaplacianArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
+            if (nspecies==1)
+                return std::make_shared<LaplacianArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
             break;
         }
 
@@ -48,11 +49,15 @@ ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipatio
     return nullptr;
 }
 
-// Define a sequence of possible nstate in the range [1, 6]
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+#if PHILIP_SPECIES==1
+    // Define a sequence of possible nstate in the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-// Define a macro to instantiate ArtificialDissipationFactory for a specific index
-#define INSTANTIATE_ADFactory(r, data, nstate) \
-template class ArtificialDissipationFactory <PHILIP_DIM, PHILIP_SPECIES, nstate>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_ADFactory, _, POSSIBLE_NSTATE)
+    // Define a macro to instantiate ArtificialDissipationFactory for a specific index
+    #define INSTANTIATE_ADFactory(r, data, nstate) \
+    template class ArtificialDissipationFactory <PHILIP_DIM, PHILIP_SPECIES, nstate>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_ADFactory, _, POSSIBLE_NSTATE)
+#else
+    template class ArtificialDissipationFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1>;
+#endif
 } // namespace PHiLiP

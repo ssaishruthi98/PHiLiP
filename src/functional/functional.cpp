@@ -1256,76 +1256,78 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
     std::vector<unsigned int> boundary_vector    = param.boundary_vector;
     const bool                use_all_boundaries = param.use_all_boundaries;
 
-    if(functional_type == FunctionalTypeEnum::normLp_volume){
-        return std::make_shared<FunctionalNormLpVolume<dim,nspecies,nstate,real,MeshType>>(
-            normLp,
-            dg,
-            true,
-            false);
-    }else if(functional_type == FunctionalTypeEnum::normLp_boundary){
-        return std::make_shared<FunctionalNormLpBoundary<dim,nspecies,nstate,real,MeshType>>(
-            normLp,
-            boundary_vector,
-            use_all_boundaries,
-            dg,
-            true,
-            false);
-    }else if(functional_type == FunctionalTypeEnum::weighted_integral_volume){
-        return std::make_shared<FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>>(
-            weight_function_double,
-            weight_function_adtype,
-            use_weight_function_laplacian,
-            dg,
-            true,
-            false);
-    }else if(functional_type == FunctionalTypeEnum::weighted_integral_boundary){
-        return std::make_shared<FunctionalWeightedIntegralBoundary<dim,nspecies,nstate,real,MeshType>>(
-            weight_function_double,
-            weight_function_adtype,
-            use_weight_function_laplacian,
-            boundary_vector,
-            use_all_boundaries,
-            dg,
-            true,
-            false);
-    }else if(functional_type == FunctionalTypeEnum::error_normLp_volume){
-        return std::make_shared<FunctionalErrorNormLpVolume<dim,nspecies,nstate,real,MeshType>>(
-            normLp,
-            dg,
-            true,
-            false);
-    }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary){
-        return std::make_shared<FunctionalErrorNormLpBoundary<dim,nspecies,nstate,real,MeshType>>(
-            normLp,
-            boundary_vector,
-            use_all_boundaries,
-            dg,
-            true,
-            false);
-    }else if(functional_type == FunctionalTypeEnum::lift){
-        if constexpr(dim==2 && 
-                     nstate==(dim+2) && 
-                     std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value)
-        {
-            return std::make_shared<LiftDragFunctional<dim,nspecies,nstate,real,MeshType>>(
+    if(nspecies==1) {
+        if(functional_type == FunctionalTypeEnum::normLp_volume){
+            return std::make_shared<FunctionalNormLpVolume<dim,nspecies,nstate,real,MeshType>>(
+                normLp,
                 dg,
-                LiftDragFunctional<dim,nspecies,dim+2,double,MeshType>::Functional_types::lift);
-        }
-    }else if(functional_type == FunctionalTypeEnum::drag){
-        if constexpr(dim==2 && 
-                     nstate==(dim+2) && 
-                     std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value)
-        {
-            return std::make_shared<LiftDragFunctional<dim,nspecies,nstate,real,MeshType>>(
+                true,
+                false);
+        }else if(functional_type == FunctionalTypeEnum::normLp_boundary){
+            return std::make_shared<FunctionalNormLpBoundary<dim,nspecies,nstate,real,MeshType>>(
+                normLp,
+                boundary_vector,
+                use_all_boundaries,
                 dg,
-                LiftDragFunctional<dim,nspecies,dim+2,double,MeshType>::Functional_types::drag);
-        }
-    }else if(functional_type == FunctionalTypeEnum::solution_integral) {
-        std::shared_ptr< DGBaseState<dim,nspecies,nstate,double,MeshType>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nspecies,nstate,double, MeshType>>(dg);
-        return std::make_shared<SolutionIntegral<dim,nspecies,nstate,real,MeshType>>(dg,dg_state->pde_physics_fad_fad,true,false);
-    }else if(functional_type == FunctionalTypeEnum::outlet_pressure_integral) {
-        if constexpr (dim==2 && nstate==dim+2){
-            return std::make_shared<OutletPressureIntegral<dim,nspecies,nstate,real,MeshType>>(dg, true,false);
+                true,
+                false);
+        }else if(functional_type == FunctionalTypeEnum::weighted_integral_volume){
+            return std::make_shared<FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>>(
+                weight_function_double,
+                weight_function_adtype,
+                use_weight_function_laplacian,
+                dg,
+                true,
+                false);
+        }else if(functional_type == FunctionalTypeEnum::weighted_integral_boundary){
+            return std::make_shared<FunctionalWeightedIntegralBoundary<dim,nspecies,nstate,real,MeshType>>(
+                weight_function_double,
+                weight_function_adtype,
+                use_weight_function_laplacian,
+                boundary_vector,
+                use_all_boundaries,
+                dg,
+                true,
+                false);
+        }else if(functional_type == FunctionalTypeEnum::error_normLp_volume){
+            return std::make_shared<FunctionalErrorNormLpVolume<dim,nspecies,nstate,real,MeshType>>(
+                normLp,
+                dg,
+                true,
+                false);
+        }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary){
+            return std::make_shared<FunctionalErrorNormLpBoundary<dim,nspecies,nstate,real,MeshType>>(
+                normLp,
+                boundary_vector,
+                use_all_boundaries,
+                dg,
+                true,
+                false);
+        }else if(functional_type == FunctionalTypeEnum::lift){
+            if constexpr(dim==2 && 
+                        nstate==(dim+2) && 
+                        std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value)
+            {
+                return std::make_shared<LiftDragFunctional<dim,nspecies,nstate,real,MeshType>>(
+                    dg,
+                    LiftDragFunctional<dim,nspecies,dim+2,double,MeshType>::Functional_types::lift);
+            }
+        }else if(functional_type == FunctionalTypeEnum::drag){
+            if constexpr(dim==2 && 
+                        nstate==(dim+2) && 
+                        std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value)
+            {
+                return std::make_shared<LiftDragFunctional<dim,nspecies,nstate,real,MeshType>>(
+                    dg,
+                    LiftDragFunctional<dim,nspecies,dim+2,double,MeshType>::Functional_types::drag);
+            }
+        }else if(functional_type == FunctionalTypeEnum::solution_integral) {
+            std::shared_ptr< DGBaseState<dim,nspecies,nstate,double,MeshType>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nspecies,nstate,double, MeshType>>(dg);
+            return std::make_shared<SolutionIntegral<dim,nspecies,nstate,real,MeshType>>(dg,dg_state->pde_physics_fad_fad,true,false);
+        }else if(functional_type == FunctionalTypeEnum::outlet_pressure_integral) {
+            if constexpr (dim==2 && nstate==dim+2){
+                return std::make_shared<OutletPressureIntegral<dim,nspecies,nstate,real,MeshType>>(dg, true,false);
+            }
         }
     }else{
         std::cout << "Invalid Functional." << std::endl;
@@ -1375,6 +1377,12 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
 
     #if PHILIP_DIM == 2
     template class OutletPressureIntegral<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
+#else
+    template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
     #endif
 #endif
 } // PHiLiP namespace

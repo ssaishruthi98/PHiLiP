@@ -134,11 +134,11 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
     std::shared_ptr <Physics::PhysicsBase<dim, nspecies, nstate, real>> physics_input,
     std::shared_ptr<ArtificialDissipationBase<dim, nspecies, nstate>>  artificial_dissipation_input)
 {
-    if(diss_num_flux_type == AllParam::symm_internal_penalty && nspecies==1) {
+    if(diss_num_flux_type == AllParam::symm_internal_penalty) {
         return std::make_unique < SymmetricInternalPenalty<dim, nspecies, nstate, real> > (physics_input,artificial_dissipation_input);
-    } else if(diss_num_flux_type == AllParam::bassi_rebay_2 && nspecies==1) {
+    } else if(diss_num_flux_type == AllParam::bassi_rebay_2) {
         return std::make_unique < BassiRebay2<dim, nspecies, nstate, real> > (physics_input,artificial_dissipation_input);
-    } else if(diss_num_flux_type == AllParam::central_visc_flux && nspecies==1) {
+    } else if(diss_num_flux_type == AllParam::central_visc_flux) {
         return std::make_unique < CentralViscousNumericalFlux<dim, nspecies, nstate, real> > (physics_input,artificial_dissipation_input);
     }
 
@@ -146,17 +146,23 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
     return nullptr;
 }
 
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-// Define a sequence of indices representing the range [1, 6]
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
-
-// Define a macro to instantiate functions for a specific nstate
-#define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
-template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
-template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType >; \
-template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType >; \
-template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType >; \
-template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType >; 
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+    // Define a macro to instantiate functions for a specific nstate
+    #define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
+    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType >; \
+    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType >; \
+    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType >; \
+    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType >; 
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+#else
+    #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPE)
+#endif
 } // NumericalFlux namespace
 } // PHiLiP namespace
