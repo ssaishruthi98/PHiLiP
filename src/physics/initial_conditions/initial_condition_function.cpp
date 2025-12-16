@@ -1168,6 +1168,7 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
+        return std::make_shared<InitialConditionFunction_Zero<dim, nspecies, nstate, real> >();
     }
     return nullptr;
 }
@@ -1231,6 +1232,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     template class InitialConditionFunction_RealGasBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1,double>;
+    template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+
     #if PHILIP_DIM==1 && PHILIP_SPECIES==2
         template class InitialConditionFunction_MultiSpecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #endif

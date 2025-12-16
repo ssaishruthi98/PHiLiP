@@ -86,6 +86,7 @@ void RealGas<dim, nspecies, nstate, real>
                   << "----------------------------------------------------"
                   << std::endl
                   << "Number of species in chemistry file does not match PHILIP_SPECIES." << std::endl
+                  << "Number of species in file = " << N_species << " and PHILIP_SPECIES = " << PHILIP_SPECIES << std::endl
                   << "Aborting!" << std::endl
                   << "----------------------------------------------------"
                   << std::endl;

@@ -11,13 +11,19 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim,nspec
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = parameters_input->pde_type;
+    
+    #if PHILIP_SPECIES==1
     using Model_enum = Parameters::AllParameters::ModelType;
     const Model_enum model_type = parameters_input->model_type;
     using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
     const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
+    #endif
 
-
-    if (pde_type == PDE_enum::advection && nspecies == 1) {
+    if (pde_type == PDE_enum::real_gas) {
+            return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+nspecies+1> >(parameters_input);
+    }
+    #if PHILIP_SPECIES==1
+    else if (pde_type == PDE_enum::advection && nspecies == 1) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,1> >(parameters_input);
     } else if (pde_type == PDE_enum::advection_vector && nspecies == 1) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,2> >(parameters_input);
@@ -43,9 +49,7 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim,nspec
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
     } 
     #endif
-    else if (pde_type == PDE_enum::real_gas) {
-            return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+nspecies+1> >(parameters_input);
-    }
+    #endif
     else {
         std::cout << "Invalid PDE when creating post-processor" << std::endl;
         std::abort();
@@ -56,13 +60,13 @@ template class PostprocessorFactory <PHILIP_DIM,PHILIP_SPECIES>;
 template <int dim, int nspecies,int nstate> PhysicsPostprocessor<dim,nspecies,nstate>
 ::PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input)
 {
-    #if PHILIP_SPECIES==1
+    if(nspecies==1) {
         this->model = Physics::ModelFactory<dim,nspecies,nstate,double>::create_Model(parameters_input);
-        this->physics = Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input);
-    #else
+        this->physics = Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input,this->model);
+    } else {
         this->model = nullptr;
-        this->physics = Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input, nullptr);
-    #endif
+        this->physics = Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input, this->model);
+    }
  }
 
 template <int dim, int nspecies, int nstate> void PhysicsPostprocessor<dim,nspecies,nstate>

@@ -24,7 +24,7 @@ ModelFactory<dim,nspecies,nstate,real>
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
 
-    if(pde_type == PDE_enum::physics_model) {
+    if(pde_type == PDE_enum::physics_model && nspecies==1) {
         // generating the manufactured solution from the manufactured solution factory
         std::shared_ptr< ManufacturedSolutionFunction<dim,real>  >  manufactured_solution_function 
             = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
@@ -39,7 +39,7 @@ ModelFactory<dim,nspecies,nstate,real>
         // Large Eddy Simulation (LES)
         // -------------------------------------------------------------------------------
         if (model_type == Model_enum::large_eddy_simulation) {
-            if constexpr ((nstate==dim+2) && (dim==3) && nspecies==1) {
+            if constexpr ((nstate==dim+2) && (dim==3)) {
                 // Create Large Eddy Simulation (LES) model based on the SGS model type
                 using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
                 SGS_enum sgs_model_type = parameters_input->physics_model_param.SGS_model_type;
@@ -198,7 +198,10 @@ ModelFactory<dim,nspecies,nstate,real>
         template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
 #else
-    template class ModelFactory<2,3,6,double>;
+    #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPE)
 #endif
 } // Physics namespace
 } // PHiLiP namespace
