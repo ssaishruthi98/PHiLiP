@@ -75,14 +75,13 @@ void RealGas<dim, nspecies, nstate, real>
     
     std::getline(chemfile, line);
     std::getline(chemfile, line);
-    int N_elements = (int)std::stof(line);
 
     std::getline(chemfile, line);
     std::getline(chemfile, line);
     int N_species = (int)std::stof(line);
 
     if(nspecies != N_species) {
-        std::cout << std::endl << std::endl
+        this->pcout << std::endl << std::endl
                   << "----------------------------------------------------"
                   << std::endl
                   << "Number of species in chemistry file does not match PHILIP_SPECIES." << std::endl
@@ -97,7 +96,7 @@ void RealGas<dim, nspecies, nstate, real>
 
     int N_mechs = (int)std::stof(line);
     if(N_mechs > 0) {
-        std::cout << std::endl << std::endl
+        this->pcout << std::endl << std::endl
                   << "----------------------------------------------------"
                   << std::endl
                   << "RealGas Physics Class does not support reaction steps > 0." << std::endl
@@ -111,7 +110,7 @@ void RealGas<dim, nspecies, nstate, real>
 
     int NonEqFlag = (int)std::stof(line);
     if(NonEqFlag != 1) {
-        std::cout << std::endl << std::endl
+        this->pcout << std::endl << std::endl
                   << "----------------------------------------------------"
                   << std::endl
                   << "RealGas Physics Class does not support combustion or neutral species flow" << std::endl
@@ -126,7 +125,7 @@ void RealGas<dim, nspecies, nstate, real>
 
     int nTEMP = (int)std::stof(line);
     if(nTEMP != 3) {
-        std::cout << std::endl << std::endl
+        this->pcout << std::endl << std::endl
                   << "----------------------------------------------------"
                   << std::endl
                   << "RealGas Physics Class does not support combustion or neutral species flow" << std::endl
@@ -143,13 +142,6 @@ void RealGas<dim, nspecies, nstate, real>
     std::getline(chemfile, line);
     std::getline(chemfile, line);
     int NumElecPolys = (int)stof(line);
-
-    std::cout << "Total chemical elements: " << N_elements << std::endl;
-    std::cout << "Total species: " << nspecies << std::endl;
-    // Currently N_mechs will always be zero since we are not doing combustion.
-    std::cout << "Total reaction mechanisms: " << N_mechs << std::endl;
-    // NonEqFlag will always be 1 right now since we are not doing combustion
-    std::cout << "NonEqFlag: " << NonEqFlag << std::endl;
     //===============================================
 
     std::getline(chemfile, line);
@@ -173,20 +165,26 @@ void RealGas<dim, nspecies, nstate, real>
         species_name[i] = delSpaces(dummy_name);
         species_weight[i] = std::stod(line,&sz1); // Species molecular weight [kg/mol]
         
-        std::cout << species_name[i] << " with a molecular weight of "<< species_weight[i] << std::endl;
+        // this->pcout << species_name[i] << " with a molecular weight of "<< species_weight[i] << std::endl;
+        for(int j=0; j<4; j++)
+        {
+            line = line.substr(sz1);
+            sz1 = 0;
+            stod(line,&sz1);
+        }
 
-        line = line.substr(sz1);
-        sz1 = 0;
-        std::cout << "\n Vibrational Temperature: \t" <<  stod(line,&sz1);
-        line = line.substr(sz1);
-        sz1 = 0;
-        std::cout << "\n Species Enthalpy Formation: \t" <<  stod(line,&sz1); // [J/mol]
-        line = line.substr(sz1);
-        sz1 = 0;
-        std::cout << "\n Milikan White Constant: \t" << stod(line,&sz1);
-        line = line.substr(sz1);
-        sz1 = 0;
-        std::cout << "\n Ion Flag: \t" << (int)stof(line,&sz1) << std::endl << std::endl;            
+        // line = line.substr(sz1);
+        // sz1 = 0;
+        // this->pcout << "\n Vibrational Temperature: \t" <<  stod(line,&sz1);
+        // line = line.substr(sz1);
+        // sz1 = 0;
+        // this->pcout << "\n Species Enthalpy Formation: \t" <<  stod(line,&sz1); // [J/mol]
+        // line = line.substr(sz1);
+        // sz1 = 0;
+        // this->pcout << "\n Milikan White Constant: \t" << stod(line,&sz1);
+        // line = line.substr(sz1);
+        // sz1 = 0;
+        // this->pcout << "\n Ion Flag: \t" << (int)stof(line,&sz1) << std::endl << std::endl;            
 
         for(int j=0; j<4; j++)
         {
@@ -247,9 +245,6 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 	for(int ispecies=0; ispecies<nspecies; ispecies++)
 	{
 		species_tempindex[ispecies] = -1; // initialize
-        // std::cout << "Lower limit: " << NASACAPTemperatureLimits[ispecies][0] << "  Middle:  " << NASACAPTemperatureLimits[ispecies][1]
-        //           << "   Upper limit: " << NASACAPTemperatureLimits[ispecies][2] << std::endl;
-        // std::cout << "The temperature passed in: " << temperature << std::endl;
 		if((temperature >= NASACAPTemperatureLimits[ispecies][0]) && (temperature < NASACAPTemperatureLimits[ispecies][1]))
 		{
 			species_tempindex[ispecies] = 0; // low temp
@@ -275,7 +270,7 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 				}
 				else
 				{
-				    std::cout<<"Out of NASA CAP temperature limits."<<std::endl;
+				    this->pcout<<"Out of NASA CAP temperature limits."<<std::endl;
                     std::abort();
 				}
 			}
@@ -289,7 +284,7 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 				}
 				else
 				{
-                    std::cout<<"Out of NASA CAP temperature limits."<<std::endl;
+                    this->pcout<<"Out of NASA CAP temperature limits."<<std::endl;
                     std::abort();
 				}
 			}
@@ -304,7 +299,7 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const
 {
-    std::cout<<"Entropy variables for RealGas hasn't been done yet."<<std::endl;
+    this->pcout<<"Entropy variables for RealGas hasn't been done yet."<<std::endl;
     std::abort();
     return conservative_soln;
 }
@@ -314,7 +309,7 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
 ::compute_conservative_variables_from_entropy_variables (
     const std::array<real,nstate> &entropy_var) const
 {
-    std::cout<<"Entropy variables for RealGas hasn't been done yet."<<std::endl;
+    this->pcout<<"Entropy variables for RealGas hasn't been done yet."<<std::endl;
     std::abort();
     return entropy_var;
 }
@@ -400,7 +395,7 @@ std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const real /*current_time*/,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
-    std::cout<<"Source Terms not implemented for RealGas."<<std::endl;
+    this->pcout<<"Source Terms not implemented for RealGas."<<std::endl;
     std::abort();
     std::array<real,nstate> source_term;
     source_term.fill(0.0);
@@ -419,7 +414,7 @@ void RealGas<dim,nspecies,nstate,real>
    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
 {
     // Note: update this if you are using any kind of BC that is not periodic for multi-species gas
-    std::cout<<"Boundary Conditions not implemented for RealGas."<<std::endl;
+    this->pcout<<"Boundary Conditions not implemented for RealGas."<<std::endl;
     std::abort();
 }
 
@@ -525,9 +520,9 @@ inline real RealGas<dim,nspecies,nstate,real>
 {
     real mixture = 0.0; 
     for (int s=0; s<nspecies; ++s) 
-        { 
-            mixture += mass_fractions[s]*species[s]; 
-        }   
+    { 
+        mixture += mass_fractions[s]*species[s]; 
+    }   
 
     return mixture;
 }
@@ -559,6 +554,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 // Algorithm 11 (f_M11): Compute species specific heat at constant pressure
 // This function has been modified by Shruthi
 // Modification: returns dimensional molar Cp instead of nondimensional mass Cp
+// Modification #2: separates the temperature index into its own separate function since two different functions use it
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 ::compute_species_specific_molar_Cp ( const real temperature ) const
@@ -578,7 +574,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
         Cp[s] *= this->Ru;
     }
 
-    return Cp; // dimensional value
+    return Cp; // dimensional value, [J/(mol⋅K)]
 }
 
 // Algorithm 12 (f_M12): Compute species specific heat at constant volume
@@ -595,15 +591,15 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
         Cv[s] = Cp[s] - this->Ru;
     }
 
-    return Cv; // dimensional value
+    return Cv; // dimensional value, [J/(mol⋅K)]
 }
 
 // Algorithm 13 (f_M13): Compute species specific enthalpy
 // This function has been modified by Shruthi
-// Modification: returns dimensional molar enthalpy instead of nondimensional mass enthalpy
+// Modification: separates the temperature index into its own separate function since two different functions use it
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
-::compute_species_specific_molar_enthalpy ( const real temperature ) const
+::compute_species_specific_enthalpy ( const real temperature ) const
 {
     const real dimensional_temperature = compute_dimensional_temperature(temperature);
     std::array<real,nspecies>h;
@@ -619,9 +615,8 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
         {
             h[s] += this->NASACAPCoeffs[s][i][species_tempindex[s]]*pow(dimensional_temperature,i-2)/((double)(i-1)); // The other terms are added
         }
-        h[s] *= this->Ru*dimensional_temperature; // dimensional value
+        h[s] *= ((this->Ru*dimensional_temperature)/(this->species_weight[s]*this->u_ref_sqr));
     }
-
     return h;
 }
 
@@ -630,12 +625,12 @@ template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 ::compute_species_specific_internal_energy( const real temperature ) const
 {
-    const std::array<real,nspecies> h = compute_species_specific_molar_enthalpy(temperature);
+    const std::array<real,nspecies> h = compute_species_specific_enthalpy(temperature);
     const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
     std::array<real,nspecies> e;
     for (int s=0; s<nspecies; ++s) 
     {
-        e[s] = (h[s]/(species_weight[s]*this->u_ref_sqr)) - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
+        e[s] = h[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
     }
 
     return e;
@@ -672,12 +667,9 @@ inline real RealGas<dim,nspecies,nstate,real>
         // mixture specific internal energy: e = E - k
         mixture_specific_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy)*this->u_ref_sqr; // dimensional value
         // species specific enthalpy at T_n
-        species_specific_enthalpy = compute_species_specific_molar_enthalpy(T_n/this->temperature_ref); // dimensional molar value
-        for (int ispecies=0; ispecies < nspecies; ++ispecies) {
-            species_specific_enthalpy[ispecies] /= (this->species_weight[ispecies]*this->u_ref_sqr); // dimensional mass value
-        }
+        species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // dimensional molar value
         // mixture specific enthalpy at T_n
-        mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy); // dimensional value
+        mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dimensional value
         // Newton-Raphson function
         f = (mixture_specific_enthalpy - mixture_gas_constant*this->R_ref* T_n) - mixture_specific_internal_energy; // dimensional value
 
@@ -685,10 +677,10 @@ inline real RealGas<dim,nspecies,nstate,real>
         // Cv at T_n
         Cv = compute_species_specific_molar_Cv(T_n/this->temperature_ref); // dimensional molar value
         for (int ispecies=0; ispecies < nspecies; ++ispecies) {
-            Cv[ispecies] /= this->species_weight[ispecies]; // dimensional mass value
+            Cv[ispecies] /= (this->species_weight[ispecies]*this->R_ref); // dimensional mass value
         }
         // mixture Cv
-        mixture_Cv = compute_mixture_from_species(mass_fractions,Cv); // dimensional value
+        mixture_Cv = compute_mixture_from_species(mass_fractions,Cv)*this->R_ref; // dimensional value
         // Newton-Raphson derivative function
         f_d = mixture_Cv;
 
@@ -833,11 +825,11 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     // specific kinetic energy
     const real specific_kinetic_energy = 0.50*vel2;
     // species specific enthalpy
-    const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_molar_enthalpy(temperature); 
+    const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
     // species energy
     for (int s=0; s<nspecies; ++s) 
     { 
-      species_specific_internal_energy[s] = (species_specific_enthalpy[s]/(species_weight[s]*this->u_ref_sqr)) - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
+      species_specific_internal_energy[s] = species_specific_enthalpy[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
       species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
     }     
     // mixture energy

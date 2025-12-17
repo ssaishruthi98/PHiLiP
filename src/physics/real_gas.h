@@ -169,7 +169,7 @@ protected:
 
     // Algorithm 13 (f_M13): Compute species specific enthalpy from temperature
     // Modified by Shruthi
-    std::array<real,nspecies> compute_species_specific_molar_enthalpy ( const real temperature ) const;   
+    std::array<real,nspecies> compute_species_specific_enthalpy ( const real temperature ) const;   
 
     // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
     std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;

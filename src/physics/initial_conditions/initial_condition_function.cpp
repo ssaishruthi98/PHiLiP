@@ -485,15 +485,10 @@ real InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>
     real value = 0.0;
     std::array<real, nstate> soln_primitive;
 
-    soln_primitive[0] = primitive_value(point, 0);
-    soln_primitive[1] = primitive_value(point, 1);
-    soln_primitive[2] = primitive_value(point, 2);
+    for(int istate = 0; istate < nstate; ++istate) {
+        soln_primitive[istate] = primitive_value(point, istate);
+    }
     
-    if constexpr (dim > 1)
-        soln_primitive[3] = primitive_value(point, 3);
-    if constexpr (dim > 2)
-        soln_primitive[4] = primitive_value(point, 4);
-
     const std::array<real, nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
     value = soln_conservative[istate];
 
@@ -1003,7 +998,7 @@ template <int dim, int nspecies, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
-    // Note: This is in non-dimensional form (free-stream values as reference)
+// Note: This is in non-dimensional form (free-stream values as reference)
     real value = 0.;
     if constexpr(dim == 1) {
         const real x = point[0];
@@ -1016,14 +1011,16 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,r
         const real a_1 = 0.005;
         const real pi = 6.28318530717958623200 / 2; // pi
 
-        const real pressure = 101325; // [N/m^2]
+        real pressure = 101325; // [N/m^2]
+        pressure *= 5.0;
         const real velocity = 100.0; // [m/s]
         const real exp = std::exp(0.50*(1-r*r));
         const real coeff = 2*pi/(gamma_0*big_gamma);
-        const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        temperature *= 5.0;
         const real y_H2 = (y_H2_0 - a_1*coeff*exp);
 
-        const std::array<real,nspecies> Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
         real y_O2;
         real R_mixture;
         // For a 2 species test
@@ -1058,9 +1055,11 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,r
             // other species density (N2)
             value = y_H2;
         }
-        if(istate==4){
+        if constexpr(nstate==dim+nspecies+1) {
+            if(istate==4){
             // other species density (O2)
             value = y_O2;
+            }
         }
     }
     return value;
