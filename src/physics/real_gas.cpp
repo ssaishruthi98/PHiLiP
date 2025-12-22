@@ -89,6 +89,7 @@ void RealGas<dim, nspecies, nstate, real>
                   << "Aborting!" << std::endl
                   << "----------------------------------------------------"
                   << std::endl;
+        std::abort();
     }
 
     std::getline(chemfile, line);
@@ -103,6 +104,7 @@ void RealGas<dim, nspecies, nstate, real>
                   << "Aborting!" << std::endl
                   << "----------------------------------------------------"
                   << std::endl;
+        std::abort();
     }
 
     std::getline(chemfile, line);
@@ -118,6 +120,7 @@ void RealGas<dim, nspecies, nstate, real>
                   << "Aborting!" << std::endl
                   << "----------------------------------------------------"
                   << std::endl;
+        std::abort();
     }
 
     std::getline(chemfile, line);
@@ -133,6 +136,7 @@ void RealGas<dim, nspecies, nstate, real>
                   << "Aborting!" << std::endl
                   << "----------------------------------------------------"
                   << std::endl;
+        std::abort();
     }
 
     std::getline(chemfile, line);
@@ -171,20 +175,7 @@ void RealGas<dim, nspecies, nstate, real>
             line = line.substr(sz1);
             sz1 = 0;
             stod(line,&sz1);
-        }
-
-        // line = line.substr(sz1);
-        // sz1 = 0;
-        // this->pcout << "\n Vibrational Temperature: \t" <<  stod(line,&sz1);
-        // line = line.substr(sz1);
-        // sz1 = 0;
-        // this->pcout << "\n Species Enthalpy Formation: \t" <<  stod(line,&sz1); // [J/mol]
-        // line = line.substr(sz1);
-        // sz1 = 0;
-        // this->pcout << "\n Milikan White Constant: \t" << stod(line,&sz1);
-        // line = line.substr(sz1);
-        // sz1 = 0;
-        // this->pcout << "\n Ion Flag: \t" << (int)stof(line,&sz1) << std::endl << std::endl;            
+        }          
 
         for(int j=0; j<4; j++)
         {
@@ -266,11 +257,13 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 				PercentOutRange *= 100.0;
 				if(PercentOutRange < 20.0)
 				{
+                    this->pcout << "Within 20%< of NASA CAP temperature limits." << std::endl;
 					species_tempindex[ispecies] = 0;
 				}
 				else
 				{
-				    this->pcout<<"Out of NASA CAP temperature limits."<<std::endl;
+				    this->pcout<<"Out of NASA CAP temperature limits by " << PercentOutRange <<"%."<< std::endl;
+                    this->pcout<<"The temperature passed in is: " << temperature << " and the lower bound is:  " << NASACAPTemperatureLimits[ispecies][0] << std::endl;
                     std::abort();
 				}
 			}
@@ -280,11 +273,13 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 				PercentOutRange *= 100.0;
 				if(PercentOutRange < 20.0)
 				{
+                    this->pcout << "Within 20%> of NASA CAP temperature limits." << std::endl;
 					species_tempindex[ispecies] = 2;
 				}
 				else
 				{
-                    this->pcout<<"Out of NASA CAP temperature limits."<<std::endl;
+                    this->pcout<<"Out of NASA CAP temperature limits by " << PercentOutRange <<"%."<< std::endl;
+                    this->pcout<<"The temperature passed in is: " << temperature << " and the upper bound is:  " << NASACAPTemperatureLimits[ispecies][3] << std::endl;
                     std::abort();
 				}
 			}
@@ -361,6 +356,7 @@ real RealGas<dim,nspecies,nstate,real>
     const real max_normal_eig = abs(vel_dot_n) + sound;
 
     return max_normal_eig;
+    // return 0.0;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -767,7 +763,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
         /* D) species density equations */
         for (int s=0; s<nspecies-1; ++s)
         {
-             conv_flux[nstate-1+s][flux_dim] = species_densities[s]*vel[flux_dim];
+             conv_flux[dim+2+s][flux_dim] = species_densities[s]*vel[flux_dim];
         }
     }
 
@@ -845,6 +841,31 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     return conservative_soln;
 }
 
+// Algorithm 20b : Convert conservative to primitive
+// This function has been added by Shruthi
+template <int dim, int nspecies, int nstate, typename real>
+inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
+::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const 
+{
+    /* definitions */
+    std::array<real, nstate> primitive_soln;
+    primitive_soln[0] = conservative_soln[0];
+
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    for (int idim = 0; idim < dim; ++idim) {
+        primitive_soln[idim+1] = vel[idim];
+    }
+
+    primitive_soln[dim+1] = compute_mixture_pressure(conservative_soln);
+
+    const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
+    for(int ispecies = 0; ispecies < nspecies-1; ++ispecies) {
+        primitive_soln[dim+2+ispecies] = mass_fractions[ispecies];
+    }
+
+    return primitive_soln;
+}
+
 // Algorithm 21 (f_S21): Compute species specific heat ratio
 template <int dim, int nspecies, int nstate, typename real>
 inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
@@ -902,14 +923,36 @@ inline real RealGas<dim,nspecies,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
+    // USING METHOD ONE FOR THE TIME BEING BUT INVESTIGATION INTO BEST CHOICE IS REQD
+
+    // METHOD 1:
     real gam = compute_gamma(conservative_soln);
 
     real mixture_density = conservative_soln[0];
     // check_positive_quantity(density, "density");
     const real mixture_pressure = compute_mixture_pressure(conservative_soln);
 
-    const real sound = sqrt(mixture_pressure*gam/mixture_density) * (this->u_ref/(sqrt(gam*this->R_ref*this->temperature_ref)));
-    return sound;
+    // sound is nondimensionalized with u_ref instead of sound_ref
+    // no extra steps are needed for nondimensionalization
+    const real sound_1 = sqrt(mixture_pressure*gam/mixture_density);
+
+    // // METHOD 2:
+    // const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
+    // std::array<real, nspecies> species_sound = compute_species_speed_of_sound(conservative_soln);
+
+    // const real sound_2 = compute_mixture_from_species(mass_fractions, species_sound);
+
+    // METHOD 3:
+    // const real R_mix = compute_mixture_gas_constant(conservative_soln);
+    // const real temperature = compute_temperature(conservative_soln);
+    // const real gamma = compute_gamma(conservative_soln);
+
+    // const real sound_3 = sqrt(gamma*R_mix*temperature/(this->mach_ref_sqr)); 
+
+
+    // std::cout << "method 1:  " << sound_1 << "  method 2:  " << sound_2 <<  "  method 3:  " << sound_3 << std::endl;
+
+    return sound_1;
 }
 
 // Compute mixture solution vector (without species solution)

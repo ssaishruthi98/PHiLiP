@@ -38,7 +38,8 @@ public:
         shock_diffraction,
         astrophysical_jet,
         strong_vortex_shock_wave,
-        multi_species_vortex_advection
+        multi_species_vortex_advection,
+        multi_species_vortex_advection_high_temp
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

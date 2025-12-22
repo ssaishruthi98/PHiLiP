@@ -59,9 +59,15 @@ template class PostprocessorFactory <PHILIP_DIM,PHILIP_SPECIES>;
 
 template <int dim, int nspecies,int nstate> PhysicsPostprocessor<dim,nspecies,nstate>
 ::PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input)
-    : model(Physics::ModelFactory<dim,nspecies,nstate,double>::create_Model(parameters_input)) 
-    , physics(Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input,model))
-{ }
+{
+    if(nspecies==1) {
+        this->model = Physics::ModelFactory<dim,nspecies,nstate,double>::create_Model(parameters_input);
+        this->physics = Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input,this->model);
+    } else {
+        this->model = nullptr;
+        this->physics = Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input, this->model);
+    }
+}
 
 template <int dim, int nspecies, int nstate> void PhysicsPostprocessor<dim,nspecies,nstate>
 ::evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &inputs, std::vector<dealii::Vector<double>> &computed_quantities) const

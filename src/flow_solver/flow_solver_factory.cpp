@@ -59,6 +59,11 @@ FlowSolverFactory<dim,nspecies,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<Periodic1DUnsteady<dim,nspecies,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nspecies,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
+    } else if (flow_type == FlowCaseEnum::burgers_inviscid){
+        if constexpr (dim==1 && nstate==dim && nspecies==1){
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<Periodic1DUnsteady<dim,nspecies,nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim,nspecies,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
     } else if (flow_type == FlowCaseEnum::isentropic_vortex){
         if constexpr (nstate==dim+2 && dim!=1 && nspecies==1){
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicEntropyTests<dim,nspecies,nstate>>(parameters_input);
@@ -129,8 +134,13 @@ FlowSolverFactory<dim,nspecies,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
-    }  else if (flow_type == FlowCaseEnum::multi_species_vortex_advection){
-        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1){
+    } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection){
+        if constexpr ((nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1){
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
+    } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection_high_temp){
+        if constexpr ((nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1){
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }

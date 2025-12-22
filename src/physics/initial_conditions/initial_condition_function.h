@@ -533,9 +533,9 @@ public:
         Parameters::AllParameters const* const param);
 };
 
-/// 1D Initial Condition Function: MultiSpecies_VortexAdvection 
+/// 1D Initial Condition Function: Multispecies_VortexAdvection 
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+class InitialConditionFunction_Multispecies_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
@@ -545,11 +545,13 @@ public:
      *  Reference: TBD
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
-    InitialConditionFunction_MultiSpecies_VortexAdvection (
-            Parameters::AllParameters const *const param);
+    InitialConditionFunction_Multispecies_VortexAdvection (
+            Parameters::AllParameters const *const param,
+            bool high_temperature);
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    bool use_high_temp_ic;
 };
 
 /// Initial condition 0.

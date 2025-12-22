@@ -43,7 +43,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
-                          " multi_species_vortex_advection |"),
+                          " multi_species_vortex_advection |"
+                          " multi_species_vortex_advection_high_temp |"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -69,7 +70,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
-                          " multi_species_vortex_advection>. ");
+                          " multi_species_vortex_advection | "
+                          " multi_species_vortex_advection_high_temp>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -387,33 +389,33 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
     prm.enter_subsection("flow_solver");
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
-        if      (flow_case_type_string == "taylor_green_vortex")            {flow_case_type = taylor_green_vortex;}
-        else if (flow_case_type_string == "decaying_homogeneous_isotropic_turbulence") 
-                                                                            {flow_case_type = decaying_homogeneous_isotropic_turbulence;}
-        else if (flow_case_type_string == "burgers_viscous_snapshot")       {flow_case_type = burgers_viscous_snapshot;}
-        else if (flow_case_type_string == "burgers_rewienski_snapshot")     {flow_case_type = burgers_rewienski_snapshot;}
-        else if (flow_case_type_string == "naca0012")                       {flow_case_type = naca0012;}
-        else if (flow_case_type_string == "burgers_inviscid")               {flow_case_type = burgers_inviscid;}
-        else if (flow_case_type_string == "convection_diffusion")           {flow_case_type = convection_diffusion;}
-        else if (flow_case_type_string == "advection")                      {flow_case_type = advection;}
-        else if (flow_case_type_string == "periodic_1D_unsteady")           {flow_case_type = periodic_1D_unsteady;}
-        else if (flow_case_type_string == "gaussian_bump")                  {flow_case_type = gaussian_bump;}
-        else if (flow_case_type_string == "isentropic_vortex")              {flow_case_type = isentropic_vortex;}
-        else if (flow_case_type_string == "kelvin_helmholtz_instability")   
-                                                                            {flow_case_type = kelvin_helmholtz_instability;}
-        else if (flow_case_type_string == "non_periodic_cube_flow")         {flow_case_type = non_periodic_cube_flow;}
+        if      (flow_case_type_string == "taylor_green_vortex")                       {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "decaying_homogeneous_isotropic_turbulence") {flow_case_type = decaying_homogeneous_isotropic_turbulence;}
+        else if (flow_case_type_string == "burgers_viscous_snapshot")                  {flow_case_type = burgers_viscous_snapshot;}
+        else if (flow_case_type_string == "burgers_rewienski_snapshot")                {flow_case_type = burgers_rewienski_snapshot;}
+        else if (flow_case_type_string == "naca0012")                                  {flow_case_type = naca0012;}
+        else if (flow_case_type_string == "burgers_inviscid")                          {flow_case_type = burgers_inviscid;}
+        else if (flow_case_type_string == "convection_diffusion")                      {flow_case_type = convection_diffusion;}
+        else if (flow_case_type_string == "advection")                                 {flow_case_type = advection;}
+        else if (flow_case_type_string == "periodic_1D_unsteady")                      {flow_case_type = periodic_1D_unsteady;}
+        else if (flow_case_type_string == "gaussian_bump")                             {flow_case_type = gaussian_bump;}
+        else if (flow_case_type_string == "isentropic_vortex")                         {flow_case_type = isentropic_vortex;}
+        else if (flow_case_type_string == "kelvin_helmholtz_instability")              {flow_case_type = kelvin_helmholtz_instability;}
+        else if (flow_case_type_string == "non_periodic_cube_flow")                    {flow_case_type = non_periodic_cube_flow;}
         // Positivity Preserving Tests
-        else if (flow_case_type_string == "sod_shock_tube")                 {flow_case_type = sod_shock_tube;}
-        else if (flow_case_type_string == "low_density")                    {flow_case_type = low_density;}
-        else if (flow_case_type_string == "leblanc_shock_tube")             {flow_case_type = leblanc_shock_tube;}
-        else if (flow_case_type_string == "shu_osher_problem")              {flow_case_type = shu_osher_problem;}
-        else if (flow_case_type_string == "advection_limiter")              {flow_case_type = advection_limiter;}
-        else if (flow_case_type_string == "burgers_limiter")                {flow_case_type = burgers_limiter;}
-        else if (flow_case_type_string == "double_mach_reflection")         {flow_case_type = double_mach_reflection;}
-        else if (flow_case_type_string == "shock_diffraction")              {flow_case_type = shock_diffraction;}
-        else if (flow_case_type_string == "astrophysical_jet")              {flow_case_type = astrophysical_jet;}
-        else if (flow_case_type_string == "strong_vortex_shock_wave")       {flow_case_type = strong_vortex_shock_wave;}
-        else if (flow_case_type_string == "multi_species_vortex_advection") {flow_case_type = multi_species_vortex_advection;}
+        else if (flow_case_type_string == "sod_shock_tube")                            {flow_case_type = sod_shock_tube;}
+        else if (flow_case_type_string == "low_density")                               {flow_case_type = low_density;}
+        else if (flow_case_type_string == "leblanc_shock_tube")                        {flow_case_type = leblanc_shock_tube;}
+        else if (flow_case_type_string == "shu_osher_problem")                         {flow_case_type = shu_osher_problem;}
+        else if (flow_case_type_string == "advection_limiter")                         {flow_case_type = advection_limiter;}
+        else if (flow_case_type_string == "burgers_limiter")                           {flow_case_type = burgers_limiter;}
+        else if (flow_case_type_string == "double_mach_reflection")                    {flow_case_type = double_mach_reflection;}
+        else if (flow_case_type_string == "shock_diffraction")                         {flow_case_type = shock_diffraction;}
+        else if (flow_case_type_string == "astrophysical_jet")                         {flow_case_type = astrophysical_jet;}
+        else if (flow_case_type_string == "strong_vortex_shock_wave")                  {flow_case_type = strong_vortex_shock_wave;}
+        // Multispecies Tests
+        else if (flow_case_type_string == "multi_species_vortex_advection")            {flow_case_type = multi_species_vortex_advection;}
+        else if (flow_case_type_string == "multi_species_vortex_advection_high_temp")  {flow_case_type = multi_species_vortex_advection_high_temp;}
         
         poly_degree = prm.get_integer("poly_degree");
         

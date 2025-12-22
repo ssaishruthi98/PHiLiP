@@ -18,7 +18,7 @@ void straight_periodic_cube(std::shared_ptr<TriangulationType> &grid,
                             const double domain_left,
                             const double domain_right,
                             const int number_of_cells_per_direction)
-{
+{    
     // Get equivalent number of refinements
     const int number_of_refinements = log(number_of_cells_per_direction)/log(2);
 

@@ -216,7 +216,8 @@ public:
         HROM_error_post_sampling,
         hyper_adaptive_sampling_new_error,
         halton_sampling_run,
-        low_density
+        low_density,
+        multi_species_vortex_advection
     };
     /// Store selected TestType from the input file.
     TestType test_type;

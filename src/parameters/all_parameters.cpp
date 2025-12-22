@@ -212,7 +212,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " halton_sampling_run |"
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
-                      " low_density "),
+                      " low_density | "
+                      " multi_species_vortex_advection "),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -264,7 +265,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  halton_sampling_run |"
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
-                      "  low_density>.");
+                      "  low_density | " 
+                      "  multi_species_vortex_advection >.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -464,6 +466,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "halton_sampling_run")                      { test_type = halton_sampling_run; }
     else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
+    else if (test_string == "multi_species_vortex_advection")           { test_type = multi_species_vortex_advection; }
     
     overintegration = prm.get_integer("overintegration");
 

@@ -121,6 +121,10 @@ public:
     // Algorithm 20 (f_S20): Convert primitive to conservative 
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const; 
 
+    // Algorithm 20b : Convert conservative to primitive
+    // Added by Shruthi
+    virtual std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const; 
+
 // Details of the following algorithms are presented in Liki's Master's thesis.
 /* MAIN FUNCTIONS */
 protected:
