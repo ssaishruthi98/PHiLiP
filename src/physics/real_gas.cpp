@@ -751,7 +751,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
         /* D) species density equations */
         for (int s=0; s<nspecies-1; ++s)
         {
-             conv_flux[nstate-1+s][flux_dim] = species_densities[s]*vel[flux_dim];
+             conv_flux[dim+2+s][flux_dim] = species_densities[s]*vel[flux_dim];
         }
     }
 
