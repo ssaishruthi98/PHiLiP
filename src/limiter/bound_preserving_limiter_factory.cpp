@@ -12,9 +12,11 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
     ::create_limiter(
         const Parameters::AllParameters* const parameters_input)
 {
-    if (nstate == parameters_input->nstate)
+    if (nspecies > 1)
+        return BoundPreservingLimiterFactory<dim, nspecies, dim+nspecies+1, real>::select_limiter(parameters_input);
+    else if (nstate == parameters_input->nstate && nspecies == 1)
         return BoundPreservingLimiterFactory<dim, nspecies, nstate, real>::select_limiter(parameters_input);
-    else if constexpr (nstate > 1)
+    else if constexpr (nstate > 1 && nspecies == 1)
         return BoundPreservingLimiterFactory<dim, nspecies, nstate - 1, real>::create_limiter(parameters_input);
     else
         return nullptr;
@@ -43,8 +45,9 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
             } else if (flux_nodes_type != flux_nodes_enum::GLL) {
                 std::cout << "Error: Can only use limiter with GLL flux nodes" << std::endl;
                 std::abort();
-            } else if (dim == 1)
+            } else if (dim == 1) {
                 return std::make_unique < TVBLimiter<dim, nspecies, nstate, real> >(parameters_input);
+            }
             else {
                 std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
                 std::abort();
@@ -82,11 +85,15 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
     return nullptr;
 }
 
-// Define a sequence of nstate in the range [1, 6]
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+#if PHILIP_SPECIES == 1
+    // Define a sequence of nstate in the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-// Define a macro to instantiate Limiter Factory Function for a specific nstate
-#define INSTANTIATE_LIMITER(r, data, nstate) \
-    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, nstate, double>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
+    // Define a macro to instantiate Limiter Factory Function for a specific nstate
+    #define INSTANTIATE_LIMITER(r, data, nstate) \
+        template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, nstate, double>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
+#else
+    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+#endif
 } // PHiLiP namespace

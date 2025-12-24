@@ -1084,6 +1084,67 @@ real InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,r
 }
 
 // ========================================================
+// 1D Multispecies Sod Shock tube -- Initial Condition
+// See Chen & Shu, Entropy stable high order..., 2017, Pg. 25
+// 2D and 3D can be run by extruding grid in those directions
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real>
+::InitialConditionFunction_Multispecies_SodShockTube (
+        Parameters::AllParameters const* const param)
+        : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+        real value = 0.0;
+    if constexpr(dim==1) {
+        const real x = point[0];
+
+        if (x <= 0.5) {
+            if(istate == 0) {
+                //density
+                value = 1.1;
+            }
+            else if (istate == 1) {
+                //velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                //pressure
+                value = 1.1;
+            }
+            else if (istate == 3) {
+                //Y_O2
+                value = 1.00;
+            }
+        } else {
+            if(istate == 0) {
+                //density
+                value = 0.225;
+            }
+            else if (istate == 1) {
+                //velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                //pressure
+                value = 0.2;
+            }
+            else if (istate == 3) {
+                //Y_O2
+                value = 0.00;
+            }
+        }
+    }
+    return value;
+}
+
+
+// ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
 template <int dim, int nspecies, int nstate, typename real>
@@ -1184,6 +1245,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr ((nspecies==2||nspecies==3) && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,real> >(param,false);
     } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection_high_temp) {
         if constexpr ((nspecies==2||nspecies==3) && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,real> >(param,true);
+    } else if (flow_type == FlowCaseEnum::multi_species_sod_shock_tube) {
+        if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real> >(param);
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -1253,5 +1316,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction_RealGasBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1,double>;
     template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     template class InitialConditionFunction_Multispecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    #if PHILIP_DIM==1
+    template class InitialConditionFunction_Multispecies_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    #endif
 #endif
 } // PHiLiP namespace

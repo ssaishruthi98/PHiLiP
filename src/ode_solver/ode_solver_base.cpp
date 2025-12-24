@@ -9,7 +9,7 @@ ODESolverBase<dim,nspecies,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase
         , std::shared_ptr< ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod)
         : dg(dg_input)
         , pod(pod)
-        , limiter(BoundPreservingLimiterFactory<dim, nspecies, 6, real>::create_limiter(dg->all_parameters))
+        , limiter(BoundPreservingLimiterFactory<dim, nspecies, dim+nspecies+1, real>::create_limiter(dg->all_parameters))
         , all_parameters(dg->all_parameters)
         , ode_param(all_parameters->ode_solver_param)
         , current_time(ode_param.initial_time)

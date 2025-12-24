@@ -257,7 +257,7 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 				PercentOutRange *= 100.0;
 				if(PercentOutRange < 20.0)
 				{
-                    this->pcout << "Within 20%< of NASA CAP temperature limits." << std::endl;
+                    // this->pcout << "Within 20%< of NASA CAP temperature limits." << std::endl;
 					species_tempindex[ispecies] = 0;
 				}
 				else
@@ -273,7 +273,7 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 				PercentOutRange *= 100.0;
 				if(PercentOutRange < 20.0)
 				{
-                    this->pcout << "Within 20%> of NASA CAP temperature limits." << std::endl;
+                    // this->pcout << "Within 20%> of NASA CAP temperature limits." << std::endl;
 					species_tempindex[ispecies] = 2;
 				}
 				else
@@ -400,18 +400,90 @@ std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
 
 template <int dim, int nspecies, int nstate, typename real>
 void RealGas<dim,nspecies,nstate,real>
-::boundary_face_values (
-   const int /*boundary_type*/,
-   const dealii::Point<dim, real> &/*pos*/,
-   const dealii::Tensor<1,dim,real> &/*normal_int*/,
-   const std::array<real,nstate> &/*soln_int*/,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
-   std::array<real,nstate> &/*soln_bc*/,
-   std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
+::boundary_wall (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    // Note: update this if you are using any kind of BC that is not periodic for multi-species gas
-    this->pcout<<"Boundary Conditions not implemented for RealGas."<<std::endl;
-    std::abort();
+    // Slip wall boundary for Euler
+    boundary_slip_wall(normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+void RealGas<dim,nspecies,nstate,real>
+::boundary_slip_wall (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    // Slip wall boundary conditions (No penetration)
+    // Given by Algorithm II of the following paper
+    // Krivodonova, L., and Berger, M.,
+    // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
+    // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+    const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive(soln_int);
+
+    // Copy density and pressure and mass fractions
+    std::array<real,nstate> primitive_boundary_values;
+    primitive_boundary_values[0] = primitive_interior_values[0];
+    primitive_boundary_values[dim+1] = primitive_interior_values[dim+1];
+    for (int ispecies = 0; ispecies < nspecies-1; ++ispecies) {
+        primitive_boundary_values[dim+2+ispecies] = primitive_interior_values[dim+2+ispecies];
+    }
+
+    const dealii::Tensor<1,dim,real> surface_normal = -normal_int;
+    dealii::Tensor<1,dim,real> velocities_int;
+    for (int d=0; d<dim; d++) { velocities_int[d] = primitive_interior_values[1+d]; }
+    //const dealii::Tensor<1,dim,real> velocities_bc = velocities_int - 2.0*(velocities_int*surface_normal)*surface_normal;
+    real vel_int_dot_normal = 0.0;
+    for (int d=0; d<dim; d++) {
+        vel_int_dot_normal = vel_int_dot_normal + velocities_int[d]*surface_normal[d];
+    }
+    dealii::Tensor<1,dim,real> velocities_bc;
+    for (int d=0; d<dim; d++) {
+        velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
+        //velocities_bc[d] = velocities_int[d] - (vel_int_dot_normal)*surface_normal[d];
+        //velocities_bc[d] += velocities_int[d] * surface_normal.norm_square();
+    }
+    for (int d=0; d<dim; ++d) {
+        primitive_boundary_values[1+d] = velocities_bc[d];
+    }
+
+    const std::array<real,nstate> modified_conservative_boundary_values = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_bc[istate] = modified_conservative_boundary_values[istate];
+    }
+
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_grad_bc[istate] = -soln_grad_int[istate];
+    }
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+void RealGas<dim,nspecies,nstate,real>
+::boundary_face_values (
+   const int boundary_type,
+   const dealii::Point<dim, real> &/*pos*/,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    if (boundary_type == 1001) {
+        // Wall boundary condition (slip for Euler, no-slip for Navier-Stokes; done through polymorphism)
+        boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } else if (boundary_type == 1006) {
+        // Slip wall boundary condition
+        boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } else {
+        this->pcout<<"Boundary condition #" << boundary_type << " not implemented for RealGas."<<std::endl;
+        std::abort();
+    }
 }
 
 // Details of the following algorithms are presented in Liki's Master's thesis.
@@ -471,6 +543,7 @@ inline real RealGas<dim,nspecies,nstate,real>
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
     const real mixture_specific_total_energy = conservative_soln[dim+2-1]/mixture_density;
+    // this->pcout << "mixture_density:  " << mixture_density << "  internal energy:  " << conservative_soln[dim+2-1] << std::endl;
 
     return mixture_specific_total_energy;
 }
@@ -657,15 +730,20 @@ inline real RealGas<dim,nspecies,nstate,real>
 
     /* compute temperature using the Newton-Raphson method */
     real T_n = 2.0*this->temperature_ref; // the initial guess
+    // this->pcout << std::endl;
     do
     {
         /// 1) f(T_n)
         // mixture specific internal energy: e = E - k
         mixture_specific_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy)*this->u_ref_sqr; // dimensional value
+        // this->pcout << "mixture_specific_total_energy " << mixture_specific_total_energy << std::endl;
+        // this->pcout << "specific_kinetic_energy " << specific_kinetic_energy << std::endl;
+        // this->pcout << "mixture_specific_internal_energy " << mixture_specific_internal_energy << std::endl;
         // species specific enthalpy at T_n
         species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // dimensional molar value
         // mixture specific enthalpy at T_n
         mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dimensional value
+        // this->pcout << "mixture_specific_enthalpy " << mixture_specific_enthalpy << std::endl;
         // Newton-Raphson function
         f = (mixture_specific_enthalpy - mixture_gas_constant*this->R_ref* T_n) - mixture_specific_internal_energy; // dimensional value
 
@@ -677,18 +755,26 @@ inline real RealGas<dim,nspecies,nstate,real>
         }
         // mixture Cv
         mixture_Cv = compute_mixture_from_species(mass_fractions,Cv)*this->R_ref; // dimensional value
+        // this->pcout << "mixture_Cv " << mixture_Cv << std::endl;
         // Newton-Raphson derivative function
         f_d = mixture_Cv;
 
         /// 3) main part
         T_npo = T_n - f/f_d; // dimensional value
+        // this->pcout << "f: " << f << "  f_d:  " << f_d << std::endl;
         err = abs((T_npo-T_n)/this->temperature_ref);
         itr += 1;
 
         // update T
+        // this->pcout << "The new temperature at iter " << itr << " is:  " << std::setprecision(32) << T_npo << std::endl << std::endl;
         T_n = T_npo;
     }
-    while (err>this->tol);
+    while (err>this->tol && itr < 1e7);
+    if(itr == 1e7) {
+        this->pcout << "Maximum iterations for temperature reached without converging...Aborting..." << std::endl;
+        std::abort();
+    }
+    // this->pcout << std::endl << "next loop: " << std::endl;
     T_n /= temperature_ref; // non-dimensional value
 
     return T_n;

@@ -38,4 +38,6 @@ add_subdirectory(double_mach_reflection)
 add_subdirectory(shock_diffraction)
 add_subdirectory(astrophysical_jet)
 add_subdirectory(svsw)
+# Multispecies Tests
 add_subdirectory(ms_vortex_advection)
+add_subdirectory(ms_sod_shock_tube)

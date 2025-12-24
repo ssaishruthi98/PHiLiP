@@ -12,6 +12,7 @@
 #include "flow_solver_cases/gaussian_bump.h"
 #include "flow_solver_cases/non_periodic_cube_flow.h"
 #include "flow_solver_cases/positivity_preserving_tests.h"
+#include "flow_solver_cases/multispecies_tests.h"
 
 namespace PHiLiP {
 
@@ -136,12 +137,17 @@ FlowSolverFactory<dim,nspecies,nstate>
         }
     } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection){
         if constexpr ((nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1){
-            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection_high_temp){
         if constexpr ((nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1){
-            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
+    } else if (flow_type == FlowCaseEnum::multi_species_sod_shock_tube){
+        if constexpr (dim==1 && nspecies==2 && nstate==dim+2+nspecies-1){
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {
