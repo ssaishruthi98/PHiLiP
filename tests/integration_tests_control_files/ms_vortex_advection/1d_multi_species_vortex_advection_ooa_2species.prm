@@ -46,7 +46,7 @@ subsection euler
 end
 
 subsection flow_solver
-  set flow_case_type = multi_species_vortex_advection_high_temp 
+  set flow_case_type = multi_species_vortex_advection
   set poly_degree = 5
   # 34.614724700315755 is 1 second in physical time for m_inf = 0.1
   # Final time is set to 34.614724700315755 * m_inf for one full cycle 

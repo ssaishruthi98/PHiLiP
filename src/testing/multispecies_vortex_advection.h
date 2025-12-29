@@ -33,7 +33,7 @@ public:
     bool high_temp;
 private:
     /// Calculate and return the L2 Error
-    std::array<std::array<double,3>,nstate> calculate_l_n_error(
+    std::array<std::array<double,3>,nstate+1> calculate_l_n_error(
         std::shared_ptr<DGBase<dim, nspecies, double>> flow_solver_dg, 
         const int poly_degree, 
         const double final_time,

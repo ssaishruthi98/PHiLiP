@@ -41,3 +41,4 @@ add_subdirectory(svsw)
 # Multispecies Tests
 add_subdirectory(ms_vortex_advection)
 add_subdirectory(ms_sod_shock_tube)
+add_subdirectory(ms_isentropic_vortex)

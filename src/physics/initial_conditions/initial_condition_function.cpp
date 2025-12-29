@@ -1143,6 +1143,74 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
     return value;
 }
 
+// =============================================================
+// Multispecies Isentropic Vortex -- Initial Condition 
+// =============================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,real>
+::InitialConditionFunction_Multispecies_IsentropicVortex (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0];
+        const real y = point[1];
+
+        // constant value
+        const real x_0 = 0.0;
+        const real y_0 = 0.0;
+        const real beta = 13.5;
+        const real radius = 1.5;
+        const real U_0 = 0.0;
+        const real V_0 = 1.0;
+        const real M = 0.40;
+        const real pi = 6.28318530717958623200 / 2; // pi
+        const real L = 10.0;
+        const real alpha_N2 = 0.50*sin(pi/L*(x-x_0))+0.50;
+        const real alpha_O2 = 1.0 - alpha_N2;
+        const real mixture_gamma = 1.4;
+
+        const real f = (1.0 - (x-x_0)*(x-x_0) - (y-y_0)*(y-y_0)) / (2.0*radius*radius);
+        const real density_N2 = alpha_N2*pow( (1.0 - ((mixture_gamma-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(mixture_gamma-1.0) );
+        const real density_O2 = alpha_O2*pow( (1.0 - ((mixture_gamma-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(mixture_gamma-1.0) );
+        const real mixture_density = density_N2 + density_O2;
+        const real u = U_0 + beta*y/(2.0*pi*radius)*exp(f);
+        const real v = V_0 - beta*x/(2.0*pi*radius)*exp(f);
+
+        const real temperature_modification = 2.0;
+        const real mixture_pressure = 1.0/(mixture_gamma*M*M)*pow(mixture_density,mixture_gamma) * temperature_modification;
+
+        // non-dimensionalized values above, non-dimensionalized values below
+        if(istate==0) {
+            // mixture density
+            value = mixture_density;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = u;
+        }
+        if(istate==2) {
+            // y-velocity
+            value = v;
+        }
+        if(istate==3) {
+            // pressure
+            value = mixture_pressure;
+        }
+        if(istate==4){
+            // other species density (N2)
+            value = density_N2/mixture_density;
+        }
+    }
+    return value;
+}
 
 // ========================================================
 // ZERO INITIAL CONDITION
@@ -1247,6 +1315,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr ((nspecies==2||nspecies==3) && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,real> >(param,true);
     } else if (flow_type == FlowCaseEnum::multi_species_sod_shock_tube) {
         if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_isentropic_vortex) {
+        if constexpr (dim==2 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,real> >(param);
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -1318,6 +1388,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction_Multispecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #if PHILIP_DIM==1
     template class InitialConditionFunction_Multispecies_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    #elif PHILIP_DIM==2
+    template class InitialConditionFunction_Multispecies_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #endif
 #endif
 } // PHiLiP namespace

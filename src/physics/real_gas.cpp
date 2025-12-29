@@ -543,7 +543,6 @@ inline real RealGas<dim,nspecies,nstate,real>
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
     const real mixture_specific_total_energy = conservative_soln[dim+2-1]/mixture_density;
-    // this->pcout << "mixture_density:  " << mixture_density << "  internal energy:  " << conservative_soln[dim+2-1] << std::endl;
 
     return mixture_specific_total_energy;
 }
@@ -1022,23 +1021,28 @@ inline real RealGas<dim,nspecies,nstate,real>
     // no extra steps are needed for nondimensionalization
     const real sound_1 = sqrt(mixture_pressure*gam/mixture_density);
 
+    return sound_1;
+
     // // METHOD 2:
     // const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
     // std::array<real, nspecies> species_sound = compute_species_speed_of_sound(conservative_soln);
 
     // const real sound_2 = compute_mixture_from_species(mass_fractions, species_sound);
 
-    // METHOD 3:
+    // return sound_2;
+
+    // // METHOD 3:
     // const real R_mix = compute_mixture_gas_constant(conservative_soln);
     // const real temperature = compute_temperature(conservative_soln);
     // const real gamma = compute_gamma(conservative_soln);
 
     // const real sound_3 = sqrt(gamma*R_mix*temperature/(this->mach_ref_sqr)); 
 
+    // return sound_3;
 
     // std::cout << "method 1:  " << sound_1 << "  method 2:  " << sound_2 <<  "  method 3:  " << sound_3 << std::endl;
 
-    return sound_1;
+    // return sound_1;
 }
 
 // Compute mixture solution vector (without species solution)
