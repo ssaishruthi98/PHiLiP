@@ -500,7 +500,7 @@ int FlowSolver<dim,nspecies,nstate>::run() const
             using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
             flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
 
-            if (flow_case_type == flow_case_enum::multi_species_isentropic_vortex) {
+            if (flow_case_type == flow_case_enum::multi_species_isentropic_vortex && ode_param.initial_time_step < 19.99) {
                 pcout << "Reversing velocities to conduct flow reversal...";
                 for (auto soln_cell : dg->dof_handler.active_cell_iterators()) {
                     if (!soln_cell->is_locally_owned()) continue;
