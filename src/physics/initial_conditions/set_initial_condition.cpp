@@ -52,16 +52,19 @@ void SetInitialCondition<dim,nspecies,nstate,real>::interpolate_initial_conditio
     dealii::VectorTools::interpolate(dg->dof_handler,*initial_condition_function,solution_no_ghost);
     dg->solution = solution_no_ghost;
     // Limit the solution so the interpolation doesn't return nonphysical values
-    std::unique_ptr<BoundPreservingLimiter<dim,nspecies,real>> limiter = BoundPreservingLimiterFactory<dim, nspecies, dim+nspecies+1, real>::create_limiter(dg->all_parameters);
-    limiter->limit(dg->solution,
-            dg->dof_handler,
-            dg->fe_collection,
-            dg->volume_quadrature_collection,
-            dg->high_order_grid->fe_system.tensor_degree(),
-            dg->max_degree,
-            dg->oneD_fe_collection_1state,
-            dg->oneD_quadrature_collection,
-            dg->all_parameters->ode_solver_param.initial_time_step);
+    using limiter_enum = Parameters::LimiterParam::LimiterType;
+    if (dg->all_parameters->limiter_param.use_tvb_limiter) {
+        std::unique_ptr<BoundPreservingLimiter<dim,nspecies,real>> limiter = BoundPreservingLimiterFactory<dim, nspecies, dim+nspecies+1, real>::create_limiter(dg->all_parameters);
+        limiter->limit(dg->solution,
+                dg->dof_handler,
+                dg->fe_collection,
+                dg->volume_quadrature_collection,
+                dg->high_order_grid->fe_system.tensor_degree(),
+                dg->max_degree,
+                dg->oneD_fe_collection_1state,
+                dg->oneD_quadrature_collection,
+                dg->all_parameters->ode_solver_param.initial_time_step);
+    }
 }
 
 template<int dim, int nspecies, int nstate, typename real>

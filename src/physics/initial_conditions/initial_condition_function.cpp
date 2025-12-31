@@ -1184,8 +1184,8 @@ real InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,
         const real u = U_0 + beta*y/(2.0*pi*radius)*exp(f);
         const real v = V_0 - beta*x/(2.0*pi*radius)*exp(f);
 
-        const real temperature_modification = 2.0;
-        const real mixture_pressure = 1.0/(mixture_gamma*M*M)*pow(mixture_density,mixture_gamma) * temperature_modification;
+        // const real temperature_modification = 2.0;
+        const real mixture_pressure = 1.0/(mixture_gamma*M*M)*pow(mixture_density,mixture_gamma);// * temperature_modification;
 
         // non-dimensionalized values above, non-dimensionalized values below
         if(istate==0) {
