@@ -1107,7 +1107,7 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
         if (x <= 0.5) {
             if(istate == 0) {
                 //density
-                value = 1.1;
+                value = 1.0;
             }
             else if (istate == 1) {
                 //velocity
@@ -1115,16 +1115,16 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
             }
             else if (istate == 2) {
                 //pressure
-                value = 1.1;
+                value = 1.0;
             }
             else if (istate == 3) {
                 //Y_O2
-                value = 1.00;
+                value = 0.21;
             }
         } else {
             if(istate == 0) {
                 //density
-                value = 0.225;
+                value = 0.125;
             }
             else if (istate == 1) {
                 //velocity
@@ -1132,11 +1132,11 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
             }
             else if (istate == 2) {
                 //pressure
-                value = 0.2;
+                value = 0.1;
             }
             else if (istate == 3) {
                 //Y_O2
-                value = 0.00;
+                value = 0.21;
             }
         }
     }

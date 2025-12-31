@@ -43,7 +43,7 @@ protected:
         const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
-    const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
+    const unsigned int number_of_cells_per_direction; ///< Number of cells per direction for the grid
     const double domain_left; ///< Domain left-boundary value for generating the grid
     const double domain_right; ///< Domain right-boundary value for generating the grid
     const double domain_size; ///< Domain size (length in 1D, area in 2D, and volume in 3D)

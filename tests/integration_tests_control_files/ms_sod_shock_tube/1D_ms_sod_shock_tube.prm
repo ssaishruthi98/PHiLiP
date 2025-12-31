@@ -25,7 +25,7 @@ end
 subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = runge_kutta
-  set initial_time_step = 0.01
+  set initial_time_step = 0.0000001
   #set output_solution_every_x_steps = 100
   set output_solution_every_dt_time_intervals = 0.01
   set runge_kutta_method = ssprk3_ex 
@@ -40,7 +40,7 @@ subsection flow_solver
   set flow_case_type = multi_species_sod_shock_tube
   set poly_degree = 3
   set final_time = 0.2
-  set courant_friedrichs_lewy_number = 0.25
+  set courant_friedrichs_lewy_number = 0.5
   set adaptive_time_step = true
   set unsteady_data_table_filename = sod_shock_energy
   subsection grid

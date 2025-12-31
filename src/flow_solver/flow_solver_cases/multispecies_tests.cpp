@@ -65,7 +65,14 @@ void MultispeciesTests<dim,nspecies,nstate>::display_grid_parameters() const
     this->pcout << "- - Domain dimensionality: " << dim << std::endl;
     this->pcout << "- - Domain left: " << this->domain_left << std::endl;
     this->pcout << "- - Domain right: " << this->domain_right << std::endl;
-    this->pcout << "- - Number of cells in each direction: " << this->number_of_cells_per_direction << std::endl;
+
+    int cells_in_each_dir = 0;
+    if(this->number_of_cells_per_direction > this->all_param.flow_solver_param.number_of_grid_elements_x)
+        cells_in_each_dir = this->number_of_cells_per_direction;
+    else
+        cells_in_each_dir = this->all_param.flow_solver_param.number_of_grid_elements_x;
+
+    this->pcout << "- - Number of cells in each direction: " << cells_in_each_dir << std::endl;
     if constexpr(dim==1) this->pcout << "- - Domain length: " << this->domain_size << std::endl;
     if constexpr(dim==2) this->pcout << "- - Domain area: " << this->domain_size << std::endl;
     if constexpr(dim==3) this->pcout << "- - Domain volume: " << this->domain_size << std::endl;
