@@ -28,7 +28,7 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     , temperature_ref(298.15) /// [K]
     , u_ref(mach_ref*sqrt(gam_ref*R_ref*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
-    , tol(1.0e-14) /// []
+    , tol(1.0e-8) /// []
     , density_ref(1.225) /// [kg/m^3]
     // Note: nspecies = nspecies
     // , navier_stokes_physics(std::make_unique < NavierStokes<dim,nspecies,dim+2,real> > (

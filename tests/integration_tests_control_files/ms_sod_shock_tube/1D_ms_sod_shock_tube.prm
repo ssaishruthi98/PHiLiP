@@ -33,7 +33,7 @@ end
 
 # freestream Mach number
 subsection euler
-  set mach_infinity = 1.5
+  set mach_infinity = 0.8
 end
 
 subsection flow_solver

@@ -1085,8 +1085,8 @@ real InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,r
 
 // ========================================================
 // 1D Multispecies Sod Shock tube -- Initial Condition
-// See Chen & Shu, Entropy stable high order..., 2017, Pg. 25
-// 2D and 3D can be run by extruding grid in those directions
+// See Partial characteristic decomposition for multi-species..
+// Wang et al 2019
 // ========================================================
 template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real>
@@ -1119,7 +1119,9 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
             }
             else if (istate == 3) {
                 //Y_O2
-                value = 0.21;
+                value = 0.21
+                //Y_O2 from Ayoub Gouasmi's Ph.D. thesis
+                // value = 1.0;
             }
         } else {
             if(istate == 0) {
@@ -1137,6 +1139,8 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
             else if (istate == 3) {
                 //Y_O2
                 value = 0.21;
+                //Y_O2 from Ayoub Gouasmi's Ph.D. thesis
+                // value = 0.;
             }
         }
     }
