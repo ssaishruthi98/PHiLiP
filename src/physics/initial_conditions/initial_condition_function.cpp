@@ -1119,7 +1119,7 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
             }
             else if (istate == 3) {
                 //Y_O2
-                value = 0.21
+                value = 0.21;
                 //Y_O2 from Ayoub Gouasmi's Ph.D. thesis
                 // value = 1.0;
             }
