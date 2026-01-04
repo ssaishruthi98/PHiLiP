@@ -10,7 +10,7 @@ set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 set run_type = flow_simulation
 
 # DG formulation
-set use_weak_form = true
+set use_weak_form = false
 set flux_nodes_type = GLL
 set conv_num_flux = lax_friedrichs
 
