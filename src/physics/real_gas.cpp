@@ -169,8 +169,16 @@ void RealGas<dim, nspecies, nstate, real>
         species_name[i] = delSpaces(dummy_name);
         species_weight[i] = std::stod(line,&sz1); // Species molecular weight [kg/mol]
         
-        // this->pcout << species_name[i] << " with a molecular weight of "<< species_weight[i] << std::endl;
-        for(int j=0; j<4; j++)
+        // skip line (vibrational temperature)
+        line = line.substr(sz1);
+        sz1 = 0;
+        std::stod(line,&sz1);
+        
+        line = line.substr(sz1);
+        sz1 = 0;
+        species_enthalpy_of_formation[i] = std::stod(line,&sz1);
+        // this->pcout << species_name[i] << " with a molecular weight of "<< species_weight[i] << " and enthalpy of formation of: " << species_enthalpy_of_formation[i] << std::endl;
+        for(int j=0; j<2; j++)
         {
             line = line.substr(sz1);
             sz1 = 0;
@@ -739,7 +747,7 @@ inline real RealGas<dim,nspecies,nstate,real>
         // this->pcout << "specific_kinetic_energy " << specific_kinetic_energy << std::endl;
         // this->pcout << "mixture_specific_internal_energy " << mixture_specific_internal_energy << std::endl;
         // species specific enthalpy at T_n
-        species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // dimensional molar value
+        species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // nondimensional mass value
         // mixture specific enthalpy at T_n
         mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dimensional value
         // this->pcout << "mixture_specific_enthalpy " << mixture_specific_enthalpy << std::endl;
@@ -750,7 +758,7 @@ inline real RealGas<dim,nspecies,nstate,real>
         // Cv at T_n
         Cv = compute_species_specific_molar_Cv(T_n/this->temperature_ref); // dimensional molar value
         for (int ispecies=0; ispecies < nspecies; ++ispecies) {
-            Cv[ispecies] /= (this->species_weight[ispecies]*this->R_ref); // dimensional mass value
+            Cv[ispecies] /= (this->species_weight[ispecies]*this->R_ref); // nondimensional mass value
         }
         // mixture Cv
         mixture_Cv = compute_mixture_from_species(mass_fractions,Cv)*this->R_ref; // dimensional value
@@ -912,7 +920,18 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     { 
       species_specific_internal_energy[s] = species_specific_enthalpy[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
       species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
-    }     
+    } 
+
+    // for (int s=0; s<nspecies; ++s) {
+    //     species_specific_enthalpy[s] /= ((this->Ru*(temperature*this->temperature_ref))/(this->species_weight[s]*this->u_ref_sqr));
+    //     species_specific_internal_energy[s] = (species_specific_enthalpy[s] - species_enthalpy_of_formation[s]) - ((temperature*this->temperature_ref)-this->temperature_ref)*this->Ru; // [J/mol]
+    //     species_specific_internal_energy[s] /= this->species_weight[s]; // [J/kg]
+    //     species_specific_internal_energy[s] +=(species_enthalpy_of_formation[s] - this->Ru*this->temperature_ref)/this->species_weight[s]; // [J/kg]
+    //     species_specific_internal_energy[s] /= this->u_ref_sqr; // nondimensional
+
+    //     species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
+    // }  
+
     // mixture energy
     const real mixture_specific_total_energy = compute_mixture_from_species(mass_fractions,species_specific_total_energy);
     conservative_soln[dim+2-1] = mixture_density*mixture_specific_total_energy;

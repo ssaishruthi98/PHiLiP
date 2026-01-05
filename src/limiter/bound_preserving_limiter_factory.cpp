@@ -63,18 +63,17 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
         std::abort();
     } else if (limiter_type == limiter_enum::maximum_principle && nspecies==1) {
         return std::make_unique< MaximumPrincipleLimiter<dim, nspecies, nstate, real> >(parameters_input);
-    } else if ((limiter_type == limiter_enum::positivity_preservingZhang2010
-                || limiter_type == limiter_enum::positivity_preservingWang2012) && nspecies==1) {
-        if (nstate == dim + 2 && nspecies==1)
+    } else if ((limiter_type == limiter_enum::positivity_preservingZhang2010 && nspecies==1)
+                || limiter_type == limiter_enum::positivity_preservingWang2012) {
+        if (nstate == dim + nspecies + 1)
             return std::make_unique< PositivityPreservingLimiter<dim, nspecies, nstate, real> >(parameters_input);
         else {
-            if(nstate != dim + 2) {
+            if(nspecies == 1 && nstate != dim + 2) {
                 std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
                 std::abort();
             }
-            if(nspecies != 1) {
-                std::cout << "Error: Cannot create Positivity-Preserving limiter for nspecies != 1" << std::endl;
-                std::cout << "The Positivity-Preserving limiter will be extended to multispecies in a future implementation." << std::endl;
+            if(nspecies > 1 && nstate != dim + nspecies + 1) {
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + nspecies + 1" << std::endl;
                 std::abort();
             }
         }
