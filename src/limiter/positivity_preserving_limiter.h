@@ -36,6 +36,9 @@ public:
     /// Euler physics pointer. Used to compute pressure.
     std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
 
+    /// Real gas physics pointer. Used to compute pressure.
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
+    
     /// Function to obtain the solution cell average
     using BoundPreservingLimiterState<dim, nspecies, nstate, real>::get_soln_cell_avg;
 
@@ -89,6 +92,15 @@ protected:
         const double    pos_eps,
         const double    p_avg);
 
+    
+    /// Obtain the value used to scale density and enforce positivity of density
+    /// Using 4.10 from Du, Wang et al. 2018
+    real get_density_scaling_value_species(
+        const double    species_avg,
+        const double    species_quad,
+        const double    mixture_avg,
+        const double    mixture_quad);
+        
     /// Function to verify the limited solution preserves positivity of density and pressure
     /// and write back limited solution
     void write_limited_solution(

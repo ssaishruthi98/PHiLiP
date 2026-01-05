@@ -1,6 +1,5 @@
 #include "set_initial_condition.h"
 #include "parameters/parameters_flow_solver.h"
-#include "parameters/parameters_ode_solver.h"
 #include "limiter/bound_preserving_limiter_factory.hpp"
 
 #include <deal.II/numerics/vector_tools.h>
@@ -53,7 +52,7 @@ void SetInitialCondition<dim,nspecies,nstate,real>::interpolate_initial_conditio
     dg->solution = solution_no_ghost;
     // Limit the solution so the interpolation doesn't return nonphysical values
     using limiter_enum = Parameters::LimiterParam::LimiterType;
-    if (dg->all_parameters->limiter_param.use_tvb_limiter) {
+    if (dg->all_parameters->limiter_param.use_tvb_limiter || dg->all_parameters->limiter_param.bound_preserving_limiter == limiter_enum::positivity_preservingWang2012) {
         std::unique_ptr<BoundPreservingLimiter<dim,nspecies,real>> limiter = BoundPreservingLimiterFactory<dim, nspecies, dim+nspecies+1, real>::create_limiter(dg->all_parameters);
         limiter->limit(dg->solution,
                 dg->dof_handler,

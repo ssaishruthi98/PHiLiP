@@ -174,10 +174,10 @@ protected:
     // Algorithm 5 (f_M5): Compute mixture specific total energy from conservative_soln
     real compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
+public:
     // Algorithm 6 (f_M6): Compute species densities from conservative_soln 
     std::array<real,nspecies> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 
-public:
     // Algorithm 7 (f_M7): Compute mass fractions from conservative_soln 
     std::array<real,nspecies> compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -267,6 +267,7 @@ protected:
     std::array<std::array<double,4>,nspecies> NASACAPTemperatureLimits;
     std::array<std::string,nspecies> species_name; // Species name
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
+    std::array<double,nspecies> species_enthalpy_of_formation; // Species enthalpy of formation [J/mol]
 };
 
 } // Physics namespace
