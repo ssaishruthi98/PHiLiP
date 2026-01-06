@@ -550,7 +550,7 @@ inline real RealGas<dim,nspecies,nstate,real>
 ::compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
-    const real mixture_specific_total_energy = conservative_soln[dim+2-1]/mixture_density;
+    const real mixture_specific_total_energy = conservative_soln[dim+1]/mixture_density;
 
     return mixture_specific_total_energy;
 }
@@ -851,7 +851,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
         conv_flux[1+flux_dim][flux_dim] += mixture_pressure; // Add diagonal of pressure
 
         /* C) mixture energy equations */
-        conv_flux[dim+2-1][flux_dim] = mixture_density*vel[flux_dim]*mixture_specific_total_enthalpy;
+        conv_flux[dim+1][flux_dim] = mixture_density*vel[flux_dim]*mixture_specific_total_enthalpy;
 
         /* D) species density equations */
         for (int s=0; s<nspecies-1; ++s)
@@ -879,7 +879,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     std::array<real,nspecies> species_densities;
     std::array<real,nspecies> mass_fractions;
     const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
-    const real mixture_pressure = primitive_soln[dim+2-1];
+    const real mixture_pressure = primitive_soln[dim+1];
     std::array<real,nspecies> species_specific_internal_energy;
     std::array<real,nspecies> species_specific_total_energy;
 
@@ -934,7 +934,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
 
     // mixture energy
     const real mixture_specific_total_energy = compute_mixture_from_species(mass_fractions,species_specific_total_energy);
-    conservative_soln[dim+2-1] = mixture_density*mixture_specific_total_energy;
+    conservative_soln[dim+1] = mixture_density*mixture_specific_total_energy;
 
     /* species densities */
     for (int s=0; s<nspecies-1; ++s) 
@@ -993,6 +993,7 @@ inline real RealGas<dim,nspecies,nstate,real>
 ::compute_gamma ( const std::array<real,nstate> &conservative_soln ) const
 {
     // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
+    // Uses the definition given in Gouasmi thesis
     const real temperature = compute_temperature(conservative_soln);
     const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
     const std::array<real,nspecies> Cp = compute_species_specific_molar_Cp(temperature);
@@ -1027,41 +1028,18 @@ inline real RealGas<dim,nspecies,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
-    // USING METHOD ONE FOR THE TIME BEING BUT INVESTIGATION INTO BEST CHOICE IS REQD
+    // This is the appropriate method for deriving mixture
+    // speed of sound for thermally perfect gas as per
+    // Hypersonic and High Temperature Gas Dynamics, 2nd Ed.
+    // John D. Anderson
+    // Chapter 14.7 Eqn 14.53
+    const real R_mix = compute_mixture_gas_constant(conservative_soln);
+    const real temperature = compute_temperature(conservative_soln);
+    const real gamma = compute_gamma(conservative_soln);
 
-    // METHOD 1:
-    real gam = compute_gamma(conservative_soln);
+    const real sound = sqrt(gamma*R_mix*temperature/(this->mach_ref_sqr)); 
 
-    real mixture_density = conservative_soln[0];
-    // check_positive_quantity(density, "density");
-    const real mixture_pressure = compute_mixture_pressure(conservative_soln);
-
-    // sound is nondimensionalized with u_ref instead of sound_ref
-    // no extra steps are needed for nondimensionalization
-    const real sound_1 = sqrt(mixture_pressure*gam/mixture_density);
-
-    return sound_1;
-
-    // // METHOD 2:
-    // const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
-    // std::array<real, nspecies> species_sound = compute_species_speed_of_sound(conservative_soln);
-
-    // const real sound_2 = compute_mixture_from_species(mass_fractions, species_sound);
-
-    // return sound_2;
-
-    // // METHOD 3:
-    // const real R_mix = compute_mixture_gas_constant(conservative_soln);
-    // const real temperature = compute_temperature(conservative_soln);
-    // const real gamma = compute_gamma(conservative_soln);
-
-    // const real sound_3 = sqrt(gamma*R_mix*temperature/(this->mach_ref_sqr)); 
-
-    // return sound_3;
-
-    // std::cout << "method 1:  " << sound_1 << "  method 2:  " << sound_2 <<  "  method 3:  " << sound_3 << std::endl;
-
-    // return sound_1;
+    return sound;
 }
 
 // Compute mixture solution vector (without species solution)
@@ -1090,7 +1068,7 @@ std::array<dealii::Tensor<1,dim,real>,dim+2> RealGas<dim,nspecies,nstate,real>
         for (int d2=0; d2<dim; d2++) {
             mixture_soln_gradient[1+d1][d2] = conservative_soln_gradient[1+d2][d1];
         }
-        mixture_soln_gradient[dim+2-1][d1] = conservative_soln_gradient[dim+2-1][d1];
+        mixture_soln_gradient[dim+1][d1] = conservative_soln_gradient[dim+1][d1];
     }
     return mixture_soln_gradient;
 }
@@ -1115,7 +1093,7 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         }
         // get mixture solution for computing quantities from Navier-Stokes object
         // std::array<double,dim+2> mixture_soln = get_mixture_solution_vector(conservative_soln);
-        // mixture_soln[dim+2-1] = 1.0e10; // hacky fix warning -- does not affect vorticity calc
+        // mixture_soln[dim+1] = 1.0e10; // hacky fix warning -- does not affect vorticity calc
         // get the solution gradient
         std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
         for (unsigned int s=0; s<nstate; ++s) {

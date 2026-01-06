@@ -1,9 +1,5 @@
 #include "set_initial_condition.h"
 #include "parameters/parameters_flow_solver.h"
-<<<<<<< HEAD
-#include "parameters/parameters_ode_solver.h"
-=======
->>>>>>> origin/ms-ppl
 #include "limiter/bound_preserving_limiter_factory.hpp"
 
 #include <deal.II/numerics/vector_tools.h>
