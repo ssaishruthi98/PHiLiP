@@ -60,6 +60,15 @@ public:
      /// Determine the  
     std::array<int,nspecies>GetNASACAP_TemperatureIndex ( const real temperature ) const;
 
+     /// Computes the species entropy.
+    std::array<real,nspecies> compute_species_entropy ( 
+                const real temperature, 
+                const std::array<real,nstate> &conservative_soln ) const;
+    
+     /// Computes the species Gibbs function.
+    std::array<real,nspecies> compute_species_gibbs_function (
+                const std::array<real,nstate> &conservative_soln) const;
+
      /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (
                 const std::array<real,nstate> &conservative_soln) const;
