@@ -338,7 +338,9 @@ std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,n
     if ( ( (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy)
             || ( !dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy ) )
             && nspecies==1  ) {
+            #if PHILIP_SPECIES==1
             return std::make_shared<RKNumEntropy<dim,nspecies,real,MeshType>>(rk_tableau_butcher);
+            #endif
     }
     else if (dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta){
 
@@ -371,6 +373,10 @@ std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,n
     } else {
         return std::make_shared<EmptyRRKBase<dim,nspecies,real,MeshType>> (rk_tableau_butcher);
     }
+    
+    pcout << "Failed to create RRK Object...Aborting." << std::endl;
+    std::abort();
+    return nullptr;
 }
 
 

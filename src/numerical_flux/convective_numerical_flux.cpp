@@ -159,7 +159,6 @@ std::array<real, nstate> EntropyConservingBaselineNumericalFluxConvective<dim,ns
     RealArrayVector conv_phys_split_flux;
 
     conv_phys_split_flux = pde_physics->convective_numerical_split_flux (soln_int,soln_ext);
-
     // Scalar dissipation
     std::array<real, nstate> numerical_flux_dot_n;
     for (int s=0; s<nstate; s++) {
@@ -579,7 +578,9 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nspecies,nstate,rea
         template class BaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
         template class CentralBaselineNumericalFluxConvective<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
         template class RiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
-        template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>;
+        template class LaxFriedrichsRiemannSolverDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class EntropyConserving<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>; \
+        template class EntropyConservingWithLaxFriedrichsDissipation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPE)
 #endif
 } // NumericalFlux namespace

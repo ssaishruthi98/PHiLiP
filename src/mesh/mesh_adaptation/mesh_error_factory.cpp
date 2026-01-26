@@ -7,7 +7,9 @@ std::unique_ptr <MeshErrorEstimateBase <dim,nspecies, real, MeshType>> MeshError
 {
     if (!(dg->all_parameters->mesh_adaptation_param.use_goal_oriented_mesh_adaptation) && nspecies==1)
     {
+        #if PHILIP_SPECIES==1
         return std::make_unique<ResidualErrorEstimate<dim,nspecies, real, MeshType>>(dg);
+        #endif
     }
 
     // Recursive templating required because template parameters must be compile time constants
@@ -20,12 +22,17 @@ std::unique_ptr <MeshErrorEstimateBase <dim,nspecies, real, MeshType>> MeshError
         // Otherwise, keep decreasing nstate and dim until it matches
         if(nstate == dg->all_parameters->nstate) 
         {
+            #if PHILIP_SPECIES==1
             return std::make_unique<DualWeightedResidualError<dim,nspecies, nstate , real, MeshType>>(dg);
+            #endif
         }
         else if constexpr (nstate > 1)
             return MeshErrorFactory<dim,nspecies, nstate-1, real, MeshType>::create_mesh_error(dg);
         else
             return nullptr;
+
+        std::cout<<"Cannot create MeshErrorEstimate. Invalid input"<<std::endl;
+        return nullptr;
     }
     else
     {

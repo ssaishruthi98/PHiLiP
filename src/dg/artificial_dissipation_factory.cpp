@@ -45,7 +45,7 @@ ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipatio
 
     }
 
-    assert(0==1 && "Cannot create artificial dissipation due to an invalid artificial dissipation type specified for the problem"); 
+    // assert(0==1 && "Cannot create artificial dissipation due to an invalid artificial dissipation type specified for the problem"); 
     return nullptr;
 }
 

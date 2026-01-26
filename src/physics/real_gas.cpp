@@ -28,7 +28,7 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     , temperature_ref(298.15) /// [K]
     , u_ref(mach_ref*sqrt(gam_ref*R_ref*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
-    , tol(1.0e-8) /// []
+    , tol(1.0e-14) /// []
     , density_ref(1.225) /// [kg/m^3]
     // Note: nspecies = nspecies
     // , navier_stokes_physics(std::make_unique < NavierStokes<dim,nspecies,dim+2,real> > (
@@ -57,29 +57,17 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     readspecies(parameters_input->chemistry_input_file);
 }
 
-// Helper function to read chemistry file
-std::string delSpaces(std::string str) 
-{
-    str.erase(std::remove(str.begin(), str.end(), ' '), str.end());
-    return str;
-}
-
 // Read chemistry file
 template <int dim, int nspecies, int nstate, typename real>
 void RealGas<dim, nspecies, nstate, real>
-::readspecies(std::string reactionFilename)
+::readspecies(std::string NASADataFilename)
 {
     std::string line, dum_char;
 
-    std::ifstream chemfile (reactionFilename);
-    
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-
-    std::getline(chemfile, line);
+    std::ifstream chemfile (NASADataFilename);
+    // this->pcout << "Reading NASA Coefficients and Polynomials (CAP) Data..." << std::endl;
     std::getline(chemfile, line);
     int N_species = (int)std::stof(line);
-
     if(nspecies != N_species) {
         this->pcout << std::endl << std::endl
                   << "----------------------------------------------------"
@@ -91,67 +79,7 @@ void RealGas<dim, nspecies, nstate, real>
                   << std::endl;
         std::abort();
     }
-
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-
-    int N_mechs = (int)std::stof(line);
-    if(N_mechs > 0) {
-        this->pcout << std::endl << std::endl
-                  << "----------------------------------------------------"
-                  << std::endl
-                  << "RealGas Physics Class does not support reaction steps > 0." << std::endl
-                  << "Aborting!" << std::endl
-                  << "----------------------------------------------------"
-                  << std::endl;
-        std::abort();
-    }
-
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-
-    int NonEqFlag = (int)std::stof(line);
-    if(NonEqFlag != 1) {
-        this->pcout << std::endl << std::endl
-                  << "----------------------------------------------------"
-                  << std::endl
-                  << "RealGas Physics Class does not support combustion or neutral species flow" << std::endl
-                  << "(ie. Nonequilibrium flag must equal 1.)" << std::endl
-                  << "Aborting!" << std::endl
-                  << "----------------------------------------------------"
-                  << std::endl;
-        std::abort();
-    }
-
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-
-    int nTEMP = (int)std::stof(line);
-    if(nTEMP != 3) {
-        this->pcout << std::endl << std::endl
-                  << "----------------------------------------------------"
-                  << std::endl
-                  << "RealGas Physics Class does not support combustion or neutral species flow" << std::endl
-                  << "(ie. number of temperatures must equal 3.)" << std::endl
-                  << "Aborting!" << std::endl
-                  << "----------------------------------------------------"
-                  << std::endl;
-        std::abort();
-    }
-
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-    int NumElecPolys = (int)stof(line);
-    //===============================================
-
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
-    std::getline(chemfile, line);
+    // this->pcout << "Running simulation with " << N_species << " species..." << std::endl;
 
     std::string dummy_name;
     std::string::size_type sz1;
@@ -164,72 +92,37 @@ void RealGas<dim, nspecies, nstate, real>
         // Init
         sz1 = 0;
         std::getline(chemfile, line);
-        dummy_name = line.substr(11,21);
-        line = line.substr(32);
-        species_name[i] = delSpaces(dummy_name);
-        species_weight[i] = std::stod(line,&sz1); // Species molecular weight [kg/mol]
-        
-        // skip line (vibrational temperature)
-        line = line.substr(sz1);
-        sz1 = 0;
-        std::stod(line,&sz1);
-        
-        line = line.substr(sz1);
-        sz1 = 0;
-        species_enthalpy_of_formation[i] = std::stod(line,&sz1);
-        // this->pcout << species_name[i] << " with a molecular weight of "<< species_weight[i] << " and enthalpy of formation of: " << species_enthalpy_of_formation[i] << std::endl;
-        for(int j=0; j<2; j++)
-        {
-            line = line.substr(sz1);
-            sz1 = 0;
-            stod(line,&sz1);
-        }          
+        std::getline(chemfile, line);
+        species_name[i] = line;
+        // this->pcout << species_name[i] << " with a molecular weight of ";
+        std::getline(chemfile, line);
+        species_weight[i] = std::stof(line); // Species molecular weight [g/mol]
+        species_weight[i] /= 1000.0; // Species molecular weight [kg/mol]
+        // this->pcout << species_weight[i] << " and enthalpy offset of ";
+        std::getline(chemfile, line);
+        species_enthalpy_offset[i] = std::stof(line); // Species enthalpy from T = 0 to T= 298.15K [J/mol]
+        species_enthalpy_offset[i] /= (this->species_weight[i]*this->u_ref_sqr); // nondimensionalized mass value
 
+        // this->pcout << species_enthalpy_offset[i] << std::endl;         
+
+        std::getline(chemfile, line);
         for(int j=0; j<4; j++)
         {
             line = line.substr(sz1);
             sz1 = 0;
-            NASACAPTemperatureLimits[i][j] = std::stod(line,&sz1);
+            NASACAPTemperatureLimits[i][j] = std::stof(line,&sz1);
         }
 
         // Init
-        sz1 = 0;
-        std::getline(chemfile, line);
-        line = line.substr(11);
-        for(int j=0; j<9; j++)
-        {
-            NASACAPCoeffs[i][j][0] = std::stod(line,&sz1);
-            line = line.substr(sz1);
+        for(int k=0; k<3; k++) {
             sz1 = 0;
-        }
-        // Init
-        sz1 = 0;
-        std::getline(chemfile, line);
-        line = line.substr(11);
-        for(int j=0; j<9; j++)
-        {
-            NASACAPCoeffs[i][j][1] = std::stod(line,&sz1);
-            line = line.substr(sz1);
-            sz1 = 0;
-        }
-        // Init
-        sz1 = 0;
-        std::getline(chemfile, line);
-        line = line.substr(11);
-        for(int j=0; j<9; j++)
-        {
-            NASACAPCoeffs[i][j][2] = std::stod(line,&sz1);
-            line = line.substr(sz1);
-            sz1 = 0;
-        }
-
-        getline(chemfile, line);
-        getline(chemfile, line);
-        getline(chemfile, line);
-        getline(chemfile, line);
-        for(int k=0; k<NumElecPolys; k++)
-        {
-            getline(chemfile, line);
+            std::getline(chemfile, line);
+            for(int j=0; j<9; j++)
+            {
+                line = line.substr(sz1);
+                sz1 = 0;
+                NASACAPCoeffs[i][j][k] = std::stod(line,&sz1);
+            }
         }
     }
 }
@@ -831,6 +724,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
             h[s] += this->NASACAPCoeffs[s][i][species_tempindex[s]]*pow(dimensional_temperature,i-2)/((double)(i-1)); // The other terms are added
         }
         h[s] *= ((this->Ru*dimensional_temperature)/(this->species_weight[s]*this->u_ref_sqr)); //nondimensional mass value
+        h[s] += species_enthalpy_offset[s];
     }
     return h;
 }
@@ -1002,6 +896,119 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
     return conv_flux;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+real RealGas<dim, nspecies, nstate, real>
+::compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const
+{
+    // See Appendix B [Ismail and Roe, 2009, Entropy-Consistent Euler Flux Functions II]
+    // -- Numerically stable algorithm for computing the logarithmic mean
+    const real zeta = val1/val2;
+    const real f = (zeta-1.0)/(zeta+1.0);
+    const real u = f*f;
+    
+    real F;
+    if(u<1.0e-2){ F = 1.0 + u/3.0 + u*u/5.0 + u*u*u/7.0; } 
+    else { 
+        if constexpr(std::is_same<real,double>::value) F = std::log(zeta)/2.0/f; 
+    }
+    
+    const real log_mean_val = (val1+val2)/(2.0*F);
+
+    return log_mean_val;
+}
+
+// Select and compute 2 point flux
+// Currently only has the CH flux (Gouasmi thesis/Renac 2021 paper)
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
+::convective_numerical_split_flux(const std::array<real,nstate> &conservative_soln1,
+                                  const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    if(two_point_num_flux_type == two_point_num_flux_enum::CH) {
+        conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
+    }
+
+    return conv_num_split_flux;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
+::convective_numerical_split_flux_chandrashekar(const std::array<real,nstate> &conservative_soln1,
+                                                const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+
+    const std::array<real,nspecies> rho_species1 = compute_species_densities(conservative_soln1);
+    const std::array<real,nspecies> rho_species2 = compute_species_densities(conservative_soln2);
+
+    const real temp1 = compute_temperature(conservative_soln1);
+    const real temp2 = compute_temperature(conservative_soln2);
+    const real temp_inv_avg = ((1.0/temp1) + (1.0/temp2))/2.0;
+    const real temp_inv_log_mean = compute_ismail_roe_logarithmic_mean(1.0/temp1, 1.0/temp2);
+    const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
+    std::array<real,nspecies> Cv1 = compute_species_specific_molar_Cv(temp1); // dimensional molar value
+    std::array<real,nspecies> Cv2 = compute_species_specific_molar_Cv(temp2); // dimensional molar value
+    std::array<real,nspecies> Cv_avg;
+    for (int ispecies = 0; ispecies < nspecies; ispecies++) {
+        Cv1[ispecies] /= (this->species_weight[ispecies]*this->R_ref); // nondimensional mass value
+        Cv2[ispecies] /= (this->species_weight[ispecies]*this->R_ref); // nondimensional mass value
+        Cv_avg[ispecies] = (Cv1[ispecies]+Cv2[ispecies])/2.0;
+    }
+
+    dealii::Tensor<1,dim,real> vel_avg;
+    const dealii::Tensor<1,dim,real> vel1 = compute_velocities(conservative_soln1);
+    const dealii::Tensor<1,dim,real> vel2 = compute_velocities(conservative_soln2);
+    real vel_square_avg = 0.0;;
+    for(int idim=0; idim<dim; idim++){
+        vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
+        vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
+    }
+
+    for(int flux_dim=0; flux_dim<dim; flux_dim++){
+        // Density equation
+        std::array<real, nspecies> rho_species_flux;
+        real rho_flux = 0.0;
+        real energy_flux = 0.0;
+        real pressure_avg = 0.0;
+        for (int ispecies = 0; ispecies < nspecies; ispecies++) {
+            real species_log_mean = compute_ismail_roe_logarithmic_mean(rho_species1[ispecies],rho_species2[ispecies]);
+
+            // compute flux of the species density
+            rho_species_flux[ispecies] = species_log_mean*vel_avg[flux_dim];
+            // total density flux is a sum of the species density fluxes
+            rho_flux += rho_species_flux[ispecies];
+
+            // consistent pressure average computed as per Gouasmi thesis
+            pressure_avg += Rs[ispecies] * ((rho_species1[ispecies]+rho_species2[ispecies])/2.0);
+
+            // energy flux required sum of species terms
+            energy_flux += ((Cv_avg[ispecies]/temp_inv_log_mean) + vel_square_avg)*rho_species_flux[ispecies];
+        }
+        pressure_avg /= temp_inv_avg;
+
+        conv_num_split_flux[0][flux_dim] = rho_flux;
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = rho_flux*vel_avg[flux_dim]*vel_avg[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_avg; // Add diagonal of pressure
+
+        // Energy equation
+        conv_num_split_flux[dim+1][flux_dim] = energy_flux + (pressure_avg * vel_avg[flux_dim]);
+
+        for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
+            conv_num_split_flux[dim+2+ispecies][flux_dim] = rho_species_flux[ispecies];
+        }
+    }
+   std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux = convective_flux(conservative_soln1);
+    for (int istate = 0; istate < nstate; istate++) {
+        this->pcout << "the conv flux for state " << istate << " is : " << conv_flux[istate][0] << " the two pt flux is: " <<  conv_num_split_flux[istate][0] << std::endl;
+    }
+    sleep(5);
+   return conv_flux;
+    // return conv_num_split_flux;
+}
 /* Supporting FUNCTIONS */
 // Algorithm 20 (f_S20): Convert primitive to conservative
 template <int dim, int nspecies, int nstate, typename real>
@@ -1019,8 +1026,6 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     std::array<real,nspecies> mass_fractions;
     const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
     const real mixture_pressure = primitive_soln[dim+1];
-    std::array<real,nspecies> species_specific_internal_energy;
-    std::array<real,nspecies> species_specific_total_energy;
 
     /* mixture density */
     conservative_soln[0] = mixture_density;
@@ -1054,25 +1059,15 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const real specific_kinetic_energy = 0.50*vel2;
     // species specific enthalpy
     const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
-    // species energy
-    for (int s=0; s<nspecies; ++s) 
-    { 
-      species_specific_internal_energy[s] = species_specific_enthalpy[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
-      species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
-    } 
-
-    // for (int s=0; s<nspecies; ++s) {
-    //     species_specific_enthalpy[s] /= ((this->Ru*(temperature*this->temperature_ref))/(this->species_weight[s]*this->u_ref_sqr));
-    //     species_specific_internal_energy[s] = (species_specific_enthalpy[s] - species_enthalpy_of_formation[s]) - ((temperature*this->temperature_ref)-this->temperature_ref)*this->Ru; // [J/mol]
-    //     species_specific_internal_energy[s] /= this->species_weight[s]; // [J/kg]
-    //     species_specific_internal_energy[s] +=(species_enthalpy_of_formation[s] - this->Ru*this->temperature_ref)/this->species_weight[s]; // [J/kg]
-    //     species_specific_internal_energy[s] /= this->u_ref_sqr; // nondimensional
-
-    //     species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
-    // }  
+    // mixture enthalpy
+    const real mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy);
+    // mixture specific internal energy
+    const real mixture_specific_internal_energy = mixture_specific_enthalpy - mixture_pressure/mixture_density;
+    std::cout << "enthalpy is:  " << mixture_specific_enthalpy << " P/rho is:  " << mixture_pressure/mixture_density << std::endl;
+    // mixture specific total energy
+    const real mixture_specific_total_energy = mixture_specific_internal_energy + specific_kinetic_energy;
 
     // mixture energy
-    const real mixture_specific_total_energy = compute_mixture_from_species(mass_fractions,species_specific_total_energy);
     conservative_soln[dim+1] = mixture_density*mixture_specific_total_energy;
 
     /* species densities */
@@ -1287,9 +1282,9 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         // for(int istate = 0; istate < nstate; ++istate) {
         //     std::cout << "state " << istate << " entropy var:  " << entropy_var[istate] << std::endl;
         // }
-        for(int istate = 0; istate < nstate; ++istate) {
-            std::cout << "state " << istate << " conservative_soln var:  " << conservative_soln[istate] << "  converted from entropy vars:  " << cons_soln[istate] << std::endl;
-        }
+        // for(int istate = 0; istate < nstate; ++istate) {
+        //     std::cout << "state " << istate << " conservative_soln var:  " << conservative_soln[istate] << "  converted from entropy vars:  " << cons_soln[istate] << std::endl;
+        // }
     }
     if (computed_quantities.size()-1 != current_data_index) {
         this->pcout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
