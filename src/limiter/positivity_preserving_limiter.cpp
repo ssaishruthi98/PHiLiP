@@ -215,7 +215,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::write_limited_sol
                 std::abort();
             }
 
-            Verify that positivity of Total Energy is preserved after application of theta2 limiter
+            // Verify that positivity of Total Energy is preserved after application of theta2 limiter
             if (istate == (dim + 1) && solution[current_dofs_indices[idof]] < 0) {
                 std::cout << "Error: Total Energy is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();

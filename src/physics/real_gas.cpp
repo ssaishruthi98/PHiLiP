@@ -1163,8 +1163,8 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         //     computed_quantities(++current_data_index) = vorticity[d];
         // }
 
-        const std::array<real,nstate> entropy_var = compute_entropy_variables(conservative_soln);
-        const std::array<real,nstate> cons_soln = compute_conservative_variables_from_entropy_variables(entropy_var);
+        // const std::array<real,nstate> entropy_var = compute_entropy_variables(conservative_soln);
+        // const std::array<real,nstate> cons_soln = compute_conservative_variables_from_entropy_variables(entropy_var);
 
         // for(int istate = 0; istate < nstate; ++istate) {
         //     std::cout << "state " << istate << " entropy var:  " << entropy_var[istate] << std::endl;
