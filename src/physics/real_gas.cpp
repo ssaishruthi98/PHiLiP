@@ -896,119 +896,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
     return conv_flux;
 }
 
-template <int dim, int nspecies, int nstate, typename real>
-real RealGas<dim, nspecies, nstate, real>
-::compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const
-{
-    // See Appendix B [Ismail and Roe, 2009, Entropy-Consistent Euler Flux Functions II]
-    // -- Numerically stable algorithm for computing the logarithmic mean
-    const real zeta = val1/val2;
-    const real f = (zeta-1.0)/(zeta+1.0);
-    const real u = f*f;
-    
-    real F;
-    if(u<1.0e-2){ F = 1.0 + u/3.0 + u*u/5.0 + u*u*u/7.0; } 
-    else { 
-        if constexpr(std::is_same<real,double>::value) F = std::log(zeta)/2.0/f; 
-    }
-    
-    const real log_mean_val = (val1+val2)/(2.0*F);
-
-    return log_mean_val;
-}
-
-// Select and compute 2 point flux
-// Currently only has the CH flux (Gouasmi thesis/Renac 2021 paper)
-template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
-::convective_numerical_split_flux(const std::array<real,nstate> &conservative_soln1,
-                                  const std::array<real,nstate> &conservative_soln2) const
-{
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    if(two_point_num_flux_type == two_point_num_flux_enum::CH) {
-        conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
-    }
-
-    return conv_num_split_flux;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
-::convective_numerical_split_flux_chandrashekar(const std::array<real,nstate> &conservative_soln1,
-                                                const std::array<real,nstate> &conservative_soln2) const
-{
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-
-    const std::array<real,nspecies> rho_species1 = compute_species_densities(conservative_soln1);
-    const std::array<real,nspecies> rho_species2 = compute_species_densities(conservative_soln2);
-
-    const real temp1 = compute_temperature(conservative_soln1);
-    const real temp2 = compute_temperature(conservative_soln2);
-    const real temp_inv_avg = ((1.0/temp1) + (1.0/temp2))/2.0;
-    const real temp_inv_log_mean = compute_ismail_roe_logarithmic_mean(1.0/temp1, 1.0/temp2);
-    const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
-    std::array<real,nspecies> Cv1 = compute_species_specific_molar_Cv(temp1); // dimensional molar value
-    std::array<real,nspecies> Cv2 = compute_species_specific_molar_Cv(temp2); // dimensional molar value
-    std::array<real,nspecies> Cv_avg;
-    for (int ispecies = 0; ispecies < nspecies; ispecies++) {
-        Cv1[ispecies] /= (this->species_weight[ispecies]*this->R_ref); // nondimensional mass value
-        Cv2[ispecies] /= (this->species_weight[ispecies]*this->R_ref); // nondimensional mass value
-        Cv_avg[ispecies] = (Cv1[ispecies]+Cv2[ispecies])/2.0;
-    }
-
-    dealii::Tensor<1,dim,real> vel_avg;
-    const dealii::Tensor<1,dim,real> vel1 = compute_velocities(conservative_soln1);
-    const dealii::Tensor<1,dim,real> vel2 = compute_velocities(conservative_soln2);
-    real vel_square_avg = 0.0;;
-    for(int idim=0; idim<dim; idim++){
-        vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
-        vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
-    }
-
-    for(int flux_dim=0; flux_dim<dim; flux_dim++){
-        // Density equation
-        std::array<real, nspecies> rho_species_flux;
-        real rho_flux = 0.0;
-        real energy_flux = 0.0;
-        real pressure_avg = 0.0;
-        for (int ispecies = 0; ispecies < nspecies; ispecies++) {
-            real species_log_mean = compute_ismail_roe_logarithmic_mean(rho_species1[ispecies],rho_species2[ispecies]);
-
-            // compute flux of the species density
-            rho_species_flux[ispecies] = species_log_mean*vel_avg[flux_dim];
-            // total density flux is a sum of the species density fluxes
-            rho_flux += rho_species_flux[ispecies];
-
-            // consistent pressure average computed as per Gouasmi thesis
-            pressure_avg += Rs[ispecies] * ((rho_species1[ispecies]+rho_species2[ispecies])/2.0);
-
-            // energy flux required sum of species terms
-            energy_flux += ((Cv_avg[ispecies]/temp_inv_log_mean) + vel_square_avg)*rho_species_flux[ispecies];
-        }
-        pressure_avg /= temp_inv_avg;
-
-        conv_num_split_flux[0][flux_dim] = rho_flux;
-        // Momentum equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[1+velocity_dim][flux_dim] = rho_flux*vel_avg[flux_dim]*vel_avg[velocity_dim];
-        }
-        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_avg; // Add diagonal of pressure
-
-        // Energy equation
-        conv_num_split_flux[dim+1][flux_dim] = energy_flux + (pressure_avg * vel_avg[flux_dim]);
-
-        for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
-            conv_num_split_flux[dim+2+ispecies][flux_dim] = rho_species_flux[ispecies];
-        }
-    }
-   std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux = convective_flux(conservative_soln1);
-    for (int istate = 0; istate < nstate; istate++) {
-        this->pcout << "the conv flux for state " << istate << " is : " << conv_flux[istate][0] << " the two pt flux is: " <<  conv_num_split_flux[istate][0] << std::endl;
-    }
-    sleep(5);
-   return conv_flux;
-    // return conv_num_split_flux;
-}
 /* Supporting FUNCTIONS */
 // Algorithm 20 (f_S20): Convert primitive to conservative
 template <int dim, int nspecies, int nstate, typename real>
@@ -1063,7 +950,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const real mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy);
     // mixture specific internal energy
     const real mixture_specific_internal_energy = mixture_specific_enthalpy - mixture_pressure/mixture_density;
-    std::cout << "enthalpy is:  " << mixture_specific_enthalpy << " P/rho is:  " << mixture_pressure/mixture_density << std::endl;
+    // std::cout << "enthalpy is:  " << mixture_specific_enthalpy << " P/rho is:  " << mixture_pressure/mixture_density << std::endl;
     // mixture specific total energy
     const real mixture_specific_total_energy = mixture_specific_internal_energy + specific_kinetic_energy;
 

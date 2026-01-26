@@ -227,19 +227,7 @@ protected:
     // Algorithm 19 (f_M19): Compute convective flux from conservative_soln
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
         const std::array<real,nstate> &conservative_soln) const;
-
-    /// Compute Ismail-Roe logarithmic mean
-    real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
-    
-    ///  Evaluates convective flux based on the chosen split form.
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
-        const std::array<real,nstate> &conservative_soln1,
-        const std::array<real,nstate> &conservative_soln2) const override;
-
-    /// Chandrashekar entropy conserving flux.
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
-        const std::array<real,nstate> &conservative_soln1,
-        const std::array<real,nstate> &conservative_soln2) const;
+        
 protected:
     // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
     virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;

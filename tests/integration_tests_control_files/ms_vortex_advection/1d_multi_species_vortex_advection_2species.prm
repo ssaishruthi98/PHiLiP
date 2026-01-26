@@ -15,7 +15,7 @@ set pde_type = real_gas
 set chemistry_input_file = ../../chemistry_files/H2_O2.kinetics
 
 # DG formulation
-set use_weak_form = true
+set use_weak_form = false
 set non_physical_behavior = abort_run
 
 # set directry to write output data
