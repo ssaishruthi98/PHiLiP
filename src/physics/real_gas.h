@@ -185,10 +185,10 @@ protected:
     // Algorithm 8 (f_M8): Compute mixture property from mass fractions and species properties
     real compute_mixture_from_species( const std::array<real,nspecies> &mass_fractions, const std::array<real,nspecies> &species ) const;
 
+public:
     // Algorithm 9 (f_M9): Compute dimensional temperature from (non-dimensional) temperature
     real compute_dimensional_temperature ( const real temperature ) const;
 
-public:
     // Algorithm 10 (f_M10): Compute species gas constants from Ru (universal gas constant)
     std::array<real,nspecies> compute_Rs ( const real Ru ) const;
 

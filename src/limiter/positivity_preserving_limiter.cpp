@@ -40,13 +40,13 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
         if(limiter_type == limiter_enum::positivity_preservingZhang2010) {
-            std::cout << "Error: Zhang 2010 limiting has not been implemented for multispecies flow" << std::endl;
+            std::cout << "Limiter Error: Zhang 2010 limiting has not been implemented for multispecies flow" << std::endl;
             std::abort();
         } else {
             real_gas_physics = std::make_shared < Physics::RealGas<dim,nspecies,nstate,real> > (parameters_input);
         }
     } else {
-        std::cout << "Error: Positivity-Preserving Limiter can only be applied for pde_type==euler or pde_type==real_gas" << std::endl;
+        std::cout << "Limiter Error: Positivity-Preserving Limiter can only be applied for pde_type==euler or pde_type==real_gas" << std::endl;
         std::abort();
     }
 
@@ -56,18 +56,18 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
             tvbLimiter = std::make_shared < TVBLimiter<dim, nspecies, nstate, real> >(parameters_input);
         }
         else {
-            std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
+            std::cout << "Limiter Error: Cannot create TVB limiter for dim > 1" << std::endl;
             std::abort();
         }
     }
 
     if(dim >= 2 && (flow_solver_param.number_of_grid_elements_x == 1 || flow_solver_param.number_of_grid_elements_y == 1)) {
-        std::cout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
+        std::cout << "Limiter Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
         std::abort();
     }
 
     if(dim == 3 && flow_solver_param.number_of_grid_elements_z == 1) {
-        std::cout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
+        std::cout << "Limiter Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
         std::abort();
     }
 }
@@ -203,32 +203,52 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::write_limited_sol
     const unsigned int                                      n_shape_fns,
     const std::vector<dealii::types::global_dof_index>& current_dofs_indices)
 {
+    // Calculate temperature and ensure it has not become negative through limiting
+    std::array<real,nstate> cons_soln;
+    real temperature = 0.0;
+    for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
+        for (int istate = 0; istate < nstate; istate++) {
+            cons_soln[istate] = soln_coeff[istate][ishape];
+        }
+        if (nspecies > 1) {
+            temperature = real_gas_physics->compute_dimensional_temperature(real_gas_physics->compute_temperature(cons_soln));
+        }
+        if (temperature < 0) {
+            std::cout << "Limiter Error: Temperature is a negative value - Aborting... " << std::endl << std::flush;
+            std::abort();
+        }
+    }
+
+
     // Write limited solution dofs to the global solution vector.
     for (int istate = 0; istate < nstate; istate++) {
+        // std::cout << "state " << istate;
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
             const unsigned int idof = istate * n_shape_fns + ishape;
             solution[current_dofs_indices[idof]] = soln_coeff[istate][ishape]; //
-
+            // std::cout << " " << soln_coeff[istate][ishape];
             // Verify that positivity of density is preserved after application of theta2 limiter
             if (istate == 0 && solution[current_dofs_indices[idof]] < 0) {
-                std::cout << "Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::cout << "Limiter Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
 
             // Verify that positivity of Total Energy is preserved after application of theta2 limiter
             if (istate == (dim + 1) && solution[current_dofs_indices[idof]] < 0) {
-                std::cout << "Error: Total Energy is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::cout << "Limiter Error: Total Energy is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
 
             // Verify that the solution values haven't been changed to NaN as a result of all quad pts in a cell having negative density 
             // (all quad pts having negative density would result in the local maximum convective eigenvalue being zero leading to division by zero)
             if (isnan(solution[current_dofs_indices[idof]])) {
-                std::cout << "Error: Solution is NaN - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::cout << "Limiter Error: Solution is NaN - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
         }
+        // std::cout << std::endl;
     }
+    // std::cout << std::endl;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -374,7 +394,7 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nspecies, nstate, real
                 soln_cell_avg[istate] += avg_weight_3*soln_cell_avg_dim[2][istate];
 
             if (isnan(soln_cell_avg[istate])) {
-                std::cout << "Error: Solution Cell Avg is NaN - Aborting... " << std::endl << std::flush;
+                std::cout << "Limiter Error: Solution Cell Avg is NaN - Aborting... " << std::endl << std::flush;
                 std::abort();
             }
         }
@@ -453,7 +473,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
 
         if (nan_check) {
             for (unsigned int istate = 0; istate < nstate; ++istate) {
-                std::cout << "Error: Density passed to limiter is NaN - Aborting... " << std::endl;
+                std::cout << "Limiter Error: Density passed to limiter is NaN - Aborting... " << std::endl;
 
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
                     std::cout << soln_coeff[istate][iquad] << "    ";
@@ -692,7 +712,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         }
 
         if (isnan(theta2)) {
-            std::cout << "Error: Theta2 is NaN - Aborting... " << std::endl << theta2 << std::endl << std::flush;
+            std::cout << "Limiter Error: Theta2 is NaN - Aborting... " << std::endl << theta2 << std::endl << std::flush;
             std::abort();
         }
 
