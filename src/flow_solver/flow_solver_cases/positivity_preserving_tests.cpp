@@ -79,6 +79,12 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
         std::shared_ptr<HighOrderGrid<dim,double>> svsw_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
         return svsw_mesh->triangulation;
     }
+    else if (dim==2 && flow_case_type == flow_case_enum::mach_3_wind_tunnel) {
+        const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
+        const bool use_mesh_smoothing = false;
+        std::shared_ptr<HighOrderGrid<dim,double>> m3wt_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+        return m3wt_mesh->triangulation;
+    }
     return grid;
 }
 

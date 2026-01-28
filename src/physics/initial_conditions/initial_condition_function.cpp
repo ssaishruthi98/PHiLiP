@@ -946,6 +946,64 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
 }
 
 // ========================================================
+// Mach 3 Wind Tunnel with a Step Problem (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_Mach3WindTunnel<dim, nstate, real>
+::InitialConditionFunction_Mach3WindTunnel(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_Mach3WindTunnel<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    real x = point[0];
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        if (x > -0.3) {
+            if (istate == 0) {
+                // density
+                value = 1.4;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 3.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+        }
+        //else {
+        //    if (istate == 0) {
+        //        // density
+        //        value = 1.4;
+        //    }
+        //    else if (istate == 1) {
+        //        // x-velocity
+        //        value = 0.0;
+        //    }
+        //    else if (istate == 2) {
+        //        // y-velocity
+        //        value = 0.0;
+        //    }
+        //    else if (istate == 3) {
+        //        // pressure
+        //        value = 1.0;
+        //    }
+        //}
+    }
+    return value;
+}
+
+// ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -1042,7 +1100,9 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
         if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim, nstate, real> >();
-    }else {
+    } else if (flow_type == FlowCaseEnum::mach_3_wind_tunnel) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_Mach3WindTunnel<dim, nstate, real> >(param);
+    } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
     }
@@ -1084,6 +1144,7 @@ template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP
 template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_SVSW <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_Mach3WindTunnel <PHILIP_DIM, PHILIP_DIM + 2, double>;
 #endif
 
 #if PHILIP_DIM < 3

@@ -208,7 +208,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " halton_sampling_run |"
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
-                      " low_density "),
+                      " low_density | "
+                      " mach_3_wind_tunnel "),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -260,7 +261,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  halton_sampling_run |"
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
-                      "  low_density>.");
+                      "  low_density | "
+                      "  mach_3_wind_tunnel>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -452,6 +454,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "hyper_adaptive_sampling_new_error")        { test_type = hyper_adaptive_sampling_new_error; }
     else if (test_string == "halton_sampling_run")                      { test_type = halton_sampling_run; }
     else if (test_string == "low_density")                              { test_type = low_density; }
+    else if (test_string == "mach_3_wind_tunnel")                       { test_type = mach_3_wind_tunnel; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     
     overintegration = prm.get_integer("overintegration");

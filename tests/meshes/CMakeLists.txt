@@ -12,6 +12,7 @@ configure_file(SD7003_4_cell_spanwise.msh SD7003_4_cell_spanwise.msh COPYONLY)
 configure_file(SD7003_12_cell_spanwise.msh SD7003_12_cell_spanwise.msh COPYONLY)
 configure_file(svsw.msh svsw.msh COPYONLY)
 configure_file(shock_diffraction.msh shock_diffraction.msh COPYONLY)
+configure_file(m3wt.msh m3wt.msh COPYONLY)
 
 set (filename "naca0012_hopw_ref0.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})

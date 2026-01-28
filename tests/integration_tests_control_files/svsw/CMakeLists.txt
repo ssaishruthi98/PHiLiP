@@ -19,3 +19,20 @@ set_tests_labels(2D_SVSW_TEST SVSW_TEST
                                             LIMITER
                                             MODERATE
                                             INTEGRATION_TEST)
+
+configure_file(2D_svsw_gmsh.prm 2D_svsw_gmsh.prm COPYONLY)
+add_test(
+  NAME 2D_SVSW_GMSH
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_svsw_gmsh.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+set_tests_labels(2D_SVSW_GMSH SVSW_GMSH
+                                            2D
+                                            PARALLEL
+                                            EULER
+                                            RUNGE-KUTTA
+                                            STRONG
+                                            COLLOCATED
+                                            LIMITER
+                                            MODERATE
+                                            INTEGRATION_TEST)

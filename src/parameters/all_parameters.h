@@ -213,7 +213,8 @@ public:
         HROM_error_post_sampling,
         hyper_adaptive_sampling_new_error,
         halton_sampling_run,
-        low_density
+        low_density,
+        mach_3_wind_tunnel
     };
     /// Store selected TestType from the input file.
     TestType test_type;
