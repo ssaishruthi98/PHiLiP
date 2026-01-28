@@ -719,15 +719,17 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
         if(species_tempindex[s] == -1) { // Calculate enthalpy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
             species_tempindex[s] = 0;
             std::array<real,nspecies> Cp_species = compute_species_specific_molar_Cp(NASACAPTemperatureLimits[s][0]);
-            Cp = Cp_species[s]; //obtain Cp so the enthalpy can be calculated with CPG model
-            out_of_bounds_temp = dimensional_temperature; //save the temperature value to calculate enthalpy using CPG model
+            Cp = Cp_species[s]; // obtain Cp so the enthalpy can be calculated with CPG model
+            Cp /= this->Ru; // nondimensional molar value of Cp;
+            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate enthalpy using CPG model
             dimensional_temperature = NASACAPTemperatureLimits[s][0];
         }
         if(species_tempindex[s] == 3) { // Calculate enthalpy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
             species_tempindex[s] = 2;
             std::array<real,nspecies> Cp_species = compute_species_specific_molar_Cp(NASACAPTemperatureLimits[s][2]);
-            Cp = Cp_species[s]; //obtain Cp so the enthalpy can be calculated with CPG model
-            out_of_bounds_temp = dimensional_temperature; //save the temperature value to calculate enthalpy using CPG model
+            Cp = Cp_species[s]; // obtain Cp so the enthalpy can be calculated with CPG model
+            Cp /= this->Ru; // nondimensional molar value of Cp;
+            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate enthalpy using CPG model
             dimensional_temperature = NASACAPTemperatureLimits[s][2];
         }
         h[s] = -this->NASACAPCoeffs[s][0][species_tempindex[s]]*pow(dimensional_temperature,-2)
@@ -739,7 +741,11 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
         }
 
         if(out_of_bounds_temp != -1.0) {
+            // this->pcout << "The calculated enthalpy at the bound temperature:  " << h[s] << std::endl;
             h[s] += (out_of_bounds_temp - dimensional_temperature) * Cp;
+            // this->pcout << "The out of bounds temps is:  " << out_of_bounds_temp << " and the bound temperature is:  " << dimensional_temperature
+            //             << " with a Cp of:  " << Cp << std::endl;
+            // this->pcout << "The calculated enthalpy at the out of bounds temperature:  " << h[s] << std::endl;
         }
         h[s] *= ((this->Ru*dimensional_temperature)/(this->species_weight[s]*this->u_ref_sqr)); //nondimensional mass value
         h[s] += species_enthalpy_offset[s];
@@ -824,7 +830,13 @@ inline real RealGas<dim,nspecies,nstate,real>
         itr += 1;
 
         // update T
-        // this->pcout << "The new temperature at iter " << itr << " is:  " << std::setprecision(32) << T_npo << std::endl << std::endl;
+        if(itr > 9.99999e6) {
+            // output temperature values for the last 10 iterations
+            // included this output so user can determine if the tolerance is the issue
+            this->pcout << "Nearing the max iterations...iteration #" << itr << " old temperature:  " << T_n 
+                        << " new temperature:  " << T_npo << std::endl;
+            // sleep(3);
+        }
         T_n = T_npo;
     }
     while (err>this->tol && itr < 1e7);
