@@ -235,6 +235,11 @@ protected:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const override;
 
+    /// Kennedy-Gruber entropy conserving flux
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_kennedy_gruber (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
     /// Chandrashekar entropy conserving flux.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
         const std::array<real,nstate> &conservative_soln1,

@@ -15,8 +15,14 @@ set pde_type = real_gas
 set chemistry_input_file = ../../chemistry_files/H2_O2_N2.kinetics
 
 # DG formulation
-set use_weak_form = true
+set use_weak_form = false
 set non_physical_behavior = abort_run
+set use_split_form = true
+set two_point_num_flux_type = KG
+set conv_num_flux = two_point_flux
+#set conv_num_flux = lax_friedrichs
+set flux_reconstruction = cDG
+set use_inverse_mass_on_the_fly = true
 
 # set directry to write output data
 #set solution_vtk_files_directory_name = multi_species
@@ -26,9 +32,6 @@ set use_periodic_bc = true
 
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
-
-# numerical fluxes
-set conv_num_flux = lax_friedrichs
 
 # ODE solver
 subsection ODE solver
@@ -46,7 +49,7 @@ subsection euler
 end
 
 subsection flow_solver
-  set flow_case_type = multi_species_vortex_advection_high_temp
+  set flow_case_type = multi_species_vortex_advection
   set poly_degree = 5
   # 34.614724700315755 is 1 second in physical time. It takes 0.1 second (physical time) to run the case for one cycle.
   set final_time = 28.760076701316 # It is 0.1 second or 1 cycle
