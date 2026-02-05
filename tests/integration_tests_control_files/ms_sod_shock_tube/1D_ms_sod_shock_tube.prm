@@ -9,6 +9,8 @@ set pde_type = real_gas
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 set run_type = flow_simulation
 
+set flux_nodes_type = GLL
+
 # DG formulation
 set use_weak_form = false
 set non_physical_behavior = abort_run

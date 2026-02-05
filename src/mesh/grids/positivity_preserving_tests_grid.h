@@ -33,7 +33,8 @@ void astrophysical_jet_grid(
 template<int dim, typename TriangulationType>
 void svsw_grid(
     TriangulationType&  grid,
-    const Parameters::FlowSolverParam *const flow_solver_param);
+    const Parameters::FlowSolverParam *const flow_solver_param,
+    const bool right_moving_shock);
 } 
 
 // namespace PHiLiP::Grids

@@ -497,6 +497,36 @@ void RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
+void RealGas<dim, nspecies, nstate, real>
+::boundary_p0_extrapolation(
+    const std::array<real, nstate>& soln_int,
+    std::array<real, nstate>& soln_bc,
+    std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_bc) const
+{
+    for (int istate = 0; istate < nstate; ++istate) {
+            soln_bc[istate] = soln_int[istate];
+            soln_grad_bc[istate] = 0;
+    }
+    
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+void RealGas<dim, nspecies, nstate, real>
+::boundary_custom(
+    std::array<real, nstate>& soln_bc) const
+{
+    std::array<real, nstate> primitive_boundary_values;
+    for (int istate = 0; istate < nstate; ++istate) {
+            primitive_boundary_values[istate] = this->all_parameters->euler_param.custom_boundary_for_each_state[istate];
+    }
+
+    const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate = 0; istate < nstate; ++istate) {
+        soln_bc[istate] = conservative_bc[istate];
+    }
+}
+
+template <int dim, int nspecies, int nstate, typename real>
 void RealGas<dim,nspecies,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
@@ -510,10 +540,20 @@ void RealGas<dim,nspecies,nstate,real>
     if (boundary_type == 1001) {
         // Wall boundary condition (slip for Euler, no-slip for Navier-Stokes; done through polymorphism)
         boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } else if (boundary_type == 1006) {
+    } 
+    else if (boundary_type == 1006) {
         // Slip wall boundary condition
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } else {
+    } 
+    else if (boundary_type == 1007) {
+        // Do nothing bc, p0 interpolation
+        boundary_p0_extrapolation (soln_int, soln_bc, soln_grad_bc);
+    }
+    else if (boundary_type == 1008) {
+        // Custom boundary condition, user defined in parameters
+        boundary_custom (soln_bc);
+    } 
+    else {
         this->pcout<<"Boundary condition #" << boundary_type << " not implemented for RealGas."<<std::endl;
         std::abort();
     }
@@ -844,7 +884,18 @@ inline real RealGas<dim,nspecies,nstate,real>
 
         /// 3) main part
         T_npo = T_n - f/f_d; // dimensional value
-        // this->pcout << "f: " << f << "  f_d:  " << f_d << std::endl;
+        if((T_npo != T_npo) || T_npo < 0.0) {
+            this->pcout << "old temp: " << T_n << " new temp: " << T_npo << std::endl;
+            this->pcout << "f: " << f << "  f_d:  " << f_d << std::endl;
+            for(int istate = 0; istate < nstate; ++istate) {
+                this->pcout << "cons soln state " << istate << " : " << conservative_soln[istate] << std::endl;
+            }
+        }
+        // if(T_npo < 0) {
+        //     this->pcout << "New temperature is: " << T_npo << std::endl;
+        //     this->pcout << "f: " << f << "  f_d:  " << f_d << std::endl;
+        //     T_npo = 1e-13;
+        // }
         err = abs((T_npo-T_n)/this->temperature_ref);
         itr += 1;
 
@@ -857,6 +908,7 @@ inline real RealGas<dim,nspecies,nstate,real>
                 this->pcout << " Mixture Cv:  " << mixture_Cv << std::endl << std::endl;
         }
         T_n = T_npo;
+        // this->pcout << "new temp: " << T_n << std::endl;
     }
     while (err>this->tol && itr < 1e7);
     if(itr == 1e7) {
@@ -895,6 +947,7 @@ inline real RealGas<dim,nspecies,nstate,real>
     const real mixture_density = compute_mixture_density(conservative_soln);
     const real mixture_gas_constant = compute_mixture_gas_constant(conservative_soln);
     const real temperature = compute_temperature(conservative_soln);
+    // this->pcout << "computed temp for pressure:  " << temperature << std::endl;
     const real mixture_pressure = mixture_density*mixture_gas_constant*temperature/(this->gam_ref*this->mach_ref_sqr);
 
     return mixture_pressure;
@@ -1025,6 +1078,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     real pressure1 = compute_mixture_pressure(conservative_soln1);
     real pressure2 = compute_mixture_pressure(conservative_soln2);
     real mean_pressure = (pressure1 + pressure2)/2.0;
+    // this->pcout << "the calculated mean pressure is:  " << mean_pressure << std::endl;
 
     // compute mean total energy
     real total_energy1 = compute_mixture_specific_total_energy(conservative_soln1);
@@ -1190,11 +1244,13 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
     // mixture enthalpy
     const real mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy);
+    const real energy_shift = compute_mixture_from_species(mass_fractions, species_enthalpy_offset);
     // mixture specific internal energy
     const real mixture_specific_internal_energy = mixture_specific_enthalpy - mixture_pressure/mixture_density;
     // std::cout << "enthalpy is:  " << mixture_specific_enthalpy << " P/rho is:  " << mixture_pressure/mixture_density << std::endl;
     // mixture specific total energy
     const real mixture_specific_total_energy = mixture_specific_internal_energy + specific_kinetic_energy;
+    this->pcout << "total energy : " << mixture_specific_total_energy << " energy shift:  " << energy_shift << std::endl;
 
     // mixture energy
     conservative_soln[dim+1] = mixture_density*mixture_specific_total_energy;

@@ -128,7 +128,17 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
-        
+    
+    /// p0 extrapolation at the boundary
+    void boundary_p0_extrapolation (
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Custom boundary conditions for the left boundary of the astrophysical mach jet case where it is not hypersonic inflow.
+    void boundary_custom (
+        std::array<real,nstate> &soln_bc) const;
+
     /// Boundary condition handler
     void boundary_face_values (
         const int /*boundary_type*/,
@@ -283,7 +293,7 @@ protected:
     std::array<std::array<double,4>,nspecies> NASACAPTemperatureLimits;
     std::array<std::string,nspecies> species_name; // Species name
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
-    std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset [J/mol]
+    std::array<real,nspecies> species_enthalpy_offset; // Species enthalpy offset [J/mol]
 };
 
 } // Physics namespace

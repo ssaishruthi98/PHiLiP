@@ -212,6 +212,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::write_limited_sol
         }
         if (nspecies > 1) {
             temperature = real_gas_physics->compute_dimensional_temperature(real_gas_physics->compute_temperature(cons_soln));
+            // std::cout << "The new dimensional temperature value is:  " << temperature << std::endl;
         }
         if (temperature < 0) {
             std::cout << "Limiter Error: Temperature is a negative value - Aborting... " << std::endl << std::flush;
@@ -227,6 +228,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::write_limited_sol
             const unsigned int idof = istate * n_shape_fns + ishape;
             solution[current_dofs_indices[idof]] = soln_coeff[istate][ishape]; //
             // std::cout << " " << soln_coeff[istate][ishape];
+            std::cout << "limited state " << istate << " shape " << ishape << " value " << soln_coeff[istate][ishape] << std::endl;
             // Verify that positivity of density is preserved after application of theta2 limiter
             if (istate == 0 && solution[current_dofs_indices[idof]] < 0) {
                 std::cout << "Limiter Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
@@ -241,7 +243,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::write_limited_sol
 
             // Verify that the solution values haven't been changed to NaN as a result of all quad pts in a cell having negative density 
             // (all quad pts having negative density would result in the local maximum convective eigenvalue being zero leading to division by zero)
-            if (isnan(solution[current_dofs_indices[idof]])) {
+            if (solution[current_dofs_indices[idof]] != solution[current_dofs_indices[idof]]) {
                 std::cout << "Limiter Error: Solution is NaN - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
@@ -414,7 +416,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
     const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
     double                                                  dt)
 {
-
+    std::cout << "================================Limiter start================================" << std::endl;
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
         this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt);
@@ -463,8 +465,9 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             const unsigned int istate = fe_collection[poly_degree].system_to_component_index(idof).first;
             const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
             soln_coeff[istate][ishape] = solution[current_dofs_indices[idof]];
-
-            if (isnan(soln_coeff[istate][ishape])) {
+            
+            std::cout << "state " << istate << " shape " << ishape << " value " << soln_coeff[istate][ishape] << std::endl;
+            if (soln_coeff[istate][ishape] != soln_coeff[istate][ishape]) {
                 nan_check = true;
             }
         }
@@ -473,7 +476,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
 
         if (nan_check) {
             for (unsigned int istate = 0; istate < nstate; ++istate) {
-                std::cout << "Limiter Error: Density passed to limiter is NaN - Aborting... " << std::endl;
+                std::cout << "Limiter Error: Conservative solution passed to limiter contains NaN - Aborting... " << std::endl;
 
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
                     std::cout << soln_coeff[istate][iquad] << "    ";

@@ -1,5 +1,8 @@
 #include "multispecies_tests.h"
 
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_tools.h>
+
 #include <stdlib.h>
 #include <iostream>
 #include "mesh/grids/straight_periodic_cube.hpp"
@@ -39,9 +42,14 @@ std::shared_ptr<Triangulation> MultispeciesTests<dim,nspecies,nstate>::generate_
 
     if(dim==1 && flow_case_type == flow_case_enum::multi_species_sod_shock_tube) {
         Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param.flow_solver_param);
-    } else {
+    } else if (flow_case_type == flow_case_enum::multi_species_isentropic_vortex){
         Grids::straight_periodic_cube<dim, Triangulation>(grid, domain_left, domain_right,
                                                             number_of_cells_per_direction);
+    } else if (dim==2 && flow_case_type == flow_case_enum::multi_species_shock_bubble) {
+        Grids::svsw_grid<dim>(*grid, &this->all_param.flow_solver_param,false);
+    } else {
+        this->pcout << "Grid has not been implemented for the selected case...Aborting." << std::endl;
+        std::abort();
     }
     return grid;
 
