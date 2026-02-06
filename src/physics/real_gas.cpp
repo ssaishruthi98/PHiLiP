@@ -663,7 +663,9 @@ inline real RealGas<dim,nspecies,nstate,real>
     for (int s=0; s<nspecies; ++s) 
     { 
         mixture += mass_fractions[s]*species[s]; 
+        // std::cout << " mass fraction " << mass_fractions[s] << " species value " << species[s];
     }   
+    // std::cout << std::endl;
 
     return mixture;
 }
@@ -1455,6 +1457,13 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         {
             computed_quantities(++current_data_index) = species_densities[s];
         }
+
+        // this->pcout << "compute energy shift: " << std::endl;
+        const std::array<real,nspecies> internal_energy = compute_species_specific_internal_energy(compute_temperature(conservative_soln));
+        const real mixed_internal_energy = compute_mixture_from_species(mass_fractions, internal_energy);
+        computed_quantities(++current_data_index) = compute_mixture_from_species(mass_fractions, species_enthalpy_offset);
+        computed_quantities(++current_data_index) = mixed_internal_energy - compute_mixture_from_species(mass_fractions, species_enthalpy_offset);
+        // this->pcout << "end energy shift computation" << std::endl;
         // Vorticity
         // dealii::Tensor<1,3,double> vorticity = this->navier_stokes_physics->compute_vorticity(mixture_soln,mixture_soln_gradient);
         // for (unsigned int d=0; d<3; ++d) {
@@ -1508,6 +1517,8 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     // for (unsigned int d=0; d<3; ++d) {
     //     interpretation.push_back (DCI::component_is_part_of_vector); // vorticity
     // }
+    interpretation.push_back (DCI::component_is_scalar); // energy shift
+    interpretation.push_back (DCI::component_is_scalar); // shifted energy
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1545,6 +1556,9 @@ std::vector<std::string> RealGas<dim,nspecies,nstate,real>
       std::string string_species_density = string_density + "_" + this->species_name[s];
       names.push_back (string_species_density);
     }
+    names.push_back ("energy_shift");
+    names.push_back ("shifted_energy");
+
     // for (unsigned int d=0; d<3; ++d) {
     //     names.push_back ("vorticity");
     // }
