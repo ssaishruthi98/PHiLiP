@@ -168,14 +168,16 @@ public:
 /* MAIN FUNCTIONS */
 protected:
     // Algorithm 1 (f_M1): Compute mixture density from conservative_soln
-    template<typename real2>
-    real2 compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const;
+    real compute_mixture_density ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 2 (f_M2): Compute velocities from conservative_soln 
     dealii::Tensor<1,dim,real> compute_velocities ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 3 (f_M3): Compute squared velocities from conservative_soln
     real compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Given primitive variables, returns velocities.
+    dealii::Tensor<1,dim,real> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
 
     // Algorithm 4 (f_M4): Compute specific kinetic energy from conservative_soln
     real compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;
@@ -204,11 +206,11 @@ public:
 protected:
     // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
     // Modified by Shruthi
-    std::array<real,nspecies> compute_species_specific_molar_Cp ( const real temperature ) const;
+    std::array<real,nspecies> compute_species_specific_Cp ( const real temperature ) const;
 
     // Algorithm 12 (f_M12): Compute species specific heat at constant volume from temperature
     // Modified by Shruthi
-    std::array<real,nspecies>compute_species_specific_molar_Cv ( const real temperature ) const;
+    std::array<real,nspecies>compute_species_specific_Cv ( const real temperature ) const;
 
     // Algorithm 13 (f_M13): Compute species specific enthalpy from temperature
     // Modified by Shruthi
@@ -228,6 +230,10 @@ protected:
 public:
     // Algorithm 17 (f_M17): Compute mixture pressure from conservative_soln
     virtual real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Given density and temperature, returns NON-DIMENSIONALIZED pressure using free-stream non-dimensionalization
+    /** See the book I do like CFD, sec 4.14.2 */
+    real compute_pressure_from_density_temperature ( const real density, const real temperature, const std::array<real,nstate> &conservative_soln ) const;
 
 protected:
     // Algorithm 18 (f_M18): Compute mixture specific total enthalpy from conservative_soln
@@ -294,6 +300,7 @@ protected:
     std::array<std::string,nspecies> species_name; // Species name
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
     std::array<real,nspecies> species_enthalpy_offset; // Species enthalpy offset [J/mol]
+    std::array<real,nspecies> Rs; // Species gas constant
 };
 
 } // Physics namespace
