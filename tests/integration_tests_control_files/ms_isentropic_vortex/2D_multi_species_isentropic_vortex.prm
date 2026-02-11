@@ -13,7 +13,7 @@ set run_type = flow_simulation
 set pde_type = real_gas
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 
-set flux_nodes_type = GL
+set flux_nodes_type = GLL
 
 # DG formulation
 set use_weak_form = false
@@ -32,8 +32,8 @@ set do_renumber_dofs = false
 
 #limiter flags
 subsection limiter
-  #set bound_preserving_limiter = positivity_preservingWang2012
-  #set min_density = 1e-13
+  set bound_preserving_limiter = positivity_preservingWang2012
+  set min_density = 1e-13
   
   #set use_tvb_limiter = true
   #set max_delta_x = 0.000625
@@ -44,6 +44,7 @@ end
 subsection ODE solver
   #set output_solution_every_x_steps = 20
   set output_solution_every_dt_time_intervals = 0.25
+  set initial_time_step = 0.0001
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
@@ -59,7 +60,7 @@ subsection flow_solver
   set poly_degree = 4
   set final_time = 20.0
   set adaptive_time_step = true
-  set courant_friedrichs_lewy_number = 0.36
+  set courant_friedrichs_lewy_number = 0.32
   #set constant_time_step = 0.005
   set output_restart_files = true
   set restart_files_directory_name = restart_files
@@ -71,6 +72,8 @@ subsection flow_solver
     subsection grid_rectangle
       set number_of_grid_elements_x = 20
       set number_of_grid_elements_y = 20
+      set grid_bottom_bound = -10.0
+      set grid_top_bound = 10.0
     end
   end
 end

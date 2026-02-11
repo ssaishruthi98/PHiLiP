@@ -184,15 +184,13 @@ real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_density_scali
     const double    mixture_avg,
     const double    mixture_quad)
 {
-    real theta = 1.0; // Value used to linearly scale density 
+    real theta = 0.0; // Value used to linearly scale density 
     real denominator = (species_avg*mixture_quad)-(species_quad*mixture_avg);
-
+    real lower_bound = this->all_parameters->limiter_param.min_density;
     if (denominator > 1e-13)
-        theta = (-1.0*species_quad*mixture_avg) / denominator;
+        theta = (-1.0*species_quad*mixture_avg + lower_bound) / denominator;
 
-    //if (theta < 0 || theta > 1)
-    //   theta = 0.0;
-
+    // std::cout << "get_density_scaling_value_species theta: " << theta << std::endl;
     return theta;
 }
 
@@ -228,7 +226,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::write_limited_sol
             const unsigned int idof = istate * n_shape_fns + ishape;
             solution[current_dofs_indices[idof]] = soln_coeff[istate][ishape]; //
             // std::cout << " " << soln_coeff[istate][ishape];
-            std::cout << "limited state " << istate << " shape " << ishape << " value " << soln_coeff[istate][ishape] << std::endl;
+            // std::cout << "limited state " << istate << " shape " << ishape << " value " << soln_coeff[istate][ishape] << std::endl;
             // Verify that positivity of density is preserved after application of theta2 limiter
             if (istate == 0 && solution[current_dofs_indices[idof]] < 0) {
                 std::cout << "Limiter Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
@@ -416,7 +414,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
     const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
     double                                                  dt)
 {
-    std::cout << "================================Limiter start================================" << std::endl;
+    // std::cout << "================================Limiter start================================" << std::endl;
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
         this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt);
@@ -466,7 +464,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
             soln_coeff[istate][ishape] = solution[current_dofs_indices[idof]];
             
-            std::cout << "state " << istate << " shape " << ishape << " value " << soln_coeff[istate][ishape] << std::endl;
+            // std::cout << "state " << istate << " shape " << ishape << " value " << soln_coeff[istate][ishape] << std::endl;
             if (soln_coeff[istate][ishape] != soln_coeff[istate][ishape]) {
                 nan_check = true;
             }
@@ -559,7 +557,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
 
         if(nspecies > 1) {
             std::array<real, nstate> soln_at_iquad;
-            real theta_species = 1.0;
+            real theta_species = 0.0;
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     soln_at_iquad[istate] = soln_coeff[istate][iquad];
@@ -573,7 +571,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                     int index = dim + 2 + ispecies;
                     theta_species_quad = 0.0;
                 
-                    if (species_densities[ispecies]<0)
+                    if (species_densities[ispecies]<lower_bound)
                         theta_species_quad = get_density_scaling_value_species(soln_cell_avg[index],species_densities[ispecies],soln_cell_avg[0],soln_coeff[0][iquad]);
 
                     if (theta_species_quad > theta_species)
@@ -581,19 +579,24 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                 }
 
                 theta_species_quad = 0.0;
-                if (species_densities[nspecies - 1]<0)
+                if (species_densities[nspecies - 1]<lower_bound)
                         theta_species_quad = get_density_scaling_value_species(nth_species_avg,species_densities[nspecies - 1],soln_cell_avg[0],soln_coeff[0][iquad]);
                 if (theta_species_quad > theta_species)
                         theta_species = theta_species_quad;
             }
 
-            if(theta_species < 1)
-                std::cout << "The species density is limited." << std::endl;
+            // if(theta_species > 0)
+            //     std::cout << "The species density is limited." << std::endl;
 
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies) {
                     int index = dim + 2 + ispecies;
+                    // std::cout << "species density: " << soln_coeff[index][iquad] << " theta_species: " << theta_species << std::endl;
+                    // std::cout << "species density avg: " << soln_cell_avg[index] << " density avg: " << soln_cell_avg[0] << std::endl;
+
                     soln_coeff[index][iquad] = soln_coeff[index][iquad] + theta_species*((soln_cell_avg[index]/soln_cell_avg[0])*soln_coeff[0][iquad]-soln_coeff[index][iquad]);
+
+                    // std::cout << "limited species density: " << soln_coeff[index][iquad] << std::endl << std::endl;
                 }
             }
         }
@@ -726,6 +729,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
     }
+    // std::cout << "================================Limiter end================================" << std::endl;
 }
 
 template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + PHILIP_SPECIES + 1, double>;

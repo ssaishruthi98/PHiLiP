@@ -32,8 +32,8 @@ set do_renumber_dofs = false
 
 #limiter flags
 subsection limiter
-  #set bound_preserving_limiter = positivity_preservingWang2012
-  #set min_density = 1e-13
+  set bound_preserving_limiter = positivity_preservingWang2012
+  set min_density = 1e-13
   
   #set use_tvb_limiter = true
   #set max_delta_x = 0.000625
@@ -44,6 +44,7 @@ end
 subsection ODE solver
   #set output_solution_every_x_steps = 20
   set output_solution_every_dt_time_intervals = 0.01
+  set initial_time_step = 0.00001
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
