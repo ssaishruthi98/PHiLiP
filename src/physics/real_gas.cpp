@@ -227,6 +227,17 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const
 {
+    bool nancheck = false;
+    for(int istate = 0; istate < nstate; ++istate) {
+        if(conservative_soln[istate] != conservative_soln[istate])
+            nancheck = true;
+    }
+    if(nancheck) {
+        this->pcout << "The conservative solution passed into compute_entropy_variables is NaN...Aborting." << std::endl;
+        for(int istate = 0; istate < nstate; ++istate) 
+            this->pcout << "state " << istate << " value " << conservative_soln[istate]<<std::endl;
+        std::abort();
+    }
     std::array<real,nstate> entropy_var;
     const real temperature = compute_temperature(conservative_soln);
     std::array<real,nspecies> species_gibbs = compute_species_gibbs_function(conservative_soln);
@@ -248,6 +259,18 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
         entropy_var[istate] /= temperature;
     }
 
+    bool nancheck2 = false;
+    for(int istate = 0; istate < nstate; ++istate) {
+        if(entropy_var[istate] != entropy_var[istate])
+            nancheck2 = true;
+    }
+    if(nancheck2) {
+        this->pcout << "The entropy solution calculated by compute_entropy_variables is NaN...Aborting." << std::endl;
+        for(int istate = 0; istate < nstate; ++istate) 
+            this->pcout << "state " << istate << " value " << entropy_var[istate]<<std::endl;
+        std::abort();
+    }
+
     return entropy_var;
 }
 
@@ -256,6 +279,17 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
 ::compute_conservative_variables_from_entropy_variables (
     const std::array<real,nstate> &entropy_var) const
 {
+    bool nancheck = false;
+    for(int istate = 0; istate < nstate; ++istate) {
+        if(entropy_var[istate] != entropy_var[istate])
+            nancheck = true;
+    }
+    if(nancheck) {
+        this->pcout << "The entropy solution passed into compute_conservative_variables_from_entropy_variables is NaN...Aborting." << std::endl;
+        for(int istate = 0; istate < nstate; ++istate) 
+            this->pcout << "state " << istate << " value " << entropy_var[istate]<<std::endl;
+        std::abort();
+    }
     std::array<real,nstate> conservative_var;
     const real temperature = -1/entropy_var[dim+1];
     const int nth_species_idx = nspecies - 1;
@@ -316,6 +350,18 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
         mixture_specific_total_energy += species_specific_total_energy[ispecies] *(species_density[ispecies]/mixture_density);
     }
     conservative_var[dim+1] = mixture_density*mixture_specific_total_energy;
+
+    bool nancheck2 = false;
+    for(int istate = 0; istate < nstate; ++istate) {
+        if(conservative_var[istate] != conservative_var[istate])
+            nancheck2 = true;
+    }
+    if(nancheck2) {
+        this->pcout << "The conservative solution obtained from compute_conservative_variables_from_entropy_variables is NaN...Aborting." << std::endl;
+        for(int istate = 0; istate < nstate; ++istate) 
+            this->pcout << "state " << istate << " value " << conservative_var[istate]<<std::endl;
+        std::abort();
+    }
 
     return conservative_var;
 }
@@ -1241,14 +1287,10 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
     // mixture enthalpy
     const real mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy);
-    const real energy_shift = compute_mixture_from_species(mass_fractions, species_enthalpy_offset);
     // mixture specific internal energy
     const real mixture_specific_internal_energy = mixture_specific_enthalpy - mixture_pressure/mixture_density;
-    // std::cout << "enthalpy is:  " << mixture_specific_enthalpy << " P/rho is:  " << mixture_pressure/mixture_density << std::endl;
     // mixture specific total energy
     const real mixture_specific_total_energy = mixture_specific_internal_energy + specific_kinetic_energy;
-    this->pcout << "total energy : " << mixture_specific_total_energy << " energy shift:  " << energy_shift << std::endl;
-
     // mixture energy
     conservative_soln[dim+1] = mixture_density*mixture_specific_total_energy;
 
@@ -1453,12 +1495,6 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
             computed_quantities(++current_data_index) = species_densities[s];
         }
 
-        // this->pcout << "compute energy shift: " << std::endl;
-        const std::array<real,nspecies> internal_energy = compute_species_specific_internal_energy(compute_temperature(conservative_soln));
-        const real mixed_internal_energy = compute_mixture_from_species(mass_fractions, internal_energy);
-        computed_quantities(++current_data_index) = compute_mixture_from_species(mass_fractions, species_enthalpy_offset);
-        computed_quantities(++current_data_index) = mixed_internal_energy - compute_mixture_from_species(mass_fractions, species_enthalpy_offset);
-        // this->pcout << "end energy shift computation" << std::endl;
         // Vorticity
         // dealii::Tensor<1,3,double> vorticity = this->navier_stokes_physics->compute_vorticity(mixture_soln,mixture_soln_gradient);
         // for (unsigned int d=0; d<3; ++d) {
@@ -1512,8 +1548,6 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     // for (unsigned int d=0; d<3; ++d) {
     //     interpretation.push_back (DCI::component_is_part_of_vector); // vorticity
     // }
-    interpretation.push_back (DCI::component_is_scalar); // energy shift
-    interpretation.push_back (DCI::component_is_scalar); // shifted energy
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1551,8 +1585,6 @@ std::vector<std::string> RealGas<dim,nspecies,nstate,real>
       std::string string_species_density = string_density + "_" + this->species_name[s];
       names.push_back (string_species_density);
     }
-    names.push_back ("energy_shift");
-    names.push_back ("shifted_energy");
 
     // for (unsigned int d=0; d<3; ++d) {
     //     names.push_back ("vorticity");
