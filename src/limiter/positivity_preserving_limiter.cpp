@@ -585,8 +585,8 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                         theta_species = theta_species_quad;
             }
 
-            // if(theta_species > 0)
-            //     std::cout << "The species density is limited." << std::endl;
+            if(theta_species > 0)
+                std::cout << "The species density is limited with " << theta_species << std::endl;
 
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies) {
@@ -744,7 +744,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             std::abort();
         }
 
-        if(theta2!=1.0 || theta!=1.0) {
+        if(theta2 < 1.0 - lower_bound || theta < 1.0 - lower_bound) {
             std::cout << "Limiter is applied. Theta: " << theta << " Theta2: " << theta2 << std::endl;
         }
 
