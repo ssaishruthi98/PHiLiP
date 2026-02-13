@@ -21,6 +21,7 @@ set non_physical_behavior = abort_run
 set use_split_form = true
 set two_point_num_flux_type = KG
 set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+#set conv_num_flux = lax_friedrichs
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
@@ -53,6 +54,7 @@ end
 # freestream Mach number
 subsection euler
   set mach_infinity = 1.22
+  set custom_boundary_for_each_state = 1.37636,-0.55957,0,1.5698,0.99
 end
 
 subsection flow_solver
@@ -73,7 +75,7 @@ subsection flow_solver
       set grid_bottom_bound = -0.1
 
       set number_of_grid_elements_x = 200
-      set number_of_grid_elements_y = 20
+      set number_of_grid_elements_y = 40
     end
   end
 end

@@ -217,6 +217,7 @@ std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
     std::array<real, nspecies> species_gibbs;
     for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
         species_gibbs[ispecies] = temperature*(species_Cp[ispecies] - species_entropy[ispecies]);
+        // this->pcout << "gibbs species " << ispecies << " " << species_gibbs[ispecies] << std::endl;
     }
 
     return species_gibbs;
@@ -268,6 +269,8 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
         this->pcout << "The entropy solution calculated by compute_entropy_variables is NaN...Aborting." << std::endl;
         for(int istate = 0; istate < nstate; ++istate) 
             this->pcout << "state " << istate << " value " << entropy_var[istate]<<std::endl;
+        
+        this->pcout<<std::endl;
         std::abort();
     }
 
@@ -871,6 +874,24 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>
 ::compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
 {
+    for (int istate = 0; istate < nstate; ++istate) {
+        if(conservative_soln[0] < 0.0){
+            this->pcout << "Density passed to compute_temp is negative: " << conservative_soln[0] << std::endl;
+            std::abort();
+        }
+        if(conservative_soln[dim+1] < 0.0){
+            this->pcout << "Energy passed to compute_temp is negative: " << conservative_soln[dim+1] << std::endl;
+            std::abort();
+        }
+        if(conservative_soln[0] != conservative_soln[0]){
+            this->pcout << "Density passed to compute_temp is NaN: " << conservative_soln[0] << std::endl;
+            std::abort();
+        }
+        if(conservative_soln[dim+1] != conservative_soln[dim+1]){
+            this->pcout << "Energy passed to compute_temp is NaN: " << conservative_soln[dim+1] << std::endl;
+            std::abort();
+        }
+    }
     /* definitions */
     const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
     const real specific_kinetic_energy= compute_specific_kinetic_energy(conservative_soln);

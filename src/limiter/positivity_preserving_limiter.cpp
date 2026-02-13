@@ -643,7 +643,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
-        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + nspecies + 1) {
+        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nspecies == 1) {
             std::array<real, dim> theta2_quad;
             for(unsigned int idim = 0; idim < dim; ++idim) {
                 theta2_quad[idim] = get_theta2_Wang2012(soln_at_q[idim], n_quad_pts, p_avg);
@@ -667,6 +667,28 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             }
         }
 
+        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nspecies > 1) {
+            real local_min_energy = 0.0;
+            for (unsigned int idim = 0; idim < dim; ++idim) {
+                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                    if (soln_coeff[dim+1][iquad] < local_min_energy)
+                        local_min_energy = soln_coeff[dim+1][iquad];
+                    if (soln_at_q[idim][dim+1][iquad] < local_min_energy)
+                        local_min_energy = soln_at_q[idim][dim+1][iquad];
+                }
+            }
+            // Obtain value used to linearly scale density
+            real theta2 = get_density_scaling_value(soln_cell_avg[dim+1], local_min_energy, lower_bound, p_avg);
+            if (theta2 < 1 - lower_bound)
+                std::cout << "The solution is limited based on energy with theta " << std::setprecision (15) << theta2 << std::endl;
+            // Limit values at quadrature points
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                    soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
+                            + soln_cell_avg[istate];
+                }
+            }
+        }
         if (limiter_type == limiter_enum::positivity_preservingZhang2010 && nstate == dim + 2) {
 
             std::array<std::vector< real >, dim> p_lim_quad;

@@ -1117,7 +1117,7 @@ real InitialConditionFunction_Multispecies_ShockBubbleInteraction<dim,nspecies,n
             value = 1.0;
         }
         if(istate==4) { // air mass fraction
-            value = 0.0;
+            value = 0.01;
         }
     } else if (x < 0.9) {
         if(istate==0) { // mixture density
@@ -1133,7 +1133,7 @@ real InitialConditionFunction_Multispecies_ShockBubbleInteraction<dim,nspecies,n
             value = 1.0;
         }
         if(istate==4) { // air mass fraction
-            value = 1.0;
+            value = 0.99;
         }
     } else {
         if(istate==0) { // mixture density
@@ -1149,7 +1149,7 @@ real InitialConditionFunction_Multispecies_ShockBubbleInteraction<dim,nspecies,n
             value = 1.5698;
         }
         if(istate==4) { // air mass fraction
-            value = 1.0;
+            value = 0.99;
         }
     }
 
