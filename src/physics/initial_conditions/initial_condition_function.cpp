@@ -1117,7 +1117,7 @@ real InitialConditionFunction_Multispecies_ShockBubbleInteraction<dim,nspecies,n
             value = 1.0;
         }
         if(istate==4) { // air mass fraction
-            value = 0.01;
+            value = 0.28;
         }
     } else if (x < 0.9) {
         if(istate==0) { // mixture density
@@ -1191,11 +1191,15 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
                 value = 1.0;
             }
             else if (istate == 3) {
-                //Y_O2
+                //Y_O2 (Y_H2 if nspecies == 3)
                 value = 0.21;
                 //Y_O2 from Ayoub Gouasmi's Ph.D. thesis
                 // value = 1.0;
             }
+            // else if (istate == 4) {
+            //     //Y_O2 if nspecies == 3
+            //     value = 0.21;
+            // }
         } else {
             if(istate == 0) {
                 //density
@@ -1210,11 +1214,15 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
                 value = 0.1;
             }
             else if (istate == 3) {
-                //Y_O2
+                //Y_O2 (Y_H2 if nspecies == 3)
                 value = 0.21;
                 //Y_O2 from Ayoub Gouasmi's Ph.D. thesis
                 // value = 0.;
             }
+            // else if (istate == 4) {
+            //     //Y_O2 if nspecies == 3
+            //     value = 0.21;
+            // }
         }
     }
     return value;
@@ -1391,7 +1399,7 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection_high_temp) {
         if constexpr ((nspecies==2||nspecies==3) && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,real> >(param,true);
     } else if (flow_type == FlowCaseEnum::multi_species_sod_shock_tube) {
-        if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real> >(param);
+        if constexpr (dim==1 && nspecies>1 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::multi_species_isentropic_vortex) {
         if constexpr (dim==2 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::multi_species_shock_bubble) {

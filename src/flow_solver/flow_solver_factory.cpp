@@ -146,7 +146,7 @@ FlowSolverFactory<dim,nspecies,nstate>
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_sod_shock_tube){
-        if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1){
+        if constexpr (dim==1 && nspecies>1 && nstate==dim+nspecies+1){
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }

@@ -186,9 +186,8 @@ real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_density_scali
 {
     real theta = 0.0; // Value used to linearly scale density 
     real denominator = (species_avg*mixture_quad)-(species_quad*mixture_avg);
-    real lower_bound = this->all_parameters->limiter_param.min_density;
     if (denominator > 1e-13)
-        theta = (-1.0*species_quad*mixture_avg + lower_bound) / denominator;
+        theta = (-1.0*species_quad*mixture_avg) / denominator;
 
     // std::cout << "get_density_scaling_value_species theta: " << theta << std::endl;
     return theta;
@@ -562,8 +561,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     soln_at_iquad[istate] = soln_coeff[istate][iquad];
                 }
-                std::array<real,nspecies> species_densities;
-                species_densities = real_gas_physics->compute_species_densities(soln_at_iquad);
+                std::array<real,nspecies> species_densities = real_gas_physics->compute_species_densities(soln_at_iquad);
                 
                 real theta_species_quad = 0.0;
                 
@@ -598,7 +596,25 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
 
                     // std::cout << "limited species density: " << soln_coeff[index][iquad] << std::endl << std::endl;
                 }
+                std::array<real, nstate> soln_at_iquad;
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    soln_at_iquad[istate] = soln_coeff[istate][iquad];
+                }
+                // include a check to ensure mass fraction = 1 after limiting!!
+                std::array<real,nspecies> mass_fractions = real_gas_physics->compute_mass_fractions(soln_at_iquad);
+                real total_mass_fraction = 0.0;
+                for(int ispecies = 0; ispecies < nspecies; ++ispecies){
+                    total_mass_fraction += mass_fractions[ispecies];
+                }
+                real uppererror = 1.0 + 1e-13;
+                real lowererror = 1.0 - 1e-13;
+                if(total_mass_fraction < lowererror && total_mass_fraction > uppererror) {
+                    std::cout << "The sum of the mass fractions does not equal 1 after limiting! Aborting..." << std::endl;
+                    std::abort();
+                }
             }
+            
+            
         }
 
         // Interpolate new density values to mixed quadrature points
@@ -669,18 +685,38 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
 
         if (limiter_type == limiter_enum::positivity_preservingWang2012 && nspecies > 1) {
             real local_min_energy = 0.0;
-            for (unsigned int idim = 0; idim < dim; ++idim) {
-                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    if (soln_coeff[dim+1][iquad] < local_min_energy)
-                        local_min_energy = soln_coeff[dim+1][iquad];
-                    if (soln_at_q[idim][dim+1][iquad] < local_min_energy)
-                        local_min_energy = soln_at_q[idim][dim+1][iquad];
+            for(unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                std::array<real, nstate> cons_soln_at_q;
+                for(unsigned int istate = 0; istate < nstate; ++istate)
+                    cons_soln_at_q[istate] = soln_coeff[istate][iquad];
+                const real specific_kinetic_energy= real_gas_physics->compute_specific_kinetic_energy(cons_soln_at_q);
+                const real mixture_specific_total_energy = real_gas_physics->compute_mixture_specific_total_energy(cons_soln_at_q);
+
+                real local_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy);
+                if(local_internal_energy < local_min_energy) 
+                    local_min_energy = local_internal_energy;
+
+                for (unsigned int idim = 0; idim < dim; ++idim) {
+                    std::array<real, nstate> cons_soln_at_q_dim;
+                    for(unsigned int istate = 0; istate < nstate; ++istate)
+                        cons_soln_at_q_dim[istate] = soln_at_q[idim][istate][iquad];
+                    const real specific_kinetic_energy_at_q= real_gas_physics->compute_specific_kinetic_energy(cons_soln_at_q_dim);
+                    const real mixture_specific_total_energy_at_q = real_gas_physics->compute_mixture_specific_total_energy(cons_soln_at_q_dim);
+
+                    real local_internal_energy_at_q = (mixture_specific_total_energy_at_q - specific_kinetic_energy_at_q);
+
+                    if(local_internal_energy_at_q < local_min_energy)
+                        local_min_energy = local_internal_energy_at_q;
                 }
             }
+            
             // Obtain value used to linearly scale density
-            real theta2 = get_density_scaling_value(soln_cell_avg[dim+1], local_min_energy, lower_bound, p_avg);
-            if (theta2 < 1 - lower_bound)
-                std::cout << "The solution is limited based on energy with theta " << std::setprecision (15) << theta2 << std::endl;
+            const real specific_kinetic_energy_avg= real_gas_physics->compute_specific_kinetic_energy(soln_cell_avg);
+            const real mixture_specific_total_energy_avg = real_gas_physics->compute_mixture_specific_total_energy(soln_cell_avg);
+            const real internal_energy_avg = mixture_specific_total_energy_avg - specific_kinetic_energy_avg;
+            real theta2 = get_density_scaling_value(internal_energy_avg, local_min_energy, lower_bound, p_avg);
+            // if (theta2 < 1 - lower_bound)
+            //     std::cout << "The solution is limited based on energy with theta " << std::setprecision (15) << theta2 << std::endl;
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {

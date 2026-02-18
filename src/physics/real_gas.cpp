@@ -28,7 +28,7 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     , temperature_ref(298.15) /// [K]
     , u_ref(mach_ref*sqrt(gam_ref*R_ref*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
-    , tol(1.0e-14) /// []
+    , tol(1.0e-8) /// []
     , density_ref(1.225) /// [kg/m^3]
     // Note: nspecies = nspecies
     // , navier_stokes_physics(std::make_unique < NavierStokes<dim,nspecies,dim+2,real> > (
@@ -51,7 +51,7 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     // Note: modify this when you change the number of species. nstate == dim+2+nspecies-1
     static_assert(nstate==dim+2+nspecies-1, "Physics::RealGas() should be created with nstate=(PHILIP_DIM+2)+(PHILIP_SPECIES-1)"); // Note: update this with nspecies in the future
     if(parameters_input->chemistry_input_file=="") {
-        this->pcout << "Name of chemistry file containing NASA CAP data for species has not been passed in. Aborting..." << std::endl;
+        std::cout << "Name of chemistry file containing NASA CAP data for species has not been passed in. Aborting..." << std::endl;
         std::abort(); 
     }
     readspecies(parameters_input->chemistry_input_file);
@@ -69,7 +69,7 @@ void RealGas<dim, nspecies, nstate, real>
     std::getline(chemfile, line);
     int N_species = (int)std::stof(line);
     if(nspecies != N_species) {
-        this->pcout << std::endl << std::endl
+        std::cout << std::endl << std::endl
                   << "----------------------------------------------------"
                   << std::endl
                   << "Number of species in chemistry file does not match PHILIP_SPECIES." << std::endl
@@ -135,11 +135,11 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 ::GetNASACAP_TemperatureIndex( const real temperature) const
 {
     if (temperature != temperature) {
-        this->pcout<<"Temperature passed in is NaN...Aborting." << std::endl;
+        std::cout <<"Temperature passed in is NaN...Aborting." << std::endl;
         std::abort();
     }
     if (temperature < 0) {
-        this->pcout<<"Temperature passed in is negative... Temperature = " << temperature << "...Aborting." << std::endl;
+        std::cout <<"Temperature passed in is negative... Temperature = " << temperature << "...Aborting." << std::endl;
         std::abort();
     }
     std::array<int,nspecies> species_tempindex;
@@ -166,7 +166,7 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
         }
 		else
 		{
-			this->pcout<<"Invalid temperature of " << temperature << " was passed in...Aborting." << std::endl;
+			std::cout<<"Invalid temperature of " << temperature << " was passed in...Aborting." << std::endl;
             std::abort();
 		}
 	}
@@ -234,9 +234,9 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
             nancheck = true;
     }
     if(nancheck) {
-        this->pcout << "The conservative solution passed into compute_entropy_variables is NaN...Aborting." << std::endl;
+        std::cout << "The conservative solution passed into compute_entropy_variables is NaN...Aborting." << std::endl;
         for(int istate = 0; istate < nstate; ++istate) 
-            this->pcout << "state " << istate << " value " << conservative_soln[istate]<<std::endl;
+            std::cout << "state " << istate << " value " << conservative_soln[istate]<<std::endl;
         std::abort();
     }
     std::array<real,nstate> entropy_var;
@@ -266,11 +266,11 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
             nancheck2 = true;
     }
     if(nancheck2) {
-        this->pcout << "The entropy solution calculated by compute_entropy_variables is NaN...Aborting." << std::endl;
+        std::cout << "The entropy solution calculated by compute_entropy_variables is NaN...Aborting." << std::endl;
         for(int istate = 0; istate < nstate; ++istate) 
-            this->pcout << "state " << istate << " value " << entropy_var[istate]<<std::endl;
+            std::cout << "state " << istate << " value " << entropy_var[istate]<<std::endl;
         
-        this->pcout<<std::endl;
+        std::cout<<std::endl;
         std::abort();
     }
 
@@ -288,9 +288,9 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
             nancheck = true;
     }
     if(nancheck) {
-        this->pcout << "The entropy solution passed into compute_conservative_variables_from_entropy_variables is NaN...Aborting." << std::endl;
+        std::cout << "The entropy solution passed into compute_conservative_variables_from_entropy_variables is NaN...Aborting." << std::endl;
         for(int istate = 0; istate < nstate; ++istate) 
-            this->pcout << "state " << istate << " value " << entropy_var[istate]<<std::endl;
+            std::cout << "state " << istate << " value " << entropy_var[istate]<<std::endl;
         std::abort();
     }
     std::array<real,nstate> conservative_var;
@@ -360,9 +360,9 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
             nancheck2 = true;
     }
     if(nancheck2) {
-        this->pcout << "The conservative solution obtained from compute_conservative_variables_from_entropy_variables is NaN...Aborting." << std::endl;
+        std::cout << "The conservative solution obtained from compute_conservative_variables_from_entropy_variables is NaN...Aborting." << std::endl;
         for(int istate = 0; istate < nstate; ++istate) 
-            this->pcout << "state " << istate << " value " << conservative_var[istate]<<std::endl;
+            std::cout << "state " << istate << " value " << conservative_var[istate]<<std::endl;
         std::abort();
     }
 
@@ -741,7 +741,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     // const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
 
     if (dimensional_temperature < 0) {
-        this->pcout<<"Cp Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
+        std::cout<<"Cp Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
         std::abort();
     }
     std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
@@ -799,7 +799,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     // const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
     
     if (dimensional_temperature < 0) {
-        this->pcout<<"Enthalpy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
+        std::cout<<"Enthalpy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
         std::abort();
     }
     std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
@@ -960,26 +960,26 @@ inline real RealGas<dim,nspecies,nstate,real>
         if(itr > 9.99999e6) {
                 // output temperature values for the last 10 iterations
                 // included this output so user can determine if the tolerance is the issue
-                this->pcout << "Nearing the max iterations...iteration #" << itr << " old temperature:  " << T_n 
+                std::cout << "Nearing the max iterations...iteration #" << itr << " old temperature:  " << std::setprecision(15) << T_n 
                             << " new temperature:  " << T_npo << std::endl;
-                this->pcout << " Mixture Cv:  " << mixture_Cv << std::endl << std::endl;
+                std::cout << " Mixture Cv:  " << mixture_Cv << std::endl << std::endl;
         }
         T_n = T_npo;
         // this->pcout << "new temp: " << T_n << std::endl;
     }
     while (err>this->tol && itr < 1e7);
     if(itr == 1e7) {
-        this->pcout << "Maximum iterations for temperature reached without converging...Aborting..." << std::endl;
+        std::cout << "Maximum iterations for temperature reached without converging...Aborting..." << std::endl;
         std::abort();
     }
     // this->pcout << std::endl << "next loop: " << std::endl;
     T_n /= temperature_ref; // non-dimensional value
     if(T_n < 0) {
-        this->pcout << "Computed temperature is a negative value...Aborting..." << std::endl;
+        std::cout << "Computed temperature is a negative value...Aborting..." << std::endl;
         std::abort();
     }
     if(T_n != T_n) {
-        this->pcout << "Computed temperature is NaN...Aborting..." << std::endl;
+        std::cout << "Computed temperature is NaN...Aborting..." << std::endl;
         std::abort();
     }
     return T_n;
@@ -1077,6 +1077,9 @@ real RealGas<dim, nspecies, nstate, real>
 {
     // See Appendix B [Ismail and Roe, 2009, Entropy-Consistent Euler Flux Functions II]
     // -- Numerically stable algorithm for computing the logarithmic mean
+    if(val1 < 1e-16 || val2 < 1e-16)
+        return 0;
+
     const real zeta = val1/val2;
     const real f = (zeta-1.0)/(zeta+1.0);
     const real u = f*f;
@@ -1103,12 +1106,12 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     if(two_point_num_flux_type == two_point_num_flux_enum::KG) {
         conv_num_split_flux = convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
     } else if(two_point_num_flux_type == two_point_num_flux_enum::IR) {
-        this->pcout << "The Ismail Roe two-point flux has not been implemented for multispecies...Aborting." << std::endl;
+        std::cout << "The Ismail Roe two-point flux has not been implemented for multispecies...Aborting." << std::endl;
         std::abort();
     } else if(two_point_num_flux_type == two_point_num_flux_enum::CH) {
         conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
     } else if(two_point_num_flux_type == two_point_num_flux_enum::Ra) {
-        this->pcout << "The Ranocha pressure fix for the CH two-point flux has not been implemented for multispecies...Aborting." << std::endl;
+        std::cout << "The Ranocha pressure fix for the CH two-point flux has not been implemented for multispecies...Aborting." << std::endl;
         std::abort();
     }
 
@@ -1305,7 +1308,10 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     // specific kinetic energy
     const real specific_kinetic_energy = 0.50*vel2;
     // species specific enthalpy
-    const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
+    const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature);
+    // for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
+    //     std::cout << " species " << ispecies << " enthalpy " << species_specific_enthalpy[ispecies] << std::endl;
+    // }
     // mixture enthalpy
     const real mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy);
     // mixture specific internal energy
@@ -1314,7 +1320,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const real mixture_specific_total_energy = mixture_specific_internal_energy + specific_kinetic_energy;
     // mixture energy
     conservative_soln[dim+1] = mixture_density*mixture_specific_total_energy;
-
+    // std::cout << " Converted energy: " << conservative_soln[dim+1] << std::endl;
     /* species densities */
     for (int s=0; s<nspecies-1; ++s) 
     {
@@ -1515,6 +1521,8 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         {
             computed_quantities(++current_data_index) = species_densities[s];
         }
+           
+        computed_quantities(++current_data_index) = compute_mixture_specific_total_energy(conservative_soln) - compute_specific_kinetic_energy(conservative_soln);
 
         // Vorticity
         // dealii::Tensor<1,3,double> vorticity = this->navier_stokes_physics->compute_vorticity(mixture_soln,mixture_soln_gradient);
@@ -1569,6 +1577,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     // for (unsigned int d=0; d<3; ++d) {
     //     interpretation.push_back (DCI::component_is_part_of_vector); // vorticity
     // }
+    interpretation.push_back (DCI::component_is_scalar); // Mixture internal energy
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1606,6 +1615,7 @@ std::vector<std::string> RealGas<dim,nspecies,nstate,real>
       std::string string_species_density = string_density + "_" + this->species_name[s];
       names.push_back (string_species_density);
     }
+    names.push_back ("internal_energy");
 
     // for (unsigned int d=0; d<3; ++d) {
     //     names.push_back ("vorticity");

@@ -3,7 +3,7 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 # =======================================
 # 1D Multispecies Sod Shock Tube test
 # =======================================
-if(${NUMBER_OF_SPECIES} EQUAL 2)
+if(${NUMBER_OF_SPECIES} GREATER 1)
 configure_file(1D_ms_sod_shock_tube.prm 1D_ms_sod_shock_tube.prm COPYONLY)
 add_test(
   NAME 1D_MULTISPECIES_SOD_SHOCK_TUBE_TEST
