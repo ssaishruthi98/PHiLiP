@@ -102,8 +102,15 @@ void RealGas<dim, nspecies, nstate, real>
         std::getline(chemfile, line);
         species_enthalpy_offset[i] = std::stof(line); // Species enthalpy from T = 0 to T= 298.15K [J/mol]
         species_enthalpy_offset[i] /= (this->species_weight[i]*this->u_ref_sqr); // nondimensionalized mass value
-
         // this->pcout << species_enthalpy_offset[i] << std::endl;         
+        std::getline(chemfile,line);
+        species_sutherland_temperature[i] = std::stof(line); // Sutherland temperature of the species required for NavierStokes_RealGas
+        // Ask Clara whether she needs nondimensionalization here
+        std::getline(chemfile,line);
+        species_boiling_temperature[i] = std::stof(line); // Boiling temperature of the species required for NavierStokes_RealGas
+        std::getline(chemfile,line);
+        // THIS IS IN PICOMETRES !!!!!
+        species_collision_diameter[i] = std::stof(line); // Species collision/kinetic diameter required for NavierStokes_RealGas
 
         std::getline(chemfile, line);
         for(int j=0; j<4; j++)

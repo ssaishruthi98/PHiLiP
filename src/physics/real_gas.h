@@ -274,6 +274,9 @@ protected:
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
     std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset [J/mol]
     std::array<real,nspecies> Rs; // Species gas constant
+    std::array<double,nspecies> species_sutherland_temperature; // Sutherland temperature for each species (used by NavierStokes_RealGas)
+    std::array<double,nspecies> species_boiling_temperature; // Sutherland temperature for each species (used by NavierStokes_RealGas)
+    std::array<double,nspecies> species_collision_diameter; // Sutherland temperature for each species (used by NavierStokes_RealGas)
 };
 
 } // Physics namespace
