@@ -27,7 +27,15 @@ DGStrong<dim,nspecies,nstate,real,MeshType>::DGStrong(
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBaseState<dim,nspecies,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
-{ }
+{ 
+    using flux_nodes_enum = Parameters::AllParameters::FluxNodes;
+    flux_nodes_enum flux_nodes_type = this->all_parameters->flux_nodes_type;
+
+    if(flux_nodes_type == flux_nodes_enum::GLL)
+        this->collocated_flux_nodes = true;
+    else
+        this->collocated_flux_nodes = false;
+}
 
 /***********************************************************
 *
@@ -978,10 +986,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
     std::array<std::vector<real>,nstate> entropy_var_at_q;
     std::array<std::vector<real>,nstate> projected_entropy_var_at_q;
 
-    using flux_nodes_enum = Parameters::AllParameters::FluxNodes;
-    flux_nodes_enum flux_nodes_type = this->all_parameters->flux_nodes_type;
-
-    if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && flux_nodes_type != flux_nodes_enum::GLL){
+    if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
         for(int istate=0; istate<nstate; istate++){
             entropy_var_at_q[istate].resize(n_quad_pts);
             projected_entropy_var_at_q[istate].resize(n_quad_pts);
@@ -1061,9 +1066,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
         // If 2pt flux, transform to reference at construction to improve performance.
         // We technically use a REFERENCE 2pt flux for all entropy stable schemes.
         std::array<dealii::Tensor<1,dim,real>,nstate> conv_phys_flux;
-        using flux_nodes_enum = Parameters::AllParameters::FluxNodes;
-        flux_nodes_enum flux_nodes_type = this->all_parameters->flux_nodes_type;
-        if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && flux_nodes_type != flux_nodes_enum::GLL){
+        if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             //get the soln for iquad from projected entropy variables
             std::array<real,nstate> entropy_var;
             for(int istate=0; istate<nstate; istate++){
@@ -1155,10 +1158,8 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
         for(int istate=0; istate<nstate; istate++){
             dealii::Tensor<1,dim,real> conv_ref_flux;
             dealii::Tensor<1,dim,real> diffusive_ref_flux;
-            using flux_nodes_enum = Parameters::AllParameters::FluxNodes;
-            flux_nodes_enum flux_nodes_type = this->all_parameters->flux_nodes_type;
-            //Trnasform to reference fluxes
-            if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && flux_nodes_type != flux_nodes_enum::GL){
+            //Transform to reference fluxes
+            if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
                 //Do Nothing. 
                 //I am leaving this block here so the diligent reader
                 //remembers that, for entropy stable schemes, we construct
@@ -1188,9 +1189,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
                     diffusive_ref_flux_at_q[istate][idim].resize(n_quad_pts);
                 }
                 //write data
-                using flux_nodes_enum = Parameters::AllParameters::FluxNodes;
-                flux_nodes_enum flux_nodes_type = this->all_parameters->flux_nodes_type;
-                if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) || flux_nodes_type != flux_nodes_enum::GL){
+                if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
                     //Do nothing because written in a Hadamard product sum-factorized form above.
                 }
                 else{
@@ -1576,10 +1575,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_surf;
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_vol;
 
-    using flux_nodes_enum = Parameters::AllParameters::FluxNodes;
-    flux_nodes_enum flux_nodes_type = this->all_parameters->flux_nodes_type;
-
-    if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && flux_nodes_type != flux_nodes_enum::GLL){
+    if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
         //get surface-volume hybrid 2pt flux from Eq.(15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
         std::array<dealii::FullMatrix<real>,nstate> surface_ref_2pt_flux;
         //make use of the sparsity pattern from above to assemble only n^d non-zero entries without ever allocating not computing zeros.
@@ -1594,7 +1590,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
                 }
             }
              
-            //Compute the conservative values on the facet from the interpolated entorpy variables.
+            //Compute the conservative values on the facet from the interpolated entropy variables.
             std::array<real,nstate> entropy_var_face;
             for(int istate=0; istate<nstate; istate++){
                 entropy_var_face[istate] = projected_entropy_var_surf[istate][iquad_face];
@@ -1777,9 +1773,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     for(int istate=0; istate<nstate; istate++){
         std::vector<real> rhs(n_shape_fns);
         //Convective flux on the facet
-        using flux_nodes_enum = Parameters::AllParameters::FluxNodes;
-        flux_nodes_enum flux_nodes_type = this->all_parameters->flux_nodes_type;
-        if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && flux_nodes_type != flux_nodes_enum::GLL){
+        if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
             soln_basis.inner_product_surface_1D(iface, 
                                                 surf_vol_ref_2pt_flux_interp_surf[istate], 
@@ -2262,10 +2256,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_vol_int;
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_vol_ext;
 
-    using flux_nodes_enum = Parameters::AllParameters::FluxNodes;
-    flux_nodes_enum flux_nodes_type = this->all_parameters->flux_nodes_type;
-
-    if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && flux_nodes_type != flux_nodes_enum::GLL){
+    if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
         //get surface-volume hybrid 2pt flux from Eq.(15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
         std::array<dealii::FullMatrix<real>,nstate> surface_ref_2pt_flux_int;
         std::array<dealii::FullMatrix<real>,nstate> surface_ref_2pt_flux_ext;
@@ -2537,11 +2528,8 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
         // interior RHS
         std::vector<real> rhs_int(n_shape_fns_int);
 
-        using flux_nodes_enum = Parameters::AllParameters::FluxNodes;
-        flux_nodes_enum flux_nodes_type = this->all_parameters->flux_nodes_type;
-
         // convective flux
-        if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && flux_nodes_type != flux_nodes_enum::GLL){
+        if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
             soln_basis_int.inner_product_surface_1D(iface, 
                                                     surf_vol_ref_2pt_flux_interp_surf_int[istate], 
@@ -2593,7 +2581,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
         std::vector<real> rhs_ext(n_shape_fns_ext);
 
         // convective flux
-        if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && flux_nodes_type != flux_nodes_enum::GLL){
+        if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
             soln_basis_ext.inner_product_surface_1D(neighbor_iface, 
                                                     surf_vol_ref_2pt_flux_interp_surf_ext[istate], 

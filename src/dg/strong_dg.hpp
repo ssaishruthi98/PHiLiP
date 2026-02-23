@@ -19,6 +19,9 @@ protected:
     /// Alias to base class Triangulation.
     using Triangulation = typename DGBaseState<dim,nspecies,nstate,real,MeshType>::Triangulation;
 
+    /// Store whether flux nodes are collocated
+    bool collocated_flux_nodes;
+
 public:
     /// Constructor
     DGStrong(
