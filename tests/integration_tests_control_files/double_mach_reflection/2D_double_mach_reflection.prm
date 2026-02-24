@@ -42,7 +42,7 @@ end
 # freestream Mach number
 subsection euler
   set mach_infinity = 10.0
-  set custom_boundary_for_each_state = 8.0,7.1447095812216,-4.125,116.5,0.0
+  set custom_boundary_for_each_state = 8.0,7.1447095812216,-4.125,116.5,0.0,0.0
 end
 
 subsection flow_solver

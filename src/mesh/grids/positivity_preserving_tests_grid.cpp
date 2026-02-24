@@ -242,6 +242,125 @@ void svsw_grid(
     }
 }
 
+template<int dim, typename TriangulationType>
+void hydrogen_injection_grid(
+    TriangulationType&  grid,
+    const Parameters::FlowSolverParam *const flow_solver_param) 
+{
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    p1[0] = flow_solver_param->grid_left_bound; p1[1] = flow_solver_param->grid_bottom_bound;
+    p2[0] = flow_solver_param->grid_right_bound; p2[1] = flow_solver_param->grid_top_bound;
+
+    double domain_length = p2[0] - p1[0];
+    double domain_height = p2[1] - p1[1];
+
+    double injector_lip_bottom_y = domain_height*(14.5/30.0);
+    double injector_lip_top_y = domain_height*(15.5/30.0);
+
+    std::vector<unsigned int> n_subdivisions(2);
+
+    n_subdivisions[0] = flow_solver_param->number_of_grid_elements_x;
+    n_subdivisions[1] = flow_solver_param->number_of_grid_elements_y;
+
+    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
+
+    std::set<typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator> cells_to_remove;
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int v = 0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {
+            if(cell->vertex(v)(0) < domain_length/41.0 && cell->vertex(v)(1) > injector_lip_bottom_y && cell->vertex(v)(1) < injector_lip_top_y)
+                cells_to_remove.insert(cell);
+        }
+    }
+  
+    dealii::GridGenerator::create_triangulation_with_removed_cells(grid, cells_to_remove, grid);
+
+    // Set boundary type and design type
+    double left_y = 0.0;
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                if (face == 0) {
+                    if (left_y >= injector_lip_bottom_y-cell->extent_in_direction(1) && left_y < injector_lip_top_y) {
+                        left_y += cell->extent_in_direction(1);
+                        cell->face(face)->set_boundary_id(1008); // x_left, Symmetry/Wall
+                    }
+                    else {
+                        left_y += cell->extent_in_direction(1);
+                        cell->face(face)->set_boundary_id(1001); // x_left, Post Shock (custom bc set in prm file)
+                    }
+                }
+                else if (face == 1) {
+                    cell->face(face)->set_boundary_id(1007); // x_right, Do Nothing Outflow 
+                }
+                else {
+                    cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                }
+            }
+        }
+    }
+}
+
+
+template<int dim, typename TriangulationType>
+void hydrogen_injection_grid(
+    TriangulationType&  grid,
+    const Parameters::FlowSolverParam *const flow_solver_param) 
+{
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    p1[0] = flow_solver_param->grid_left_bound; p1[1] = flow_solver_param->grid_bottom_bound;
+    p2[0] = flow_solver_param->grid_right_bound; p2[1] = flow_solver_param->grid_top_bound;
+
+    double domain_length = p2[0] - p1[0];
+    double domain_height = p2[1] - p1[1];
+
+    double injector_lip_bottom_y = domain_height*(14.5/30.0);
+    double injector_lip_top_y = domain_height*(15.5/30.0);
+
+    std::vector<unsigned int> n_subdivisions(2);
+
+    n_subdivisions[0] = flow_solver_param->number_of_grid_elements_x;
+    n_subdivisions[1] = flow_solver_param->number_of_grid_elements_y;
+
+    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
+
+    std::set<typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator> cells_to_remove;
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int v = 0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {
+            if(cell->vertex(v)(0) < domain_length/41.0 && cell->vertex(v)(1) > injector_lip_bottom_y && cell->vertex(v)(1) < injector_lip_top_y)
+                cells_to_remove.insert(cell);
+        }
+    }
+  
+    dealii::GridGenerator::create_triangulation_with_removed_cells(grid, cells_to_remove, grid);
+
+    // Set boundary type and design type
+    double left_y = 0.0;
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                if (face == 0) {
+                    if (left_y >= injector_lip_bottom_y-cell->extent_in_direction(1) && left_y < injector_lip_top_y) {
+                        left_y += cell->extent_in_direction(1);
+                        cell->face(face)->set_boundary_id(1008); // x_left, Symmetry/Wall
+                    }
+                    else {
+                        left_y += cell->extent_in_direction(1);
+                        cell->face(face)->set_boundary_id(1001); // x_left, Post Shock (custom bc set in prm file)
+                    }
+                }
+                else if (face == 1) {
+                    cell->face(face)->set_boundary_id(1007); // x_right, Do Nothing Outflow 
+                }
+                else {
+                    cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                }
+            }
+        }
+    }
+}
+
 #if PHILIP_DIM==1
 template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
@@ -257,6 +376,9 @@ template void astrophysical_jet_grid<2, dealii::parallel::distributed::Triangula
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
 template void svsw_grid<2, dealii::parallel::distributed::Triangulation<2>>(
+    dealii::parallel::distributed::Triangulation<2>&    grid,
+    const Parameters::FlowSolverParam *const flow_solver_param);
+template void hydrogen_injection_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
 #endif

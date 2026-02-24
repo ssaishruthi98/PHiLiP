@@ -1216,6 +1216,51 @@ real InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,
     return value;
 }
 
+// =============================================================
+// Multispecies Hydrogen Injection -- Initial Condition 
+// =============================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Multispecies_HydrogenInjection<dim,nspecies,nstate,real>
+::InitialConditionFunction_Multispecies_HydrogenInjection (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Multispecies_HydrogenInjection<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &/*point*/, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2 && nspecies == 3) {
+        if(istate==0) {
+            // mixture density
+            value = 1.1579/this->real_gas_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = 0.0;
+        }
+        if(istate==2) {
+            // y-velocity
+            value = 0.0;
+        }
+        if(istate==3) {
+            // pressure
+            value = 101325.0/ (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+        }
+        if(istate==4){
+            // species density H2
+            value = 0.0;
+        }
+        if(istate==5){
+            // species density O2
+            value = 0.785;
+        }
+    }
+    return value;
+}
+
 // ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
@@ -1321,6 +1366,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::multi_species_isentropic_vortex) {
         if constexpr (dim==2 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_hydrogen_injection) {
+        if constexpr (dim==2 && nspecies==3 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_HydrogenInjection<dim,nspecies,nstate,real> >(param);
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -1394,6 +1441,7 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction_Multispecies_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #elif PHILIP_DIM==2
     template class InitialConditionFunction_Multispecies_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    template class InitialConditionFunction_Multispecies_HydrogenInjection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;    
     #endif
 #endif
 } // PHiLiP namespace
