@@ -27,6 +27,7 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     , MW_Air(28.9651159 * pow(10,-3)) /// [kg/mol]
     , R_ref(Ru/MW_Air) /// = Ru/MW_Air [J/(kg·K)]
     , temperature_ref(298.15) /// [K]
+    , ref_length(parameters_input->euler_param.ref_length)
     , u_ref(mach_ref*sqrt(gam_ref*R_ref*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
     , tol(1.0e-14) /// []

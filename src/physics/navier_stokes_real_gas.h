@@ -88,12 +88,98 @@ public:
      * * Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
      * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
      */
-    real compute_viscosity_coefficient_sutherlands_law (const std::array<real,nstate> &primitive_soln) const;
+    real compute_viscosity_coefficient_sutherlands_law (const std::array<real,nstate> &primitive_soln, const int species_index) const;
     
     /** Mole fractions x_k of each species. Returns all mole fractions.
      */
     std::array<real,nspecies>
     compute_mole_fractions(const std::array<real, nstate> &primitive_soln) const;
+    
+    /** Mass fractions of each species computed from the primitive solution
+     */
+    std::array<real,nspecies>
+    compute_mass_fractions_from_primitive(const std::array<real, nstate> &primitive_soln) const;
+
+    /** Mass fraction gradients computed from primitive gradients
+     */
+    std::array<dealii::Tensor<1,dim,real>, nspecies> 
+    compute_mass_fraction_gradients_from_primitive_gradient(const std::array<dealii::Tensor<1,dim,real>, nstate> &primitive_soln_gradient) const;
+
+    /** Mole fraction gradients calculated as follows:
+     *  using the chain rule on the definition of mole fraction: x_k = (Y_k/W_k) / (sum of Y_j/W_j for j=1 to nspecies)
+     */
+    std::array<dealii::Tensor<1, dim, real>, nspecies> 
+    compute_mole_fraction_gradients(
+        const std::array<real, nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>, nstate> &primitive_soln_gradient) const;
+
+    /** Diffusion driving force for each species
+     *  Reference: Giovangigli, "Multicomponent flow modelling"
+    */
+    std::array<dealii::Tensor<1, dim, real>, nspecies> 
+    compute_diffusion_driving_forces(
+        const std::array<real, nstate> &primitive_soln, 
+        const std::array<dealii::Tensor<1,dim,real>, nstate> &primitive_soln_gradient) const;
+    
+    /** Nondimensional diffusion driving force. 
+     *  dstar_j = L_ref * d_j as d_j has units of 1/m since it is a gradient of distances. 
+    */
+    std::array<dealii::Tensor<1,dim,real>, nspecies> 
+    compute_nondimensional_diffusion_driving_forces(
+        const std::array<real, nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>, nstate> &primitive_soln_gradient) const;
+
+    /** Collision integral from Chapman-Enskog theory.
+     */
+    real compute_collision_integral(const real reduced_temperature) const;
+
+    /** Reduced molecular weight from Chapman-Enskog theory
+     */
+    real compute_reduced_molecular_weight(const int j, const int k) const;
+
+
+    /** Reduced collision diameter from Chapman-Enskog theory.
+     */
+    real compute_reduced_collision_diameter(const int j, const int k) const;
+
+    /** Reduced temperature from Chapman-Enskog theory using boiling temperatures.
+     */
+    real compute_reduced_temperature(const real T_K, const int j, const int k) const;
+    
+    /** Dimensional pressure from the non dimensional one in the primitive solution
+     */
+    real compute_dimensional_pressure(const std::array<real, nstate> &primitive_soln) const;
+
+    /** Binary diffusion coefficients from Chapman-Enskog theory
+     */
+    real compute_binary_diffusion_coefficient(
+        const real T_K,
+        const real P_Pa, 
+        const int j, 
+        const int k) const;
+
+    /** Binary diffusion matrix assembling all binary diffusion coefficieints.
+     */
+    std::array<std::array<real, nspecies>, nspecies>
+    compute_binary_diffusion_matrix(const std::array<real, nstate> &primitive_soln) const;
+
+    /** Nondimensional binary diffusion matrix using D_ref = u_ref*L_ref as D has units of m^2/s
+     */
+    std::array<std::array<real, nspecies>, nspecies> 
+    compute_nondimensional_binary_diffusion_matrix(const std::array<real, nstate> &primitive_soln) const;
+
+    /** Species diffusion flux, neglecting Soret effect.
+     *  Reference: Giovangigli, "Multicomponent flow modelling" 
+     */
+    std::array<dealii::Tensor<1,dim,real>,nspecies> 
+    compute_species_diffusion_flux(
+        const std::array<real, nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>, nstate> &primitive_soln_gradient) const;
+
+    
+
+
+
 
     /** Species viscosity coefficients of all species.
      */
@@ -141,6 +227,15 @@ public:
     dealii::Tensor<1,dim,real> compute_heat_flux (
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+
+    /** Nondimensionalised total heat flux consisting of the fourier heat flux and the heat flux from species diffusion flux.
+     */
+    dealii::Tensor<1, dim, real> compute_total_heat_flux(
+        const std::array<real, nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>, nstate> &primitive_soln_gradient,
+        const std::array<dealii::Tensor<1,dim,real>, nspecies> &species_diffusion_flux) const;
+
+
 
     /** Nondimensionalized heat flux, q*, given the scaled heat conductivity and temperature gradient
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
@@ -191,10 +286,11 @@ public:
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)
      */
     std::array<dealii::Tensor<1,dim,real>,nstate> 
-    dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux (
+    dissipative_flux_given_velocities_viscous_stress_tensor_heat_flux_species_diffusion_flux (
         const dealii::Tensor<1,dim,real> &vel,
         const dealii::Tensor<2,dim,real> &viscous_stress_tensor,
-        const dealii::Tensor<1,dim,real> &heat_flux) const;
+        const dealii::Tensor<1,dim,real> &heat_flux,
+        const std::array<dealii::Tensor<1,dim,real>, nspecies> &species_diffusion_flux) const;
 
 protected:
 

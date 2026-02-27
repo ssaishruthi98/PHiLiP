@@ -46,6 +46,7 @@ public:
     const double MW_Air; ///< molar weight of Air: [kg/mol]
     const double R_ref; ///< reference gas constant: [J/(kg·K)] 
     const double temperature_ref; ///< reference temperature [K]
+    const double ref_length; // reference length [m]
     const double u_ref; ///< reference velocity [m/s]
     const double u_ref_sqr; ///< reference velocity squared[m/s]^2
     const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
