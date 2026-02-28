@@ -28,7 +28,7 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     , temperature_ref(298.15) /// [K]
     , u_ref(mach_ref*sqrt(gam_ref*R_ref*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
-    , tol(1.0e-14) /// []
+    , tol(1.0e-8) /// []
     , density_ref(1.225) /// [kg/m^3]
     // Note: nspecies = nspecies
     // , navier_stokes_physics(std::make_unique < NavierStokes<dim,nspecies,dim+2,real> > (
@@ -51,7 +51,7 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     // Note: modify this when you change the number of species. nstate == dim+2+nspecies-1
     static_assert(nstate==dim+2+nspecies-1, "Physics::RealGas() should be created with nstate=(PHILIP_DIM+2)+(PHILIP_SPECIES-1)"); // Note: update this with nspecies in the future
     if(parameters_input->chemistry_input_file=="") {
-        this->pcout << "Name of chemistry file containing NASA CAP data for species has not been passed in. Aborting..." << std::endl;
+        std::cout << "Name of chemistry file containing NASA CAP data for species has not been passed in. Aborting..." << std::endl;
         std::abort(); 
     }
     readspecies(parameters_input->chemistry_input_file);
@@ -65,11 +65,11 @@ void RealGas<dim, nspecies, nstate, real>
     std::string line, dum_char;
 
     std::ifstream chemfile (NASADataFilename);
-    // this->pcout << "Reading NASA Coefficients and Polynomials (CAP) Data..." << std::endl;
+    // std::cout << "Reading NASA Coefficients and Polynomials (CAP) Data..." << std::endl;
     std::getline(chemfile, line);
     int N_species = (int)std::stof(line);
     if(nspecies != N_species) {
-        this->pcout << std::endl << std::endl
+        std::cout << std::endl << std::endl
                   << "----------------------------------------------------"
                   << std::endl
                   << "Number of species in chemistry file does not match PHILIP_SPECIES." << std::endl
@@ -79,7 +79,7 @@ void RealGas<dim, nspecies, nstate, real>
                   << std::endl;
         std::abort();
     }
-    // this->pcout << "Running simulation with " << N_species << " species..." << std::endl;
+    // std::cout << "Running simulation with " << N_species << " species..." << std::endl;
 
     std::string dummy_name;
     std::string::size_type sz1;
@@ -94,15 +94,15 @@ void RealGas<dim, nspecies, nstate, real>
         std::getline(chemfile, line);
         std::getline(chemfile, line);
         species_name[i] = line;
-        // this->pcout << species_name[i] << " with a molecular weight of ";
+        // std::cout << species_name[i] << " with a molecular weight of ";
         std::getline(chemfile, line);
         species_weight[i] = std::stof(line); // Species molecular weight [g/mol]
         species_weight[i] /= 1000.0; // Species molecular weight [kg/mol]
-        // this->pcout << species_weight[i] << " and enthalpy offset of ";
+        // std::cout << species_weight[i] << " and enthalpy offset of ";
         std::getline(chemfile, line);
         species_enthalpy_offset[i] = std::stof(line); // Species enthalpy from T = 0 to T= 298.15K [J/mol]
         species_enthalpy_offset[i] /= (this->species_weight[i]*this->u_ref_sqr); // nondimensionalized mass value
-        // this->pcout << species_enthalpy_offset[i] << std::endl;         
+        // std::cout << species_enthalpy_offset[i] << std::endl;         
         std::getline(chemfile,line);
         species_sutherland_temperature[i] = std::stof(line); // Sutherland temperature of the species required for NavierStokes_RealGas
         // Ask Clara whether she needs nondimensionalization here
@@ -142,11 +142,11 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 ::GetNASACAP_TemperatureIndex( const real temperature) const
 {
     if (temperature != temperature) {
-        this->pcout<<"Temperature passed in is NaN...Aborting." << std::endl;
+        std::cout<<"Temperature passed in is NaN...Aborting." << std::endl;
         std::abort();
     }
     if (temperature < 0) {
-        this->pcout<<"Temperature passed in is negative... Temperature = " << temperature << "...Aborting." << std::endl;
+        std::cout<<"Temperature passed in is negative... Temperature = " << temperature << "...Aborting." << std::endl;
         std::abort();
     }
     std::array<int,nspecies> species_tempindex;
@@ -173,7 +173,7 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
         }
 		else
 		{
-			this->pcout<<"Invalid temperature of " << temperature << " was passed in...Aborting." << std::endl;
+			std::cout<<"Invalid temperature of " << temperature << " was passed in...Aborting." << std::endl;
             std::abort();
 		}
 	}
@@ -409,7 +409,7 @@ std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const real /*current_time*/,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
-    this->pcout<<"Source Terms not implemented for RealGas."<<std::endl;
+    std::cout<<"Source Terms not implemented for RealGas."<<std::endl;
     std::abort();
     std::array<real,nstate> source_term;
     source_term.fill(0.0);
@@ -482,6 +482,36 @@ void RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
+void RealGas<dim, nspecies, nstate, real>
+::boundary_p0_extrapolation(
+    const std::array<real, nstate>& soln_int,
+    std::array<real, nstate>& soln_bc,
+    std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_bc) const
+{
+    for (int istate = 0; istate < nstate; ++istate) {
+            soln_bc[istate] = soln_int[istate];
+            soln_grad_bc[istate] = 0;
+    }
+
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+void RealGas<dim, nspecies, nstate, real>
+::boundary_custom(
+    std::array<real, nstate>& soln_bc) const
+{
+    std::array<real, nstate> primitive_boundary_values;
+    for (int istate = 0; istate < nstate; ++istate) {
+            primitive_boundary_values[istate] = this->all_parameters->euler_param.custom_boundary_for_each_state[istate];
+    }
+
+    const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate = 0; istate < nstate; ++istate) {
+        soln_bc[istate] = conservative_bc[istate];
+    }
+}
+
+template <int dim, int nspecies, int nstate, typename real>
 void RealGas<dim,nspecies,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
@@ -495,10 +525,20 @@ void RealGas<dim,nspecies,nstate,real>
     if (boundary_type == 1001) {
         // Wall boundary condition (slip for Euler, no-slip for Navier-Stokes; done through polymorphism)
         boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } else if (boundary_type == 1006) {
+    } 
+    else if (boundary_type == 1006) {
         // Slip wall boundary condition
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } else {
+    } 
+    else if (boundary_type == 1007) {
+        // Do nothing bc, p0 interpolation
+        boundary_p0_extrapolation (soln_int, soln_bc, soln_grad_bc);
+    }
+    else if (boundary_type == 1008) {
+        // Custom boundary condition, user defined in parameters
+        boundary_custom (soln_bc);
+    } 
+    else {
         this->pcout<<"Boundary condition #" << boundary_type << " not implemented for RealGas."<<std::endl;
         std::abort();
     }
@@ -657,7 +697,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     // const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
 
     if (dimensional_temperature < 0) {
-        this->pcout<<"Cp Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
+        std::cout<<"Cp Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
         std::abort();
     }
     std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
@@ -695,7 +735,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 
     for (int s=0; s<nspecies; ++s) 
     {
-        // this->pcout << "Temperature passed in:  " << temperature*this->temperature_ref << " the Cp obtained:  " << Cp[s] << std::endl << std::endl;
+        // std::cout << "Temperature passed in:  " << temperature*this->temperature_ref << " the Cp obtained:  " << Cp[s] << std::endl << std::endl;
         Cv[s] = Cp[s] - this->Rs[s];
     }
 
@@ -715,7 +755,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     // const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
     
     if (dimensional_temperature < 0) {
-        this->pcout<<"Enthalpy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
+        std::cout<<"Enthalpy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
         std::abort();
     }
     std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
@@ -750,18 +790,18 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
         }
 
         if(out_of_bounds_temp != -1.0) {
-            // this->pcout << "The calculated enthalpy at the bound temperature:  " << h[s]*((this->Ru*dimensional_temperature)/(this->species_weight[s]*this->u_ref_sqr)) << std::endl;
+            // std::cout << "The calculated enthalpy at the bound temperature:  " << h[s]*((this->Ru*dimensional_temperature)/(this->species_weight[s]*this->u_ref_sqr)) << std::endl;
             h[s] = h[s]*(dimensional_temperature/out_of_bounds_temp) + ((out_of_bounds_temp - dimensional_temperature)/out_of_bounds_temp) * Cp;
-            // this->pcout << "The out of bounds temps is:  " << out_of_bounds_temp << " and the bound temperature is:  " << dimensional_temperature
+            // std::cout << "The out of bounds temps is:  " << out_of_bounds_temp << " and the bound temperature is:  " << dimensional_temperature
             //             << " with a Cp of:  " << Cp << std::endl;
-            // this->pcout << "The calculated enthalpy at the out of bounds temperature:  " << h[s]*((this->Ru*dimensional_temperature)/(this->species_weight[s]*this->u_ref_sqr)) << std::endl;
+            // std::cout << "The calculated enthalpy at the out of bounds temperature:  " << h[s]*((this->Ru*dimensional_temperature)/(this->species_weight[s]*this->u_ref_sqr)) << std::endl;
         }
         if(out_of_bounds_temp != -1.0)
             h[s] *= ((this->Ru*out_of_bounds_temp)/(this->species_weight[s]*this->u_ref_sqr)); //nondimensional mass value
         else
             h[s] *= ((this->Ru*dimensional_temperature)/(this->species_weight[s]*this->u_ref_sqr)); //nondimensional mass value
         h[s] += species_enthalpy_offset[s];
-        // this->pcout << "The calculated enthalpy at the out of bounds temperature with the offset added:  " << h[s] << std::endl;
+        // std::cout << "The calculated enthalpy at the out of bounds temperature with the offset added:  " << h[s] << std::endl;
         // set dimensional temp back to the out of bounds temp for the next species in the loop
         if (out_of_bounds_temp != -1.0)
             dimensional_temperature = out_of_bounds_temp;
@@ -810,20 +850,20 @@ inline real RealGas<dim,nspecies,nstate,real>
 
     /* compute temperature using the Newton-Raphson method */
     real T_n = 2.0*this->temperature_ref; // the initial guess
-    // this->pcout << std::endl;
+    // std::cout << std::endl;
     do
     {
         /// 1) f(T_n)
         // mixture specific internal energy: e = E - k
         mixture_specific_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy)*this->u_ref_sqr; // dimensional value
-        // this->pcout << "mixture_specific_total_energy " << mixture_specific_total_energy << std::endl;
-        // this->pcout << "specific_kinetic_energy " << specific_kinetic_energy << std::endl;
-        // this->pcout << "mixture_specific_internal_energy " << mixture_specific_internal_energy << std::endl;
+        // std::cout << "mixture_specific_total_energy " << mixture_specific_total_energy << std::endl;
+        // std::cout << "specific_kinetic_energy " << specific_kinetic_energy << std::endl;
+        // std::cout << "mixture_specific_internal_energy " << mixture_specific_internal_energy << std::endl;
         // species specific enthalpy at T_n
         species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // nondimensional mass value
         // mixture specific enthalpy at T_n
         mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dimensional value
-        // this->pcout << "mixture_specific_enthalpy " << mixture_specific_enthalpy << std::endl;
+        // std::cout << "mixture_specific_enthalpy " << mixture_specific_enthalpy << std::endl;
         // Newton-Raphson function
         f = (mixture_specific_enthalpy - mixture_gas_constant*this->R_ref* T_n) - mixture_specific_internal_energy; // dimensional value
 
@@ -833,13 +873,13 @@ inline real RealGas<dim,nspecies,nstate,real>
 
         // mixture Cv
         mixture_Cv = compute_mixture_from_species(mass_fractions,Cv)*this->R_ref; // dimensional value
-        // this->pcout << "mixture_Cv " << mixture_Cv << std::endl << std::endl;
+        // std::cout << "mixture_Cv " << mixture_Cv << std::endl << std::endl;
         // Newton-Raphson derivative function
         f_d = mixture_Cv;
 
         /// 3) main part
         T_npo = T_n - f/f_d; // dimensional value
-        // this->pcout << "f: " << f << "  f_d:  " << f_d << std::endl;
+        // std::cout << "f: " << f << "  f_d:  " << f_d << std::endl;
         err = abs((T_npo-T_n)/this->temperature_ref);
         itr += 1;
 
@@ -847,25 +887,24 @@ inline real RealGas<dim,nspecies,nstate,real>
         if(itr > 9.99999e6) {
                 // output temperature values for the last 10 iterations
                 // included this output so user can determine if the tolerance is the issue
-                this->pcout << "Nearing the max iterations...iteration #" << itr << " old temperature:  " << T_n 
-                            << " new temperature:  " << T_npo << std::endl;
-                this->pcout << " Mixture Cv:  " << mixture_Cv << std::endl << std::endl;
+                std::cout << "Nearing the max iterations...iteration #" << itr << " old temperature:  "<< std::setprecision(15) << T_n 
+                            << " new temperature:  "<< std::setprecision(15) << T_npo << std::endl;
         }
         T_n = T_npo;
     }
     while (err>this->tol && itr < 1e7);
     if(itr == 1e7) {
-        this->pcout << "Maximum iterations for temperature reached without converging...Aborting..." << std::endl;
+        std::cout << "Maximum iterations for temperature reached without converging...Aborting..." << std::endl;
         std::abort();
     }
-    // this->pcout << std::endl << "next loop: " << std::endl;
+    // std::cout << std::endl << "next loop: " << std::endl;
     T_n /= temperature_ref; // non-dimensional value
     if(T_n < 0) {
-        this->pcout << "Computed temperature is a negative value...Aborting..." << std::endl;
+        std::cout << "Computed temperature is a negative value...Aborting..." << std::endl;
         std::abort();
     }
     if(T_n != T_n) {
-        this->pcout << "Computed temperature is NaN...Aborting..." << std::endl;
+        std::cout << "Computed temperature is NaN...Aborting..." << std::endl;
         std::abort();
     }
     return T_n;
@@ -954,6 +993,123 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
     }
 
     return conv_flux;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real RealGas<dim, nspecies, nstate, real>
+::compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const
+{
+    // See Appendix B [Ismail and Roe, 2009, Entropy-Consistent Euler Flux Functions II]
+    // -- Numerically stable algorithm for computing the logarithmic mean
+    if(val1 < 1e-16 || val2 < 1e-16)
+        return 0;
+
+    const real zeta = val1/val2;
+    const real f = (zeta-1.0)/(zeta+1.0);
+    const real u = f*f;
+
+    real F;
+    if(u<1.0e-2){ F = 1.0 + u/3.0 + u*u/5.0 + u*u*u/7.0; } 
+    else { 
+        if constexpr(std::is_same<real,double>::value) F = std::log(zeta)/2.0/f; 
+    }
+
+    const real log_mean_val = (val1+val2)/(2.0*F);
+
+    return log_mean_val;
+}
+
+// Select and compute 2 point flux
+// Currently only has the CH flux (Gouasmi thesis/Renac 2021 paper)
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
+::convective_numerical_split_flux(const std::array<real,nstate> &conservative_soln1,
+                                  const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    if(two_point_num_flux_type == two_point_num_flux_enum::KG) {
+        conv_num_split_flux = convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::IR) {
+        std::cout << "The Ismail Roe two-point flux has not been implemented for multispecies...Aborting." << std::endl;
+        std::abort();
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::CH) {
+        conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::Ra) {
+        std::cout << "The Ranocha pressure fix for the CH two-point flux has not been implemented for multispecies...Aborting." << std::endl;
+        std::abort();
+    }
+
+    return conv_num_split_flux;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
+::convective_numerical_split_flux_kennedy_gruber(const std::array<real,nstate> &conservative_soln1,
+                                                 const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    const std::array<real,nspecies> rho_species1 = compute_species_densities(conservative_soln1);
+    const std::array<real,nspecies> rho_species2 = compute_species_densities(conservative_soln2);
+
+    // compute mean densities
+    std::array<real, nspecies> mean_species_densities;
+    real mean_density = 0.0;
+    for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        mean_species_densities[ispecies] = (rho_species1[ispecies]+rho_species2[ispecies])/2.0;
+        mean_density += mean_species_densities[ispecies];
+    }
+
+    // compute mean velocities
+    dealii::Tensor<1,dim,real> vel_1 = compute_velocities(conservative_soln1);
+    dealii::Tensor<1,dim,real> vel_2 = compute_velocities(conservative_soln2);
+    dealii::Tensor<1,dim,real> mean_vel;
+    for (int d=0; d<dim; ++d) {
+        mean_vel[d] = 0.5*(vel_1[d]+vel_2[d]);
+    }
+
+    // compute mean pressure
+    real pressure1 = compute_mixture_pressure(conservative_soln1);
+    real pressure2 = compute_mixture_pressure(conservative_soln2);
+    real mean_pressure = (pressure1 + pressure2)/2.0;
+    // this->pcout << "the calculated mean pressure is:  " << mean_pressure << std::endl;
+
+    // compute mean total energy
+    real total_energy1 = compute_mixture_specific_total_energy(conservative_soln1);
+    real total_energy2 = compute_mixture_specific_total_energy(conservative_soln2);
+    real mean_total_energy = (total_energy1 + total_energy2)/2.0;
+
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    {
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = mean_density * mean_vel[flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_vel[flux_dim]*mean_vel[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
+        // Energy equation
+        conv_num_split_flux[dim+1][flux_dim] = mean_density*mean_vel[flux_dim]*mean_total_energy + mean_pressure * mean_vel[flux_dim];
+        // Species density equation
+        for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
+            conv_num_split_flux[dim+2+ispecies][flux_dim] = mean_species_densities[ispecies] * mean_vel[flux_dim];
+        }
+    }
+    // std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux1 = convective_flux(conservative_soln1);
+    // std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux2 = convective_flux(conservative_soln2);
+    // for (int istate = 0; istate < nstate; istate++) {
+    //     this->pcout << "the conv flux for state " << istate << " is : " << conv_flux1[istate][0] << " or " << conv_flux2[istate][0] << " the two pt flux is: " <<  conv_num_split_flux[istate][0] << std::endl;
+    // }
+    // sleep(5);
+    return conv_num_split_flux;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
+::convective_numerical_split_flux_chandrashekar(const std::array<real,nstate> &/*conservative_soln1*/,
+                                                const std::array<real,nstate> &/*conservative_soln2*/) const
+{
+    std::cout << "Implementation in progress on a branch. Haven't fully fleshed this out yet. Aborting..." << std::endl;
+    std::abort(); 
 }
 
 /* Supporting FUNCTIONS */
@@ -1235,7 +1391,7 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         // sleep(5);
     }
     if (computed_quantities.size()-1 != current_data_index) {
-        this->pcout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
+        std::cout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
                   << " If you added a new output variable, make sure the names and DataComponentInterpretation match the above. "
                   << std::endl;
     }
@@ -1273,7 +1429,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
-        this->pcout << "Number of DataComponentInterpretation is not the same as number of names for output file" << std::endl;
+        std::cout << "Number of DataComponentInterpretation is not the same as number of names for output file" << std::endl;
     }
     return interpretation;
 }

@@ -17,6 +17,11 @@ set chemistry_input_file = ../../chemistry_files/H2_O2.kinetics
 # DG formulation
 set use_weak_form = false
 set non_physical_behavior = abort_run
+set use_split_form = true
+set two_point_num_flux_type = KG
+set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+set flux_reconstruction = cDG
+set use_inverse_mass_on_the_fly = true
 
 # set directry to write output data
 #set solution_vtk_files_directory_name = multi_species
@@ -26,9 +31,6 @@ set use_periodic_bc = true
 
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
-
-# numerical fluxes
-set conv_num_flux = lax_friedrichs
 
 # ODE solver
 subsection ODE solver

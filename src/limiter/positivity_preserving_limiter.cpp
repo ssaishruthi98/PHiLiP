@@ -184,7 +184,7 @@ real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_density_scali
     const double    mixture_avg,
     const double    mixture_quad)
 {
-    real theta = 1.0; // Value used to linearly scale density 
+    real theta = 0.0; // Value used to linearly scale density 
     real denominator = (species_avg*mixture_quad)-(species_quad*mixture_avg);
 
     if (denominator > 1e-13)
@@ -556,13 +556,12 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
 
         if(nspecies > 1) {
             std::array<real, nstate> soln_at_iquad;
-            real theta_species = 1.0;
+            real theta_species = 0.0;
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     soln_at_iquad[istate] = soln_coeff[istate][iquad];
                 }
-                std::array<real,nspecies> species_densities;
-                species_densities = real_gas_physics->compute_species_densities(soln_at_iquad);
+                std::array<real,nspecies> species_densities = real_gas_physics->compute_species_densities(soln_at_iquad);
                 
                 real theta_species_quad = 0.0;
                 
@@ -584,13 +583,30 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                         theta_species = theta_species_quad;
             }
 
-            if(theta_species < 1)
-                std::cout << "The species density is limited." << std::endl;
+            // if(theta_species > 0)
+            //     std::cout << "The species density is limited." << std::endl;
 
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies) {
                     int index = dim + 2 + ispecies;
                     soln_coeff[index][iquad] = soln_coeff[index][iquad] + theta_species*((soln_cell_avg[index]/soln_cell_avg[0])*soln_coeff[0][iquad]-soln_coeff[index][iquad]);
+                }
+
+                std::array<real, nstate> soln_at_iquad;
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    soln_at_iquad[istate] = soln_coeff[istate][iquad];
+                }
+                // include a check to ensure mass fraction = 1 after limiting!!
+                std::array<real,nspecies> mass_fractions = real_gas_physics->compute_mass_fractions(soln_at_iquad);
+                real total_mass_fraction = 0.0;
+                for(int ispecies = 0; ispecies < nspecies; ++ispecies){
+                    total_mass_fraction += mass_fractions[ispecies];
+                }
+                real uppererror = 1.0 + 1e-13;
+                real lowererror = 1.0 - 1e-13;
+                if(total_mass_fraction < lowererror && total_mass_fraction > uppererror) {
+                    std::cout << "The sum of the mass fractions does not equal 1 after limiting! Aborting..." << std::endl;
+                    std::abort();
                 }
             }
         }
@@ -637,7 +653,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
-        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + nspecies + 1) {
+        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + 2) {
             std::array<real, dim> theta2_quad;
             for(unsigned int idim = 0; idim < dim; ++idim) {
                 theta2_quad[idim] = get_theta2_Wang2012(soln_at_q[idim], n_quad_pts, p_avg);

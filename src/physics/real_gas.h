@@ -128,7 +128,17 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
-        
+    
+    /// p0 extrapolation at the boundary
+    void boundary_p0_extrapolation (
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Custom boundary conditions for the left boundary of the astrophysical mach jet case where it is not hypersonic inflow.
+    void boundary_custom (
+        std::array<real,nstate> &soln_bc) const;
+
     /// Boundary condition handler
     void boundary_face_values (
         const int /*boundary_type*/,
@@ -232,8 +242,25 @@ protected:
     // Algorithm 19 (f_M19): Compute convective flux from conservative_soln
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
         const std::array<real,nstate> &conservative_soln) const;
-        
-protected:
+    
+    /// Compute Ismail-Roe logarithmic mean
+    real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
+
+    ///  Evaluates convective flux based on the chosen split form.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const override;
+
+    /// Kennedy-Gruber entropy conserving flux
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_kennedy_gruber (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Chandrashekar entropy conserving flux.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
     // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
     virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -271,12 +298,12 @@ protected:
     std::array<std::array<std::array<double,3>,9>,nspecies> NASACAPCoeffs;
     std::array<std::array<double,4>,nspecies> NASACAPTemperatureLimits;
     std::array<std::string,nspecies> species_name; // Species name
-    std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
-    std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset [J/mol]
+    std::array<real,nspecies> species_weight; // Species molecular weight [kg/mol]
+    std::array<real,nspecies> species_enthalpy_offset; // Species enthalpy offset [J/mol]
     std::array<real,nspecies> Rs; // Species gas constant
-    std::array<double,nspecies> species_sutherland_temperature; // Sutherland temperature for each species (used by NavierStokes_RealGas)
-    std::array<double,nspecies> species_boiling_temperature; // Sutherland temperature for each species (used by NavierStokes_RealGas)
-    std::array<double,nspecies> species_collision_diameter; // Sutherland temperature for each species (used by NavierStokes_RealGas)
+    std::array<real,nspecies> species_sutherland_temperature; // Sutherland temperature for each species (used by NavierStokes_RealGas)
+    std::array<real,nspecies> species_boiling_temperature; // Sutherland temperature for each species (used by NavierStokes_RealGas)
+    std::array<real,nspecies> species_collision_diameter; // Sutherland temperature for each species (used by NavierStokes_RealGas)
 };
 
 } // Physics namespace

@@ -1119,9 +1119,9 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
             }
             else if (istate == 3) {
                 //Y_O2
-                value = 0.21;
+                // value = 0.21;
                 //Y_O2 from Ayoub Gouasmi's Ph.D. thesis
-                // value = 1.0;
+                value = 1.0;
             }
         } else {
             if(istate == 0) {
@@ -1138,9 +1138,9 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
             }
             else if (istate == 3) {
                 //Y_O2
-                value = 0.21;
+                // value = 0.21;
                 //Y_O2 from Ayoub Gouasmi's Ph.D. thesis
-                // value = 0.;
+                value = 0.;
             }
         }
     }
@@ -1213,6 +1213,79 @@ real InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,
             value = density_N2/mixture_density;
         }
     }
+    return value;
+}
+
+// ========================================================
+// Multispecies Shock Bubble Interaction (Multispecies) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Multispecies_ShockBubbleInteraction<dim,nspecies,nstate,real>
+::InitialConditionFunction_Multispecies_ShockBubbleInteraction(
+      Parameters::AllParameters const *const param)
+    : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+{}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Multispecies_ShockBubbleInteraction<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.0;
+    const real x = point[0];
+    const real y = point[1];
+    const real r = sqrt(pow(x-0.8,2.0) + pow(y-0.0,2.0));
+
+    if(r <= 5.0/89.0) {
+        if(istate==0) { // mixture density
+            value = 0.18187;
+        }
+        if(istate==1) { // x velocity
+            value = 0.0;
+        }
+        if(istate==2) { // y velocity
+            value = 0.0;
+        }
+        if(istate==3) { // mixture pressure
+            value = 1.0;
+        }
+        if(istate==4) { // air mass fraction
+            value = 0.28;
+        }
+    } else if (x < 0.9) {
+        if(istate==0) { // mixture density
+            value = 1.0;
+        }
+        if(istate==1) { // x velocity
+            value = 0.0;
+        }
+        if(istate==2) { // y velocity
+            value = 0.0;
+        }
+        if(istate==3) { // mixture pressure
+            value = 1.0;
+        }
+        if(istate==4) { // air mass fraction
+            value = 1.00;
+        }
+    } else {
+        if(istate==0) { // mixture density
+            value = 1.37636;
+        }
+        if(istate==1) { // x velocity
+            value = -0.55957;
+        }
+        if(istate==2) { // y velocity
+            value = 0.0;
+        }
+        if(istate==3) { // mixture pressure
+            value = 1.5698;
+        }
+        if(istate==4) { // air mass fraction
+            value = 1.00;
+        }
+    }
+
     return value;
 }
 
@@ -1321,6 +1394,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::multi_species_isentropic_vortex) {
         if constexpr (dim==2 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_shock_bubble) {
+        if constexpr (dim==2 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_ShockBubbleInteraction<dim,nspecies,nstate,real> >(param);
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -1394,6 +1469,7 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction_Multispecies_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #elif PHILIP_DIM==2
     template class InitialConditionFunction_Multispecies_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    template class InitialConditionFunction_Multispecies_ShockBubbleInteraction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #endif
 #endif
 } // PHiLiP namespace

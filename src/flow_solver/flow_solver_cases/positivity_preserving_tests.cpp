@@ -63,7 +63,7 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nspecies,nstate>::g
             Grids::double_mach_reflection_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
     else if (dim==2 && flow_case_type == flow_case_enum::strong_vortex_shock_wave) {
-            Grids::svsw_grid<dim>(*grid, &this->all_param.flow_solver_param);
+            Grids::svsw_grid<dim>(*grid, &this->all_param.flow_solver_param, true);
     }
     return grid;
 }
