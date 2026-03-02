@@ -44,7 +44,7 @@ end
 # ODE solver
 subsection ODE solver
   #set output_solution_every_x_steps = 20
-  set output_solution_every_dt_time_intervals = 0.0039
+  set output_solution_every_dt_time_intervals = 0.001 #0.0039
   set initial_time_step = 0.00001
   set ode_output = quiet
   set ode_solver_type = runge_kutta
@@ -54,15 +54,15 @@ end
 # freestream Mach number
 subsection euler
   set mach_infinity = 1.22
-  set custom_boundary_for_each_state = 1.37636,-0.55957,0,1.5698,0.99
+  set custom_boundary_for_each_state = 1.37636,-0.55957,0,1.5698,1.0
 end
 
 subsection flow_solver
   set flow_case_type = multi_species_shock_bubble
-  set poly_degree = 1
+  set poly_degree = 3
   set final_time = 0.39
   set adaptive_time_step = true
-  set courant_friedrichs_lewy_number = 0.05
+  set courant_friedrichs_lewy_number = 0.25
   #set constant_time_step = 0.005
   #set output_restart_files = true
   #set restart_files_directory_name = restart_files
@@ -74,8 +74,8 @@ subsection flow_solver
       set grid_top_bound = 0.1
       set grid_bottom_bound = 0
 
-      set number_of_grid_elements_x = 500
-      set number_of_grid_elements_y = 50
+      set number_of_grid_elements_x = 300
+      set number_of_grid_elements_y = 30
     end
   end
 end

@@ -44,7 +44,7 @@ std::shared_ptr<Triangulation> MultispeciesTests<dim,nspecies,nstate>::generate_
         Grids::straight_periodic_cube<dim, Triangulation>(grid, domain_left, domain_right,
                                                             number_of_cells_per_direction);
     } else if (dim==2 && flow_case_type == flow_case_enum::multi_species_shock_bubble) {
-        Grids::svsw_grid<dim>(*grid, &this->all_param.flow_solver_param,false);
+        Grids::svsw_grid<dim>(*grid, &this->all_param.flow_solver_param,true);
     } else {
         this->pcout << "Grid has not been implemented for the selected case...Aborting." << std::endl;
         std::abort();
