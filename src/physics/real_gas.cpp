@@ -859,6 +859,25 @@ inline real RealGas<dim,nspecies,nstate,real>
         // std::cout << "mixture_specific_total_energy " << mixture_specific_total_energy << std::endl;
         // std::cout << "specific_kinetic_energy " << specific_kinetic_energy << std::endl;
         // std::cout << "mixture_specific_internal_energy " << mixture_specific_internal_energy << std::endl;
+        if(T_n < 0) {
+            std::cout << "Temperature calculated at iteration #" << itr << " is negative. (" << T_n << ") Aborting..." << std::endl;
+            std::cout << "Conservative Solution passed in:" << std::endl;
+            for(int istate = 0; istate < nstate; ++istate)
+                std::cout << "istate: " << istate << " " << conservative_soln[istate] << std::endl;
+            std::cout << "total energy: " << mixture_specific_total_energy << std::endl;
+            std::cout << "kinetic energy: " << specific_kinetic_energy << std::endl;
+            for(int ispecies = 0; ispecies < nspecies; ++ispecies)
+                std::cout << "mass fraction of species " << ispecies << " is " << mass_fractions[ispecies] << std::endl; 
+            
+            std::cout << std::endl << std::endl;
+            std::cout << "temperature: " << T_n << std::endl;
+            std::cout << "internal energy: " << mixture_specific_internal_energy << std::endl;
+            std::cout << "enthalpy: " << mixture_specific_enthalpy << std::endl;
+            std::cout << "f: " << f << std::endl;
+            std::cout << "mixture cv: " << mixture_Cv << std::endl;
+            std::cout << "f/f_d: " << f/f_d << std::endl;
+            std::abort();
+        }
         // species specific enthalpy at T_n
         species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // nondimensional mass value
         // mixture specific enthalpy at T_n
@@ -877,6 +896,14 @@ inline real RealGas<dim,nspecies,nstate,real>
         // Newton-Raphson derivative function
         f_d = mixture_Cv;
 
+        if(conservative_soln[0] < 1e-13) {
+            std::cout << "temperature: " << T_n << std::endl;
+            std::cout << "internal energy: " << mixture_specific_internal_energy << std::endl;
+            std::cout << "enthalpy: " << mixture_specific_enthalpy << std::endl;
+            std::cout << "f: " << f << std::endl;
+            std::cout << "mixture cv: " << mixture_Cv << std::endl;
+            std::cout << "f/f_d: " << f/f_d << std::endl;
+        }
         /// 3) main part
         T_npo = T_n - f/f_d; // dimensional value
         // std::cout << "f: " << f << "  f_d:  " << f_d << std::endl;

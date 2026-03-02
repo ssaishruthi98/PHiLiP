@@ -179,13 +179,13 @@ protected:
     /// Given primitive variables, returns velocities.
     dealii::Tensor<1,dim,real> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
 
+public:
     // Algorithm 4 (f_M4): Compute specific kinetic energy from conservative_soln
     real compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 5 (f_M5): Compute mixture specific total energy from conservative_soln
     real compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
-public:
     // Algorithm 6 (f_M6): Compute species densities from conservative_soln 
     std::array<real,nspecies> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 
