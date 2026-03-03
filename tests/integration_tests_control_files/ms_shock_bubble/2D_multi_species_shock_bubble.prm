@@ -44,7 +44,7 @@ end
 # ODE solver
 subsection ODE solver
   #set output_solution_every_x_steps = 20
-  set output_solution_every_dt_time_intervals = 0.001 #0.0039
+  set output_solution_every_dt_time_intervals = 0.0039
   set initial_time_step = 0.00001
   set ode_output = quiet
   set ode_solver_type = runge_kutta
@@ -62,7 +62,7 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 0.39
   set adaptive_time_step = true
-  set courant_friedrichs_lewy_number = 0.25
+  set courant_friedrichs_lewy_number = 0.2
   #set constant_time_step = 0.005
   #set output_restart_files = true
   #set restart_files_directory_name = restart_files

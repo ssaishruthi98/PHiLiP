@@ -552,61 +552,125 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         // Apply limiter on density values at quadrature points
         for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
             soln_coeff[0][ishape] = theta*(soln_coeff[0][ishape] - soln_cell_avg[0]) + soln_cell_avg[0];
-        }
-
-        if(nspecies > 1) {
-            std::array<real, nstate> soln_at_iquad;
-            real theta_species = 0.0;
-            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                for (unsigned int istate = 0; istate < nstate; ++istate) {
-                    soln_at_iquad[istate] = soln_coeff[istate][iquad];
-                }
-                std::array<real,nspecies> species_densities = real_gas_physics->compute_species_densities(soln_at_iquad);
-                
-                real theta_species_quad = 0.0;
-                
-                for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies) {
-                    int index = dim + 2 + ispecies;
-                    theta_species_quad = 0.0;
-                
-                    if (species_densities[ispecies]<0)
-                        theta_species_quad = get_density_scaling_value_species(soln_cell_avg[index],species_densities[ispecies],soln_cell_avg[0],soln_coeff[0][iquad]);
-
-                    if (theta_species_quad > theta_species)
-                        theta_species = theta_species_quad;
-                }
-
-                theta_species_quad = 0.0;
-                if (species_densities[nspecies - 1]<0)
-                        theta_species_quad = get_density_scaling_value_species(nth_species_avg,species_densities[nspecies - 1],soln_cell_avg[0],soln_coeff[0][iquad]);
-                if (theta_species_quad > theta_species)
-                        theta_species = theta_species_quad;
+            for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies){
+                int index = dim + 2 + ispecies;
+                soln_coeff[index][ishape] = theta*(soln_coeff[index][ishape] - soln_cell_avg[index]) + soln_cell_avg[index];
             }
 
-            // if(theta_species > 0)
-            //     std::cout << "The species density is limited." << std::endl;
+        }
+
+        real theta_Y = 1.0;
+        if(nspecies > 1) {
+            // std::array<real, nstate> soln_at_iquad;
+            // real theta_species = 0.0;
+            // for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            //     for (unsigned int istate = 0; istate < nstate; ++istate) {
+            //         soln_at_iquad[istate] = soln_coeff[istate][iquad];
+            //     }
+            //     std::array<real,nspecies> species_densities = real_gas_physics->compute_species_densities(soln_at_iquad);
+                
+            //     real theta_species_quad = 0.0;
+                
+            //     for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies) {
+            //         int index = dim + 2 + ispecies;
+            //         theta_species_quad = 0.0;
+                
+            //         if (species_densities[ispecies]<0)
+            //             theta_species_quad = get_density_scaling_value_species(soln_cell_avg[index],species_densities[ispecies],soln_cell_avg[0],soln_coeff[0][iquad]);
+
+            //         if (theta_species_quad > theta_species)
+            //             theta_species = theta_species_quad;
+            //     }
+
+            //     theta_species_quad = 0.0;
+            //     if (species_densities[nspecies - 1]<0)
+            //             theta_species_quad = get_density_scaling_value_species(nth_species_avg,species_densities[nspecies - 1],soln_cell_avg[0],soln_coeff[0][iquad]);
+            //     if (theta_species_quad > theta_species)
+            //             theta_species = theta_species_quad;
+            // }
+
+            // // if(theta_species > 0)
+            // //     std::cout << "The species density is limited." << std::endl;
+
+            // for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            //     for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies) {
+            //         int index = dim + 2 + ispecies;
+            //         soln_coeff[index][iquad] = soln_coeff[index][iquad] + theta_species*((soln_cell_avg[index]/soln_cell_avg[0])*soln_coeff[0][iquad]-soln_coeff[index][iquad]);
+            //     }
+
+            //     std::array<real, nstate> soln_at_iquad;
+            //     for (unsigned int istate = 0; istate < nstate; ++istate) {
+            //         soln_at_iquad[istate] = soln_coeff[istate][iquad];
+            //     }
+            //     // include a check to ensure mass fraction = 1 after limiting!!
+            //     std::array<real,nspecies> mass_fractions = real_gas_physics->compute_mass_fractions(soln_at_iquad);
+            //     real total_mass_fraction = 0.0;
+            //     for(int ispecies = 0; ispecies < nspecies; ++ispecies){
+            //         total_mass_fraction += mass_fractions[ispecies];
+            //     }
+            //     real uppererror = 1.0 + 1e-13;
+            //     real lowererror = 1.0 - 1e-13;
+            //     if(total_mass_fraction < lowererror && total_mass_fraction > uppererror) {
+            //         std::cout << "The sum of the mass fractions does not equal 1 after limiting! Aborting..." << std::endl;
+            //         std::abort();
+            //     }
+            // }
+            std::array<real,nspecies> max_Y; std::array<real,nspecies> min_Y;
+            for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
+                max_Y[ispecies] = 1.0;
+                min_Y[ispecies] = 0.0;
+            }
 
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies) {
-                    int index = dim + 2 + ispecies;
-                    soln_coeff[index][iquad] = soln_coeff[index][iquad] + theta_species*((soln_cell_avg[index]/soln_cell_avg[0])*soln_coeff[0][iquad]-soln_coeff[index][iquad]);
-                }
-
                 std::array<real, nstate> soln_at_iquad;
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     soln_at_iquad[istate] = soln_coeff[istate][iquad];
                 }
-                // include a check to ensure mass fraction = 1 after limiting!!
                 std::array<real,nspecies> mass_fractions = real_gas_physics->compute_mass_fractions(soln_at_iquad);
-                real total_mass_fraction = 0.0;
-                for(int ispecies = 0; ispecies < nspecies; ++ispecies){
-                    total_mass_fraction += mass_fractions[ispecies];
+                
+                for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
+                    if (mass_fractions[ispecies] > max_Y[ispecies])
+                        max_Y[ispecies] = mass_fractions[ispecies];
+                    if (mass_fractions[ispecies] < min_Y[ispecies])
+                        min_Y[ispecies] = mass_fractions[ispecies];                    
                 }
-                real uppererror = 1.0 + 1e-13;
-                real lowererror = 1.0 - 1e-13;
-                if(total_mass_fraction < lowererror && total_mass_fraction > uppererror) {
-                    std::cout << "The sum of the mass fractions does not equal 1 after limiting! Aborting..." << std::endl;
-                    std::abort();
+            }
+            for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+                real theta_max_species = 1.0; real theta_min_species = 1.0;
+                if(max_Y[ispecies] > 1.0 || min_Y[ispecies] < 0.0) {
+                    if (ispecies != nspecies - 1) {
+                        if (max_Y[ispecies] - soln_cell_avg[dim+2+ispecies] > 1e-13)
+                            theta_max_species = abs((1.0 - soln_cell_avg[dim+2+ispecies])/(max_Y[ispecies] - soln_cell_avg[dim+2+ispecies]));
+                        if (min_Y[ispecies] - soln_cell_avg[dim+2+ispecies] > 1e-13)
+                            theta_min_species = abs((0.0 - soln_cell_avg[dim+2+ispecies])/(min_Y[ispecies] - soln_cell_avg[dim+2+ispecies]));
+
+                        if (theta_max_species < 0.5 || theta_min_species < 0.5) {
+                            std::cout << "The calculated mass fraction theta is < 0.5... Here's the input:" << std::endl;
+                            std::cout << "species " << ispecies << " avg " << soln_cell_avg[dim+2+ispecies] << std::endl;
+                            std::cout << "max_y " << max_Y[ispecies] << " min_Y " << min_Y[ispecies] << std::endl;
+                        }
+                    } else {
+                        if (max_Y[ispecies] - nth_species_avg > 1e-13)
+                            theta_max_species = abs((1.0 - nth_species_avg)/(max_Y[ispecies] - nth_species_avg));
+                        if (min_Y[ispecies] - nth_species_avg > 1e-13)
+                            theta_min_species = abs((0.0 - nth_species_avg)/(min_Y[ispecies] - nth_species_avg));
+                        
+                        if (theta_max_species < 0.5 || theta_min_species < 0.5) {
+                            std::cout << "The calculated mass fraction theta is < 0.5... Here's the input:" << std::endl;
+                            std::cout << "species " << ispecies << " avg " << nth_species_avg << std::endl;
+                            std::cout << "max_y " << max_Y[ispecies] << " min_Y " << min_Y[ispecies] << std::endl;
+                            sleep(5);
+                        }
+                    }
+                }
+                theta_Y = std::min({ theta_max_species, theta_min_species, theta_Y, 1.0 });
+            }
+
+            // Limit values at quadrature points
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                    soln_coeff[istate][iquad] = theta_Y * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
+                            + soln_cell_avg[istate];
                 }
             }
         }
@@ -732,8 +796,10 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             std::abort();
         }
 
-        if(theta2!=1.0 || theta!=1.0) {
-            std::cout << "Limiter is applied. Theta: " << theta << " Theta2: " << theta2 << std::endl;
+        if(theta2!=1.0 || theta!=1.0 || theta_Y < 1.0 - 1e-12) {
+            std::cout << "Limiter is applied. Theta: " << std::setprecision(15) << theta 
+                      << " Theta2: " << std::setprecision(15) << theta2 
+                      << " theta_Y: " << std::setprecision(15) << theta_Y << std::endl;
         }
 
         // Write limited solution back and verify that positivity of density is satisfied
