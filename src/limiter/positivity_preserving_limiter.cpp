@@ -616,9 +616,10 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             //     }
             // }
             std::array<real,nspecies> max_Y; std::array<real,nspecies> min_Y;
+            real max_mixture_density = -1e6; real min_mixture_density = 1e6;
             for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
-                max_Y[ispecies] = 1.0;
-                min_Y[ispecies] = 0.0;
+                max_Y[ispecies] = -1e6;
+                min_Y[ispecies] = 1e6;
             }
 
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
@@ -626,23 +627,28 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     soln_at_iquad[istate] = soln_coeff[istate][iquad];
                 }
-                std::array<real,nspecies> mass_fractions = real_gas_physics->compute_mass_fractions(soln_at_iquad);
+                if(soln_at_iquad[0] > max_mixture_density)
+                    max_mixture_density = soln_at_iquad[0];
+                if(soln_at_iquad[0] < min_mixture_density)
+                    min_mixture_density = soln_at_iquad[0];
+
+                std::array<real,nspecies> species_density = real_gas_physics->compute_species_densities(soln_at_iquad);
                 
                 for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
-                    if (mass_fractions[ispecies] > max_Y[ispecies])
-                        max_Y[ispecies] = mass_fractions[ispecies];
-                    if (mass_fractions[ispecies] < min_Y[ispecies])
-                        min_Y[ispecies] = mass_fractions[ispecies];                    
+                    if (species_density[ispecies] > max_Y[ispecies])
+                        max_Y[ispecies] = species_density[ispecies];
+                    if (species_density[ispecies] < min_Y[ispecies])
+                        min_Y[ispecies] = species_density[ispecies];                    
                 }
             }
             for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
                 real theta_max_species = 1.0; real theta_min_species = 1.0;
-                if(max_Y[ispecies] > 1.0 || min_Y[ispecies] < 0.0) {
+                if(max_Y[ispecies] > max_mixture_density || min_Y[ispecies] < min_mixture_density) {
                     if (ispecies != nspecies - 1) {
                         if (max_Y[ispecies] - soln_cell_avg[dim+2+ispecies] > 1e-13)
-                            theta_max_species = abs((1.0 - soln_cell_avg[dim+2+ispecies])/(max_Y[ispecies] - soln_cell_avg[dim+2+ispecies]));
+                            theta_max_species = abs((max_mixture_density - soln_cell_avg[dim+2+ispecies])/(max_Y[ispecies] - soln_cell_avg[dim+2+ispecies]));
                         if (min_Y[ispecies] - soln_cell_avg[dim+2+ispecies] > 1e-13)
-                            theta_min_species = abs((0.0 - soln_cell_avg[dim+2+ispecies])/(min_Y[ispecies] - soln_cell_avg[dim+2+ispecies]));
+                            theta_min_species = abs((min_mixture_density - soln_cell_avg[dim+2+ispecies])/(min_Y[ispecies] - soln_cell_avg[dim+2+ispecies]));
 
                         if (theta_max_species < 0.5 || theta_min_species < 0.5) {
                             std::cout << "The calculated mass fraction theta is < 0.5... Here's the input:" << std::endl;
@@ -651,9 +657,9 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                         }
                     } else {
                         if (max_Y[ispecies] - nth_species_avg > 1e-13)
-                            theta_max_species = abs((1.0 - nth_species_avg)/(max_Y[ispecies] - nth_species_avg));
+                            theta_max_species = abs((max_mixture_density - nth_species_avg)/(max_Y[ispecies] - nth_species_avg));
                         if (min_Y[ispecies] - nth_species_avg > 1e-13)
-                            theta_min_species = abs((0.0 - nth_species_avg)/(min_Y[ispecies] - nth_species_avg));
+                            theta_min_species = abs((min_mixture_density - nth_species_avg)/(min_Y[ispecies] - nth_species_avg));
                         
                         if (theta_max_species < 0.5 || theta_min_species < 0.5) {
                             std::cout << "The calculated mass fraction theta is < 0.5... Here's the input:" << std::endl;
@@ -667,12 +673,15 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             }
 
             // Limit values at quadrature points
-            for (unsigned int istate = 0; istate < nstate; ++istate) {
+            // for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    soln_coeff[istate][iquad] = theta_Y * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
-                            + soln_cell_avg[istate];
+                    for(int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
+                        int index = dim + 2 + ispecies;
+                        soln_coeff[index][iquad] = theta_Y * (soln_coeff[index][iquad] - soln_cell_avg[index])
+                                + soln_cell_avg[index];
+                    }
                 }
-            }
+            // }
         }
 
         // Interpolate new density values to mixed quadrature points

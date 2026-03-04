@@ -1365,7 +1365,7 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
         for (unsigned int s=0; s<nspecies; ++s) 
         {
-            if (mass_fractions[s] > 1 || mass_fractions[s] < 0) {
+            if (mass_fractions[s] > 1 + 1e-13 || mass_fractions[s] < -1e-13) {
                 std::cout << "MASS FRACTION IS A NONPHYSICAL VALUE OF " << mass_fractions[s] << std::endl; //<< "ABORTING..." << std::endl;
                 // std::abort();
             }
