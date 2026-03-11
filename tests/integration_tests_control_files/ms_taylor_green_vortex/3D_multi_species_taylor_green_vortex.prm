@@ -18,7 +18,7 @@ set use_weak_form = false
 set flux_nodes_type = GLL
 set use_split_form = true
 set two_point_num_flux_type = KG
-set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+set conv_num_flux = two_point_flux
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
@@ -27,6 +27,16 @@ set use_periodic_bc = true
 
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
+
+#limiter flags
+subsection limiter
+  set bound_preserving_limiter = positivity_preservingWang2012
+  set min_density = 1e-13
+  
+  #set use_tvb_limiter = true
+  #set max_delta_x = 0.000625
+  #set tuning_parameter_for_each_state = 0,0,0,0
+end
 
 # ODE solver
 subsection ODE solver
@@ -47,7 +57,7 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 14.0
   set adaptive_time_step = true
-  set courant_friedrichs_lewy_number = 0.29
+  set courant_friedrichs_lewy_number = 0.2
   #set constant_time_step = 0.005
   #set output_restart_files = true
   #set restart_files_directory_name = restart_files
@@ -56,5 +66,15 @@ subsection flow_solver
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200
     set number_of_grid_elements_per_dimension = 8
+    subsection grid_rectangle
+      set grid_top_bound = 6.28318530717958623200
+      set grid_bottom_bound = 0.0
+      set grid_z_lower_bound = 0.0
+      set grid_z_upper_bound = 6.28318530717958623200
+
+      set number_of_grid_elements_x = 8
+      set number_of_grid_elements_y = 8
+      set number_of_grid_elements_z = 8
+    end
   end
 end

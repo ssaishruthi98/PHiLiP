@@ -235,6 +235,9 @@ public:
     /** See the book I do like CFD, sec 4.14.2 */
     real compute_pressure_from_density_temperature ( const real density, const real temperature, const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Compute numerical entropy function -rho s 
+    real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
+    
 protected:
     // Algorithm 18 (f_M18): Compute mixture specific total enthalpy from conservative_soln
     real compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;

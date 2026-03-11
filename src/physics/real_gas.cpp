@@ -956,6 +956,29 @@ inline real RealGas<dim,nspecies,nstate,real>
     return mixture_specific_total_enthalpy;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim,nspecies,nstate,real>
+::compute_numerical_entropy_function ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real density = conservative_soln[0];
+
+    const real temperature = compute_temperature(conservative_soln);
+
+    std::array<real,nspecies> species_entropy = compute_species_entropy(temperature);
+    const std::array<real,nspecies> species_densities = compute_species_densities(conservative_soln);
+    const std::array<real,nspecies> mass_fractions= compute_mass_fractions(conservative_soln);
+
+    real mixture_entropy = 0.0;
+    for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        species_entropy[ispecies] -= this->Rs[ispecies]*log(species_densities[ispecies]);
+        mixture_entropy += mass_fractions[ispecies]*species_entropy[ispecies];
+    }
+
+    const real numerical_entropy_function = - density * mixture_entropy;
+
+    return numerical_entropy_function;
+}
+
 // Algorithm 19 (f_M19): Compute convective flux
 template <int dim, int nspecies, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
@@ -1048,15 +1071,16 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
                                                  const std::array<real,nstate> &conservative_soln2) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+
+    real mean_density = 0.5*(conservative_soln1[0]+conservative_soln2[0]);
+
     const std::array<real,nspecies> rho_species1 = compute_species_densities(conservative_soln1);
     const std::array<real,nspecies> rho_species2 = compute_species_densities(conservative_soln2);
 
     // compute mean densities
     std::array<real, nspecies> mean_species_densities;
-    real mean_density = 0.0;
     for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
         mean_species_densities[ispecies] = (rho_species1[ispecies]+rho_species2[ispecies])/2.0;
-        mean_density += mean_species_densities[ispecies];
     }
 
     // compute mean velocities
@@ -1088,7 +1112,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
         }
         conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
         // Energy equation
-        conv_num_split_flux[dim+1][flux_dim] = mean_density*mean_vel[flux_dim]*mean_total_energy + mean_pressure * mean_vel[flux_dim];
+        conv_num_split_flux[dim+1][flux_dim] = mean_density*mean_vel[flux_dim]*mean_total_energy + mean_pressure*mean_vel[flux_dim];
         // Species density equation
         for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
             conv_num_split_flux[dim+2+ispecies][flux_dim] = mean_species_densities[ispecies] * mean_vel[flux_dim];
@@ -1365,6 +1389,8 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
         for (unsigned int s=0; s<nspecies; ++s) 
         {
+            if(mass_fractions[s] < -1e-13 || mass_fractions[s] > 1+1e-13)
+                std::cout << "mass fraction of species " << s << " is a nonphysical value of " << mass_fractions[s] << std::endl;
             computed_quantities(++current_data_index) = mass_fractions[s];
         }
         // Species densities
@@ -1378,17 +1404,6 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         // for (unsigned int d=0; d<3; ++d) {
         //     computed_quantities(++current_data_index) = vorticity[d];
         // }
-
-        // const std::array<real,nstate> entropy_var = compute_entropy_variables(conservative_soln);
-        // const std::array<real,nstate> cons_soln = compute_conservative_variables_from_entropy_variables(entropy_var);
-
-        // for(int istate = 0; istate < nstate; ++istate) {
-        //     std::cout << "state " << istate << " entropy var:  " << entropy_var[istate] << std::endl;
-        // }
-        // for(int istate = 0; istate < nstate; ++istate) {
-        //     std::cout << "state " << istate << " conservative_soln var:  " << conservative_soln[istate] << "  converted from entropy vars:  " << cons_soln[istate] << std::endl;
-        // }
-        // sleep(5);
     }
     if (computed_quantities.size()-1 != current_data_index) {
         std::cout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."

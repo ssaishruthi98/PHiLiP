@@ -598,15 +598,9 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                 }
                 // include a check to ensure mass fraction = 1 after limiting!!
                 std::array<real,nspecies> mass_fractions = real_gas_physics->compute_mass_fractions(soln_at_iquad);
-                real total_mass_fraction = 0.0;
                 for(int ispecies = 0; ispecies < nspecies; ++ispecies){
-                    total_mass_fraction += mass_fractions[ispecies];
-                }
-                real uppererror = 1.0 + 1e-13;
-                real lowererror = 1.0 - 1e-13;
-                if(total_mass_fraction < lowererror && total_mass_fraction > uppererror) {
-                    std::cout << "The sum of the mass fractions does not equal 1 after limiting! Aborting..." << std::endl;
-                    std::abort();
+                    if(mass_fractions[ispecies] < -1e-13 || mass_fractions[ispecies] > 1+1e-13)
+                        std::cout << "Limiter Warning: mass fraction of species " << ispecies << " is a nonphysical value of " << mass_fractions[ispecies] << std::endl;
                 }
             }
         }
