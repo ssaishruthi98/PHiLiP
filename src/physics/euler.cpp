@@ -599,7 +599,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nspecies, nstate, real>
     const real pressure_hat = 0.5*(conservative_soln1[0] + conservative_soln2[0])/(2.0*0.5*(beta1+beta2));
 
     dealii::Tensor<1,dim,real> vel_avg;
-    real vel_square_avg = 0.0;;
+    real vel_square_avg = 0.0;
     for(int idim=0; idim<dim; idim++){
         vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
         vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
