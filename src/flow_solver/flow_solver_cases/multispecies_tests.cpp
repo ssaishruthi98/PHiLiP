@@ -97,7 +97,7 @@ void MultispeciesTests<dim,nspecies,nstate>::display_additional_flow_case_specif
 }
 
 template<int dim, int nspecies, int nstate>
-double MultispeciesTests<dim, nspecies, nstate>::compute_integrated_entropy(DGBase<dim, nspecies, double> &dg) const
+std::array<double,2> MultispeciesTests<dim, nspecies, nstate>::compute_integrated_quantities(DGBase<dim, nspecies, double> &dg) const
 {
     // Check that poly_degree is uniform everywhere
     if (dg.get_max_fe_degree() != dg.get_min_fe_degree()) {
@@ -106,7 +106,8 @@ double MultispeciesTests<dim, nspecies, nstate>::compute_integrated_entropy(DGBa
         std::abort();
     }
 
-    double integrated_quantity = 0.0;
+    double integrated_entropy = 0.0;
+    double integrated_kinetic_energy = 0.0;
 
     const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
     const unsigned int poly_degree = dg.max_degree;
@@ -207,17 +208,20 @@ double MultispeciesTests<dim, nspecies, nstate>::compute_integrated_entropy(DGBa
             // Compute integrated quantities here
             //#####################################################################
             const double quadrature_entropy = this->real_gas_physics->compute_numerical_entropy_function(soln_at_q);
+            const double quadrature_kinetic_energy = this->real_gas_physics->compute_specific_kinetic_energy(soln_at_q)*soln_at_q[0];
             //Using std::cout because of cell->is_locally_owned check 
             if (isnan(quadrature_entropy))  std::cout << "WARNING: NaN entropy detected at a node!"  << std::endl;
-            integrated_quantity += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+            integrated_entropy += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+            integrated_kinetic_energy += quadrature_kinetic_energy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             //#####################################################################
         }
     }
 
     //MPI
-    integrated_quantity = dealii::Utilities::MPI::sum(integrated_quantity, this->mpi_communicator);
+    integrated_entropy = dealii::Utilities::MPI::sum(integrated_entropy, this->mpi_communicator);
+    integrated_kinetic_energy = dealii::Utilities::MPI::sum(integrated_kinetic_energy, this->mpi_communicator);
     
-    return integrated_quantity;
+    return {{integrated_entropy,integrated_kinetic_energy}};
 }
 
 template <int dim, int nspecies, int nstate>
@@ -232,7 +236,9 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
 
     // All discrete proofs use solution nodes, therefore it is best to report 
     // entropy on the solution nodes rather than by overintegrating.
-    const double current_numerical_entropy = this->compute_integrated_entropy(*dg); // no overintegration
+    std::array<double,2> integrated_quantities = this->compute_integrated_quantities(*dg);
+    const double current_numerical_entropy = integrated_quantities[0]; // no overintegration
+    const double kinetic_energy = integrated_quantities[1]; // no overintegration
     if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
     const double entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
     this->previous_numerical_entropy = current_numerical_entropy;
@@ -246,15 +252,17 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
 
     if (this->mpi_rank == 0) {
 
-        unsteady_data_table->add_value("iteration", current_iteration);
+        // unsteady_data_table->add_value("iteration", current_iteration);
         // Add values to data table
         this->add_value_to_data_table(current_time, "time", unsteady_data_table);
-        this->add_value_to_data_table(entropy,"entropy",unsteady_data_table);
-        unsteady_data_table->set_scientific("entropy", false);
-        this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
-        unsteady_data_table->set_scientific("current_numerical_entropy", false);
-        this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
-        unsteady_data_table->set_scientific("U/Uo", false);
+        this->add_value_to_data_table(kinetic_energy,"kinetic_energy",unsteady_data_table);
+        unsteady_data_table->set_scientific("kinetic_energy", false);
+        // this->add_value_to_data_table(entropy,"entropy",unsteady_data_table);
+        // unsteady_data_table->set_scientific("entropy", false);
+        // this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
+        // unsteady_data_table->set_scientific("current_numerical_entropy", false);
+        // this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
+        // unsteady_data_table->set_scientific("U/Uo", false);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);

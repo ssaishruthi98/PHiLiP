@@ -1072,7 +1072,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
 
-    real mean_density = 0.5*(conservative_soln1[0]+conservative_soln2[0]);
+    real mean_density = 0.0;
 
     const std::array<real,nspecies> rho_species1 = compute_species_densities(conservative_soln1);
     const std::array<real,nspecies> rho_species2 = compute_species_densities(conservative_soln2);
@@ -1081,6 +1081,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     std::array<real, nspecies> mean_species_densities;
     for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
         mean_species_densities[ispecies] = (rho_species1[ispecies]+rho_species2[ispecies])/2.0;
+        mean_density += mean_species_densities[ispecies];
     }
 
     // compute mean velocities

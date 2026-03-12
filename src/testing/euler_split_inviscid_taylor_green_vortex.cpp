@@ -636,7 +636,7 @@ int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
         const double current_change_entropy_mpi = dealii::Utilities::MPI::sum(current_change_entropy[0], mpi_communicator);
         const double current_change_energy_mpi = dealii::Utilities::MPI::sum(current_change_entropy[1], mpi_communicator);
         //write to the file the change in entropy mpi
-        myfile<<ode_solver->current_time<<" "<< current_change_entropy_mpi <<std::endl;
+        // myfile<<ode_solver->current_time<<" "<< current_change_entropy_mpi <<std::endl;
         pcout << "M plus K norm Change in Entropy at time " << ode_solver->current_time << " is " << current_change_entropy_mpi<< std::endl;
         pcout << "M plus K norm Change in Kinetic Energy at time " << ode_solver->current_time << " is " << current_change_energy_mpi<< std::endl;
         //check if change in entropy is conserved at machine precision
@@ -648,6 +648,8 @@ int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
         //get the kinetic energy
         const double current_energy = compute_kinetic_energy(dg, poly_degree);
         const double current_energy_mpi = (dealii::Utilities::MPI::sum(current_energy, mpi_communicator));
+        pcout << "========================================= Kinetic Energy: " << current_energy_mpi << " =========================================" << std::endl;
+        myfile<< ode_solver->current_time << " " << std::fixed << std::setprecision(16) << current_energy_mpi << std::endl;
         pcout << "Normalized kinetic energy " << ode_solver->current_time << " is " << current_energy_mpi/initial_energy_mpi<< std::endl;
         //get the entropy
         const double current_entropy = compute_entropy(dg, poly_degree);
@@ -658,7 +660,7 @@ int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
         double current_vol_work = compute_volume_term(dg, poly_degree);
         double current_vol_work_mpi = (dealii::Utilities::MPI::sum(current_vol_work, mpi_communicator));
         pcout<<"volume work "<<current_vol_work_mpi<<std::endl;
-        myfile << ode_solver->current_time << " " << std::fixed << std::setprecision(16) << current_vol_work_mpi<< std::endl;
+        // myfile << ode_solver->current_time << " " << std::fixed << std::setprecision(16) << current_vol_work_mpi<< std::endl;
         //check for non overintegrated case
         if(!all_parameters->use_curvilinear_grid and all_parameters->overintegration == 0){
             if(abs(current_vol_work_mpi) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::Ra || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::KG ) ){

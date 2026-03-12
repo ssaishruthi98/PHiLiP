@@ -6,7 +6,7 @@ set test_type = euler_split_taylor_green
 
 set use_weak_form = false
 
-set flux_nodes_type = GL
+set flux_nodes_type = GLL
 
 set do_renumber_dofs = false
 
@@ -14,11 +14,11 @@ set overintegration = 0
 
 set use_split_form = true
 
-set two_point_num_flux_type = Ra
+set two_point_num_flux_type = KG
 
 set use_curvilinear_split_form = true
 
-set energy_file = cplus_curv_not_weight_adj
+set energy_file = cdg_kg_kep
 
 set use_curvilinear_grid = false
 
@@ -31,7 +31,7 @@ set conv_num_flux = two_point_flux
 
 set use_energy = true
 
-set flux_reconstruction = cPlus
+set flux_reconstruction = cDG
 
 set use_inverse_mass_on_the_fly = true
 
@@ -73,7 +73,7 @@ subsection flow_solver
     set poly_degree = 3
     set final_time = 14.0
     subsection grid
-        set number_of_grid_elements_per_dimension = 2
+        set number_of_grid_elements_per_dimension = 8
     end
 end
 
