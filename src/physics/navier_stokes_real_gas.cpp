@@ -769,6 +769,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
     const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive(primitive_soln); // from Real Gas
     const std::array<dealii::Tensor<1,dim,real>, nspecies> species_diffusion_flux = compute_species_diffusion_flux(primitive_soln, primitive_soln_gradient);
     const dealii::Tensor<1,dim,real> total_heat_flux = compute_total_heat_flux(primitive_soln, primitive_soln_gradient, species_diffusion_flux);
+    // const dealii::Tensor<1,dim,real> total_heat_flux = compute_heat_flux(primitive_soln, primitive_soln_gradient);
+
 
     // Step 4: Construct viscous flux; Note: sign corresponds to LHS
     const std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux = dissipative_flux_given_velocities_viscous_stress_tensor_heat_flux_species_diffusion_flux(vel,viscous_stress_tensor,total_heat_flux,species_diffusion_flux);
@@ -780,7 +782,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
 ::dissipative_flux_given_velocities_viscous_stress_tensor_heat_flux_species_diffusion_flux (
     const dealii::Tensor<1,dim,real> &vel,
     const dealii::Tensor<2,dim,real> &viscous_stress_tensor,
-    const dealii::Tensor<1,dim,real> &heat_flux,
+    const dealii::Tensor<1,dim,real> &total_heat_flux,
     const std::array<dealii::Tensor<1,dim,real>, nspecies> &species_diffusion_flux) const
 {
     /* Nondimensionalized viscous flux (i.e. dissipative flux)
@@ -803,10 +805,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
         for (int stress_dim=0; stress_dim<dim; ++stress_dim){
            viscous_flux[dim+1][flux_dim] -= vel[stress_dim]*viscous_stress_tensor[flux_dim][stress_dim];
         }
-        viscous_flux[dim+1][flux_dim] += heat_flux[flux_dim];
+        viscous_flux[dim+1][flux_dim] += total_heat_flux[flux_dim];
         // Species density equation
         for (int s=0; s<nspecies-1; ++s) {
-            viscous_flux[dim+2+s][flux_dim] = species_diffusion_flux[s][flux_dim];
+            viscous_flux[dim+2+s][flux_dim] = -1.0*species_diffusion_flux[s][flux_dim];
         }
     }
     return viscous_flux;

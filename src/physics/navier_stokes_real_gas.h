@@ -289,7 +289,7 @@ public:
     dissipative_flux_given_velocities_viscous_stress_tensor_heat_flux_species_diffusion_flux (
         const dealii::Tensor<1,dim,real> &vel,
         const dealii::Tensor<2,dim,real> &viscous_stress_tensor,
-        const dealii::Tensor<1,dim,real> &heat_flux,
+        const dealii::Tensor<1,dim,real> &total_heat_flux,
         const std::array<dealii::Tensor<1,dim,real>, nspecies> &species_diffusion_flux) const;
 
 protected:
