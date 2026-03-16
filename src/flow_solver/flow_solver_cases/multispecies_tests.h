@@ -36,6 +36,9 @@ protected:
     /// Computes integrated entropy and kinetic energy
     std::array<double,2> compute_integrated_quantities(DGBase<dim, nspecies, double>& dg) const;
 
+    ///Computes the volume term kinetic energy production.
+    double compute_volume_term(DGBase<dim, nspecies, double>& dg) const;
+
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 

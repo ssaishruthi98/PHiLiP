@@ -76,6 +76,10 @@ public:
     std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
                 const std::array<real,nstate> &entropy_var) const;
 
+    /// Computes the kinetic energy variables.
+    std::array<real,nstate> compute_kinetic_energy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*conservative_soln*/,
@@ -249,11 +253,13 @@ protected:
     /// Compute Ismail-Roe logarithmic mean
     real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
 
+public:
     ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const override;
 
+protected:
     /// Kennedy-Gruber entropy conserving flux
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_kennedy_gruber (
         const std::array<real,nstate> &conservative_soln1,

@@ -224,6 +224,236 @@ std::array<double,2> MultispeciesTests<dim, nspecies, nstate>::compute_integrate
     return {{integrated_entropy,integrated_kinetic_energy}};
 }
 
+template<int dim, int nspecies, int nstate>
+double MultispeciesTests<dim, nspecies, nstate>::compute_volume_term(DGBase<dim, nspecies, double>& dg) const
+{
+    const unsigned int poly_degree = dg.max_degree;
+    const unsigned int n_dofs_cell = dg.fe_collection[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts = dg.volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_shape_fns = n_dofs_cell / nstate;
+    const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
+
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, dg.max_grid_degree);
+    soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], dg.oneD_quadrature_collection[poly_degree]);
+    soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], dg.oneD_quadrature_collection[poly_degree]);
+    soln_basis.build_1D_surface_operator(dg.oneD_fe_collection_1state[poly_degree], dg.oneD_face_quadrature);
+
+    OPERATOR::basis_functions<dim,2*dim,double> flux_basis(1, poly_degree, dg.max_grid_degree);
+    flux_basis.build_1D_volume_operator(dg.oneD_fe_collection_flux[poly_degree], dg.oneD_quadrature_collection[poly_degree]);
+    flux_basis.build_1D_gradient_operator(dg.oneD_fe_collection_flux[poly_degree], dg.oneD_quadrature_collection[poly_degree]);
+    flux_basis.build_1D_surface_operator(dg.oneD_fe_collection_flux[poly_degree], dg.oneD_face_quadrature);
+
+    OPERATOR::local_basis_stiffness<dim,2*dim,double> flux_basis_stiffness(1, poly_degree, dg.max_grid_degree, true);
+    //flux basis stiffness operator for skew-symmetric form
+    flux_basis_stiffness.build_1D_volume_operator(dg.oneD_fe_collection_flux[poly_degree], dg.oneD_quadrature_collection[poly_degree]);
+
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, grid_degree);
+    mapping_basis.build_1D_shape_functions_at_grid_nodes(dg.high_order_grid->oneD_fe_system, dg.high_order_grid->oneD_grid_nodes);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg.high_order_grid->oneD_fe_system, dg.oneD_quadrature_collection[poly_degree], dg.oneD_face_quadrature);
+    const std::vector<double> &oneD_vol_quad_weights = dg.oneD_quadrature_collection[poly_degree].get_weights();
+
+    OPERATOR::vol_projection_operator<dim,2*dim,double> vol_projection(1, poly_degree, dg.max_grid_degree);
+    vol_projection.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], dg.oneD_quadrature_collection[poly_degree]);
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+
+    double volume_term = 0.0;
+    auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
+    for (auto cell = dg.dof_handler.begin_active(); cell!= dg.dof_handler.end(); ++cell, ++metric_cell) {
+        if (!cell->is_locally_owned()) continue;
+        cell->get_dof_indices (dofs_indices);
+
+        // We first need to extract the mapping support points (grid nodes) from high_order_grid.
+        const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+        const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dof_indices);
+        std::array<std::vector<double>,dim> mapping_support_points;
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_grid_nodes);
+        }
+        // Get the mapping support points (physical grid nodes) from high_order_grid.
+        // Store it in such a way we can use sum-factorization on it with the mapping basis functions.
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const double val = (dg.high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first;
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second;
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points[istate][igrid_node] = val;
+        }
+        // Construct the metric operators.
+        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, false, false);
+        // Build the metric terms to compute the gradient and volume node positions.
+        // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix.
+        // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
+        metric_oper.build_volume_metric_operators(
+            n_quad_pts, n_grid_nodes,
+            mapping_support_points,
+            mapping_basis,
+            dg.all_parameters->use_invariant_curl_form);
+
+
+
+        std::array<std::vector<double>,nstate> soln_coeff;
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            const unsigned int istate = dg.fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg.fe_collection[poly_degree].system_to_component_index(idof).second;
+            if(ishape == 0)
+                soln_coeff[istate].resize(n_shape_fns);
+            soln_coeff[istate][ishape] = dg.solution(dofs_indices[idof]);
+        }
+
+        std::array<std::vector<double>,nstate> soln_at_q;
+        std::array<std::vector<double>,dim> vel_at_q;
+        for(int istate=0; istate<nstate; istate++){
+            soln_at_q[istate].resize(n_quad_pts);
+            // Interpolate soln coeff to volume cubature nodes.
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                             soln_basis.oneD_vol_operator);
+        }
+        //get volume entropy var and interp to face
+        std::array<std::vector<double>,nstate> energy_var_vol_int;
+        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+            std::array<double,nstate> soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_q[istate][iquad];
+            }
+            std::array<double,nstate> energy_var;
+            energy_var = this->real_gas_physics->compute_kinetic_energy_variables(soln_state);
+            for(int istate=0; istate<nstate; istate++){
+                if(iquad==0){
+                    energy_var_vol_int[istate].resize(n_quad_pts);
+                }
+                energy_var_vol_int[istate][iquad] = energy_var[istate];
+            }
+        }
+
+        std::array<std::vector<double>,nstate> energy_var_hat;
+        for(int istate=0; istate<nstate; istate++){
+            //Projected vector of entropy variables.
+            energy_var_hat[istate].resize(n_shape_fns);
+            vol_projection.matrix_vector_mult_1D(energy_var_vol_int[istate], energy_var_hat[istate],
+                                                 vol_projection.oneD_vol_operator);
+        }
+        // The matrix of two-pt fluxes for Hadamard products
+        std::array<dealii::Tensor<1,dim,dealii::FullMatrix<double>>,nstate> conv_ref_2pt_flux_at_q;
+
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            //extract soln and auxiliary soln at quad pt to be used in physics
+            std::array<double,nstate> soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_q[istate][iquad];
+            }
+
+            // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
+            // The way it is stored in metric_operators is to use sum-factorization in each direction,
+            // but here it is cleaner to apply a reference transformation in each Tensor block returned by physics.
+            dealii::Tensor<2,dim,double> metric_cofactor;
+            for(int idim=0; idim<dim; idim++){
+                for(int jdim=0; jdim<dim; jdim++){
+                    metric_cofactor[idim][jdim] = metric_oper.metric_cofactor_vol[idim][jdim][iquad];
+                }
+            }
+
+            // Evaluate physical convective flux
+            // If 2pt flux, transform to reference at construction to improve performance.
+            // We technically use a REFERENCE 2pt flux for all entropy stable schemes.
+            std::array<dealii::Tensor<1,dim,double>,nstate> conv_phys_flux_2pt;
+            std::vector<std::array<dealii::Tensor<1,dim,double>,nstate>> conv_ref_flux_2pt(n_quad_pts);
+            for (unsigned int flux_basis=iquad; flux_basis<n_quad_pts; ++flux_basis) {
+
+                // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
+                // The way it is stored in metric_operators is to use sum-factorization in each direction,
+                // but here it is cleaner to apply a reference transformation in each Tensor block returned by physics.
+                dealii::Tensor<2,dim,double> metric_cofactor_flux_basis;
+                for(int idim=0; idim<dim; idim++){
+                    for(int jdim=0; jdim<dim; jdim++){
+                        metric_cofactor_flux_basis[idim][jdim] = metric_oper.metric_cofactor_vol[idim][jdim][flux_basis];
+                    }
+                }
+                std::array<double,nstate> soln_state_flux_basis;
+                for(int istate=0; istate<nstate; istate++){
+                    soln_state_flux_basis[istate] = soln_at_q[istate][flux_basis];
+                }
+                //Compute the physical flux
+                conv_phys_flux_2pt = this->real_gas_physics->convective_numerical_split_flux(soln_state, soln_state_flux_basis);
+
+                //Need to subtract off the pressure average term
+                const double pressure_int = this->real_gas_physics->compute_mixture_pressure(soln_state);
+                const double pressure_ext = this->real_gas_physics->compute_mixture_pressure(soln_state_flux_basis);
+                for(int idim=0; idim<dim; idim++){
+                    conv_phys_flux_2pt[1+idim][idim] -= 0.5*(pressure_int + pressure_ext);
+                }
+
+
+                for(int istate=0; istate<nstate; istate++){
+                    //For each state, transform the physical flux to a reference flux.
+                    metric_oper.transform_physical_to_reference(
+                        conv_phys_flux_2pt[istate],
+                        0.5*(metric_cofactor + metric_cofactor_flux_basis),
+                        conv_ref_flux_2pt[flux_basis][istate]);
+                }
+            }
+
+            //Write the values in a way that we can use sum-factorization on.
+            for(int istate=0; istate<nstate; istate++){
+                //Write the data in a way that we can use sum-factorization on.
+                //Since sum-factorization improves the speed for matrix-vector multiplications,
+                //We need the values to have their inner elements be vectors.
+                for(int idim=0; idim<dim; idim++){
+                    //allocate
+                    if(iquad == 0){
+                        conv_ref_2pt_flux_at_q[istate][idim].reinit(n_quad_pts, n_quad_pts);
+                    }
+                    //write data
+                    for (unsigned int flux_basis=iquad; flux_basis<n_quad_pts; ++flux_basis) {
+                        //Note that the 2pt flux matrix is symmetric so we only computed upper triangular
+                        conv_ref_2pt_flux_at_q[istate][idim][iquad][flux_basis] = conv_ref_flux_2pt[flux_basis][istate][idim];
+                        conv_ref_2pt_flux_at_q[istate][idim][flux_basis][iquad] = conv_ref_flux_2pt[flux_basis][istate][idim];
+                    }
+                }
+            }
+        }
+        //For each state we:
+        //  1. Compute reference divergence.
+        //  2. Then compute and write the rhs for the given state.
+        for(int istate=0; istate<nstate; istate++){
+
+            //Compute reference divergence of the reference fluxes.
+            std::vector<double> conv_flux_divergence(n_quad_pts);
+
+            //2pt flux Hadamard Product, and then multiply by vector of ones scaled by 1.
+            // Same as the volume term in Eq. (15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485. but,
+            // where we use the reference skew-symmetric stiffness operator of the flux basis for the Q operator and the reference two-point flux as to make use of Alex's Hadamard product
+            // sum-factorization type algorithm that exploits the structure of the flux basis in the reference space to have O(n^{d+1}).
+            flux_basis.divergence_two_pt_flux_Hadamard_product(conv_ref_2pt_flux_at_q[istate], conv_flux_divergence, oneD_vol_quad_weights, flux_basis_stiffness.oneD_skew_symm_vol_oper, 1.0);
+
+            // Strong form
+            // The right-hand side sends all the term to the side of the source term
+            // Therefore,
+            // \divergence ( Fconv + Fdiss ) = source
+            // has the right-hand side
+            // rhs = - \divergence( Fconv + Fdiss ) + source
+            // Since we have done an integration by parts, the volume term resulting from the divergence of Fconv and Fdiss
+            // is negative. Therefore, negative of negative means we add that volume term to the right-hand-side
+            std::vector<double> rhs(n_shape_fns);
+
+            // Convective
+            std::vector<double> ones(n_quad_pts, 1.0);
+            soln_basis.inner_product_1D(conv_flux_divergence, ones, rhs, soln_basis.oneD_vol_operator, false, -1.0);
+
+            for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                volume_term += energy_var_hat[istate][ishape] * rhs[ishape];
+            }
+        }
+    }
+    double current_vol_work_mpi = (dealii::Utilities::MPI::sum(volume_term, this->mpi_communicator));
+
+    return current_vol_work_mpi;
+}
+
 template <int dim, int nspecies, int nstate>
 void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
     const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
@@ -239,6 +469,7 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
     std::array<double,2> integrated_quantities = this->compute_integrated_quantities(*dg);
     const double current_numerical_entropy = integrated_quantities[0]; // no overintegration
     const double kinetic_energy = integrated_quantities[1]; // no overintegration
+    const double kinetic_energy_work = this->compute_volume_term(*dg); // no overintegration
     if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
     const double entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
     this->previous_numerical_entropy = current_numerical_entropy;
@@ -257,12 +488,14 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
         this->add_value_to_data_table(current_time, "time", unsteady_data_table);
         this->add_value_to_data_table(kinetic_energy,"kinetic_energy",unsteady_data_table);
         unsteady_data_table->set_scientific("kinetic_energy", false);
-        // this->add_value_to_data_table(entropy,"entropy",unsteady_data_table);
-        // unsteady_data_table->set_scientific("entropy", false);
-        // this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
-        // unsteady_data_table->set_scientific("current_numerical_entropy", false);
-        // this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
-        // unsteady_data_table->set_scientific("U/Uo", false);
+        this->add_value_to_data_table(kinetic_energy_work,"kinetic_energy_work",unsteady_data_table);
+        unsteady_data_table->set_scientific("kinetic_energy_work", false);
+        this->add_value_to_data_table(entropy,"entropy",unsteady_data_table);
+        unsteady_data_table->set_scientific("entropy", false);
+        this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
+        unsteady_data_table->set_scientific("current_numerical_entropy", false);
+        this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
+        unsteady_data_table->set_scientific("U/Uo", false);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
