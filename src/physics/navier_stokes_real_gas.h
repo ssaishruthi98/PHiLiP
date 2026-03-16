@@ -71,8 +71,8 @@ public:
 
     /** Nondimensionalized temperature gradient */
     dealii::Tensor<1,dim,real> compute_temperature_gradient (
-        const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
     /** Nondimensionalized viscosity coefficient, mu*
      *  Based on the use_constant_viscosity flag, it returns a value based on either:
@@ -225,14 +225,14 @@ public:
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
     dealii::Tensor<1,dim,real> compute_heat_flux (
-        const std::array<real,nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
     /** Nondimensionalised total heat flux consisting of the fourier heat flux and the heat flux from species diffusion flux.
      */
     dealii::Tensor<1, dim, real> compute_total_heat_flux(
-        const std::array<real, nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>, nstate> &primitive_soln_gradient,
+        const std::array<real, nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>, nstate> &conservative_soln_gradient,
         const std::array<dealii::Tensor<1,dim,real>, nspecies> &species_diffusion_flux) const;
 
 

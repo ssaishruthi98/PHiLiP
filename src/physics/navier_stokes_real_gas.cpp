@@ -54,6 +54,9 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
     const real density = primitive_soln[0];
     const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive(primitive_soln); // from Euler
 
+    // mass fractions
+    const std::array<real,nspecies> mass_fractions = this->template compute_mass_fractions(conservative_soln);
+
      // mixture density gradient
     for (int d=0; d<dim; d++) {
         primitive_soln_gradient[0][d] = conservative_soln_gradient[0][d];
@@ -73,43 +76,166 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
         }
     }
 
-//     // pressure gradient
-//     // -- formulation 1:
-//     // const double vel2 = this->template compute_velocity_squared(vel); // from Euler
-//     // for (int d1=0; d1<dim; d1++) {
-//     //     primitive_soln_gradient[nstate-1][d1] = conservative_soln_gradient[nstate-1][d1] - 0.5*vel2*conservative_soln_gradient[0][d1];
-//     //     for (int d2=0; d2<dim; d2++) {
-//     //         primitive_soln_gradient[nstate-1][d1] -= conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1];
-//     //     }
-//     //     primitive_soln_gradient[nstate-1][d1] *= this->gamm1;
-//     // }
-//     // -- formulation 2 (equivalent to formulation 1):
-    for (int d1=0; d1<dim; d1++) {
-        primitive_soln_gradient[dim+1][d1] = conservative_soln_gradient[dim+1][d1];
-        for (int d2=0; d2<dim; d2++) {
-            primitive_soln_gradient[dim+1][d1] -= 0.5*(primitive_soln[1+d2]*conservative_soln_gradient[1+d2][d1]  
-                                                           + conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1]);
-        }
-        primitive_soln_gradient[dim+1][d1] *= this->gamm1;
+    const dealii::Tensor<1,dim,real> temperature_gradient = compute_temperature_gradient(conservative_soln, conservative_soln_gradient);
+    
+    const real temperature = this->template compute_temperature(conservative_soln);
+
+    real mixture_gas_constant = 0.0;
+    for (int s=0; s<nspecies; s++) {
+        mixture_gas_constant += mass_fractions[s] * this->Rs[s];
     }
+
+    const std::array<dealii::Tensor<1,dim,real>, nspecies> grad_Y = compute_mass_fraction_gradients_from_primitive_gradient(primitive_soln_gradient);
+
+    for (int d=0; d<dim; d++) {
+        real grad_Rmix = 0.0;
+        for (int s=0; s<nspecies; s++) {
+            grad_Rmix += this->Rs[s] * grad_Y[s][d];
+        }
+
+        primitive_soln_gradient[dim+1][d] = (mixture_gas_constant * temperature * primitive_soln_gradient[0][d] + density * temperature * grad_Rmix + density * mixture_gas_constant * temperature_gradient[d]) / (this->gam_ref * this->mach_ref_sqr);
+    }
+
     return primitive_soln_gradient;
+
 }
 
+// TEMPERATURE GRADIENT
 template <int dim, int nspecies, int nstate, typename real>
-dealii::Tensor<1,dim,real> NavierStokes_RealGas<dim,nspecies,nstate,real>
-::compute_temperature_gradient (
-    const std::array<real,nstate> &primitive_soln,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
+dealii::Tensor<1,dim,real> NavierStokes_RealGas<dim, nspecies, nstate, real>
+    ::compute_temperature_gradient(const std::array<real, nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
 {
-    const real density = primitive_soln[0];
-    const real temperature = this->template compute_temperature(this->template convert_primitive_to_conservative(primitive_soln)); // from Real Gas
+    const real density = conservative_soln[0];
+    const dealii::Tensor<1,dim,real> vel = this->template compute_velocities(conservative_soln);
+    const real temperature = this->template compute_temperature(conservative_soln);
+    const std::array<real,nspecies> e_s = this->template compute_species_specific_internal_energy(temperature);
+    const std::array<real, nspecies> Cv_s = this->template compute_species_specific_Cv(temperature);
+    const std::array<real, nspecies> mass_fractions = this->template compute_mass_fractions(conservative_soln);
+
+    real Cv_mix = 0.0;
+    for (int s=0; s<nspecies; s++) {
+        Cv_mix += mass_fractions[s] * Cv_s[s];
+    }
+
+    const real E = conservative_soln[dim+1] / density;
+
+    // velocities gradient
+    std::array<dealii::Tensor<1,dim,real>,dim> vel_gradient;
+    for (int d1=0; d1<dim; d1++) {
+        for (int d2=0; d2<dim; d2++) {
+            vel_gradient[d1][d2] = (conservative_soln_gradient[1+d1][d2] - vel[d1]*conservative_soln_gradient[0][d2])/density;
+        }        
+    }
+
+    // mass fraction gradient 
+    std::array<dealii::Tensor<1,dim,real>,nspecies> grad_Y;
+    for (int s=0; s<nspecies-1; s++) {
+        for (int d=0; d<dim; d++) {
+            grad_Y[s][d] = (conservative_soln_gradient[dim+2+s][d] - mass_fractions[s]*conservative_soln_gradient[0][d])/density;
+        }
+    }
+
+    //last speices
+    for (int d=0; d<dim; d++) {
+        grad_Y[nspecies-1][d] = 0.0;
+        for (int s=0; s<nspecies-1; s++) {
+            grad_Y[nspecies-1][d] -= grad_Y[s][d];
+        }
+    }
 
     dealii::Tensor<1,dim,real> temperature_gradient;
     for (int d=0; d<dim; d++) {
-        temperature_gradient[d] = (this->gam_ref*this->mach_ref_sqr*primitive_soln_gradient[dim+1][d] - temperature*primitive_soln_gradient[0][d])/density;
+        const real grad_E = (conservative_soln_gradient[dim+1][d] - E*conservative_soln_gradient[0][d]) / density;
+
+        real vel_gradvel = 0.0;
+        for (int d2=0; d2<dim; d2++) {
+            vel_gradvel += vel[d2] * vel_gradient[d2][d];
+        }
+        
+        real e_s_gradYs = 0.0;
+        for (int s=0; s<nspecies; s++) {
+            e_s_gradYs += e_s[s] * grad_Y[s][d];
+        }
+
+        temperature_gradient[d] = (grad_E - vel_gradvel - e_s_gradYs) / Cv_mix;
+
     }
+
     return temperature_gradient;
 }
+
+// template <int dim, int nspecies, int nstate, typename real>
+// std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,nstate,real>
+// ::convert_conservative_gradient_to_primitive_gradient (
+//     const std::array<real,nstate> &conservative_soln,
+//     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+// {
+//     // conservative_soln_gradient is solution_gradient
+//     std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient;
+
+//     // get primitive solution
+//     const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive(conservative_soln); // from real gas
+
+//     // extract from primitive solution
+//     const real density = primitive_soln[0];
+//     const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive(primitive_soln); // from real gas
+
+//      // mixture density gradient
+//     for (int d=0; d<dim; d++) {
+//         primitive_soln_gradient[0][d] = conservative_soln_gradient[0][d];
+//     }
+
+//     // velocities gradient
+//     for (int d1=0; d1<dim; d1++) {
+//         for (int d2=0; d2<dim; d2++) {
+//             primitive_soln_gradient[1+d1][d2] = (conservative_soln_gradient[1+d1][d2] - vel[d1]*conservative_soln_gradient[0][d2])/density;
+//         }        
+//     }
+
+//     // mass fraction gradient 
+//     for (int d1=dim+2; d1<dim+2+(nspecies-1); d1++) {
+//         for (int d2=0; d2<dim; d2++) {
+//             primitive_soln_gradient[d1][d2] = (conservative_soln_gradient[d1][d2] - primitive_soln[d1]*conservative_soln_gradient[0][d2])/density;
+//         }
+//     }
+
+// //     // pressure gradient
+// //     // -- formulation 1:
+// //     // const double vel2 = this->template compute_velocity_squared(vel); // from Euler
+// //     // for (int d1=0; d1<dim; d1++) {
+// //     //     primitive_soln_gradient[nstate-1][d1] = conservative_soln_gradient[nstate-1][d1] - 0.5*vel2*conservative_soln_gradient[0][d1];
+// //     //     for (int d2=0; d2<dim; d2++) {
+// //     //         primitive_soln_gradient[nstate-1][d1] -= conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1];
+// //     //     }
+// //     //     primitive_soln_gradient[nstate-1][d1] *= this->gamm1;
+// //     // }
+// //     // -- formulation 2 (equivalent to formulation 1):
+//     for (int d1=0; d1<dim; d1++) {
+//         primitive_soln_gradient[dim+1][d1] = conservative_soln_gradient[dim+1][d1];
+//         for (int d2=0; d2<dim; d2++) {
+//             primitive_soln_gradient[dim+1][d1] -= 0.5*(primitive_soln[1+d2]*conservative_soln_gradient[1+d2][d1]  
+//                                                            + conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1]);
+//         }
+//         primitive_soln_gradient[dim+1][d1] *= this->gamm1;
+//     }
+//     return primitive_soln_gradient;
+// }
+
+// template <int dim, int nspecies, int nstate, typename real>
+// dealii::Tensor<1,dim,real> NavierStokes_RealGas<dim,nspecies,nstate,real>
+// ::compute_temperature_gradient (
+//     const std::array<real,nstate> &primitive_soln,
+//     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
+// {
+//     const real density = primitive_soln[0];
+//     const real temperature = this->template compute_temperature(this->template convert_primitive_to_conservative(primitive_soln)); // from Real Gas
+
+//     dealii::Tensor<1,dim,real> temperature_gradient;
+//     for (int d=0; d<dim; d++) {
+//         temperature_gradient[d] = (this->gam_ref*this->mach_ref_sqr*primitive_soln_gradient[dim+1][d] - temperature*primitive_soln_gradient[0][d])/density;
+//     }
+//     return temperature_gradient;
+// }
 
 template <int dim, int nspecies, int nstate, typename real>
 inline real NavierStokes_RealGas<dim,nspecies,nstate,real>
@@ -320,8 +446,8 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real NavierStokes_RealGas<dim, nspecies, nstate, real>
     ::compute_reduced_collision_diameter(const int j, const int k) const
 {
-    const real collision_diameter_j = this->species_collision_diameter[j]*pow(10,-6);
-    const real collision_diameter_k = this->species_collision_diameter[k]*pow(10,-6);
+    const real collision_diameter_j = this->species_collision_diameter[j]*pow(10,0);
+    const real collision_diameter_k = this->species_collision_diameter[k]*pow(10,0);
 
     return 0.5 * (collision_diameter_j + collision_diameter_k);
 }
@@ -569,14 +695,16 @@ inline real NavierStokes_RealGas<dim,nspecies,nstate,real>
 template <int dim, int nspecies, int nstate, typename real>
 dealii::Tensor<1,dim,real> NavierStokes_RealGas<dim,nspecies,nstate,real>
 ::compute_heat_flux (
-    const std::array<real,nstate> &primitive_soln,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
 {
     /* Nondimensionalized heat flux, $\bm{q}^{*}$
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
+    
+    const std::array<real, nstate> primitive_soln = this->template convert_conservative_to_primitive(conservative_soln);
     const real scaled_heat_conductivity = compute_scaled_heat_conductivity(primitive_soln);
-    const dealii::Tensor<1,dim,real> temperature_gradient = compute_temperature_gradient(primitive_soln, primitive_soln_gradient);
+    const dealii::Tensor<1,dim,real> temperature_gradient = compute_temperature_gradient(conservative_soln, conservative_soln_gradient);
     // Compute the heat flux
     const dealii::Tensor<1,dim,real> heat_flux = compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient(scaled_heat_conductivity,temperature_gradient);
     return heat_flux;
@@ -601,13 +729,13 @@ dealii::Tensor<1,dim,real> NavierStokes_RealGas<dim,nspecies,nstate,real>
 template <int dim, int nspecies, int nstate, typename real>
 dealii::Tensor<1, dim, real> NavierStokes_RealGas<dim, nspecies, nstate, real>
     ::compute_total_heat_flux(
-        const std::array<real, nstate> &primitive_soln,
-        const std::array<dealii::Tensor<1,dim,real>, nstate> &primitive_soln_gradient,
+        const std::array<real, nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>, nstate> &conservative_soln_gradient,
         const std::array<dealii::Tensor<1,dim,real>, nspecies> &species_diffusion_flux) const
 {
-    dealii::Tensor<1,dim,real> total_heat_flux = compute_heat_flux(primitive_soln, primitive_soln_gradient);
+    dealii::Tensor<1,dim,real> total_heat_flux = compute_heat_flux(conservative_soln, conservative_soln_gradient);
 
-    const real temperature = this->template compute_temperature(this->template convert_primitive_to_conservative(primitive_soln));
+    const real temperature = this->template compute_temperature(conservative_soln);
     const std::array<real, nspecies> species_enthalpy = this->template compute_species_specific_enthalpy(temperature);
 
     for (int s=0; s<nspecies; s++) {
@@ -737,39 +865,46 @@ dealii::Tensor<2,dim,real> NavierStokes_RealGas<dim,nspecies,nstate,real>
 template <int dim, int nspecies, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,nstate,real>
 ::dissipative_flux (
-    const std::array<real,nstate> &conservative_soln,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
     /* Nondimensionalized viscous flux (i.e. dissipative flux)
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
      */
-    std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux = dissipative_flux_templated(conservative_soln, solution_gradient);
+    std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux{};
+    // = dissipative_flux_templated(conservative_soln, solution_gradient);
     return viscous_flux;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,nstate,real>
 ::dissipative_flux_templated (
-    const std::array<real,nstate> &conservative_soln,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/) const
 {
     /* Nondimensionalized viscous flux (i.e. dissipative flux)
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
      */
 
     // Step 1: Primitive solution
-    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive(conservative_soln); // from Real Gas
+    //const std::array<real,nstate> primitive_soln{};
+    // = this->template convert_conservative_to_primitive(conservative_soln); // from Real Gas
     
     // Step 2: Gradient of primitive solution
-    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient(conservative_soln, solution_gradient);
+    //const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient{};
+    // = convert_conservative_gradient_to_primitive_gradient(conservative_soln, solution_gradient);
     
     // Step 3: Viscous stress tensor, Velocities, Heat flux
-    const dealii::Tensor<2,dim,real> viscous_stress_tensor = compute_viscous_stress_tensor(primitive_soln, primitive_soln_gradient);
-    const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive(primitive_soln); // from Real Gas
-    const std::array<dealii::Tensor<1,dim,real>, nspecies> species_diffusion_flux = compute_species_diffusion_flux(primitive_soln, primitive_soln_gradient);
-    const dealii::Tensor<1,dim,real> total_heat_flux = compute_total_heat_flux(primitive_soln, primitive_soln_gradient, species_diffusion_flux);
-    // const dealii::Tensor<1,dim,real> total_heat_flux = compute_heat_flux(primitive_soln, primitive_soln_gradient);
+    const dealii::Tensor<2,dim,real> viscous_stress_tensor;
+    // = compute_viscous_stress_tensor(primitive_soln, primitive_soln_gradient);
+    const dealii::Tensor<1,dim,real> vel;
+    //this->template extract_velocities_from_primitive(primitive_soln); // from Real Gas
+    const std::array<dealii::Tensor<1,dim,real>, nspecies> species_diffusion_flux{};
+    //compute_species_diffusion_flux(primitive_soln, primitive_soln_gradient);
+    // const dealii::Tensor<1,dim,real> total_heat_flux = compute_heat_flux(conservative_soln, solution_gradient);
+    const dealii::Tensor<1,dim,real> total_heat_flux;
+    //compute_heat_flux(primitive_soln, primitive_soln_gradient);
 
 
     // Step 4: Construct viscous flux; Note: sign corresponds to LHS
@@ -780,10 +915,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
 template <int dim, int nspecies, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,nstate,real>
 ::dissipative_flux_given_velocities_viscous_stress_tensor_heat_flux_species_diffusion_flux (
-    const dealii::Tensor<1,dim,real> &vel,
-    const dealii::Tensor<2,dim,real> &viscous_stress_tensor,
-    const dealii::Tensor<1,dim,real> &total_heat_flux,
-    const std::array<dealii::Tensor<1,dim,real>, nspecies> &species_diffusion_flux) const
+    const dealii::Tensor<1,dim,real> &/*vel*/,
+    const dealii::Tensor<2,dim,real> &/*viscous_stress_tensor*/,
+    const dealii::Tensor<1,dim,real> &/*total_heat_flux*/,
+    const std::array<dealii::Tensor<1,dim,real>, nspecies> &/*species_diffusion_flux*/) const
 {
     /* Nondimensionalized viscous flux (i.e. dissipative flux)
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
@@ -794,22 +929,26 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
      */
     std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux;
     for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
-        // Mixture Density equation
-        viscous_flux[0][flux_dim] = 0.0;
-        // Mixture Momentum equation
-        for (int stress_dim=0; stress_dim<dim; ++stress_dim){
-            viscous_flux[1+stress_dim][flux_dim] = -viscous_stress_tensor[stress_dim][flux_dim];
+        // // Mixture Density equation
+        // viscous_flux[0][flux_dim] = 0.0;
+        // // Mixture Momentum equation
+        // for (int stress_dim=0; stress_dim<dim; ++stress_dim){
+        //     viscous_flux[1+stress_dim][flux_dim] = -viscous_stress_tensor[stress_dim][flux_dim];
+        // }
+        // // Mixture Energy equation
+        // viscous_flux[dim+1][flux_dim] = 0.0;
+        // for (int stress_dim=0; stress_dim<dim; ++stress_dim){
+        //    viscous_flux[dim+1][flux_dim] -= vel[stress_dim]*viscous_stress_tensor[flux_dim][stress_dim];
+        // }
+        // viscous_flux[dim+1][flux_dim] += total_heat_flux[flux_dim];
+        // // Species density equation
+        // for (int s=0; s<nspecies-1; ++s) {
+        //     viscous_flux[dim+2+s][flux_dim] = 1.0*species_diffusion_flux[s][flux_dim];
+        // }
+        for (int i=0; i<nstate; i++) {
+            viscous_flux[i]=0.0;
         }
-        // Mixture Energy equation
-        viscous_flux[dim+1][flux_dim] = 0.0;
-        for (int stress_dim=0; stress_dim<dim; ++stress_dim){
-           viscous_flux[dim+1][flux_dim] -= vel[stress_dim]*viscous_stress_tensor[flux_dim][stress_dim];
-        }
-        viscous_flux[dim+1][flux_dim] += total_heat_flux[flux_dim];
-        // Species density equation
-        for (int s=0; s<nspecies-1; ++s) {
-            viscous_flux[dim+2+s][flux_dim] = -1.0*species_diffusion_flux[s][flux_dim];
-        }
+
     }
     return viscous_flux;
 }
