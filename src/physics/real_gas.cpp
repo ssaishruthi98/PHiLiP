@@ -1179,7 +1179,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     real sum_of_log_mean_densities = 0.0;
     real pressure_diagonal = 0.0;
     real summation_term_of_energy_flux = 0.0;
-    // const std::array<real,nspecies> Cv = compute_species_specific_Cv(0.5*(temp1+temp2));
+    const std::array<real,nspecies> Cv = compute_species_specific_Cv(0.5*(temp1+temp2));
     for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
         real species_enthalpy_term = 0.0;
         real species_entropy_term = 0.0;
@@ -1206,7 +1206,9 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
         //nondimensionalize entropy term
         species_entropy_term *= this->Rs[ispecies];
         species_cp_term *= this->Rs[ispecies]*ln_T_ref;
-        // species_entropy_term += Cv[ispecies]*log(T_ref) - this->Rs[ispecies]*log(this->density_ref);
+        // species_entropy_term += Cv[ispecies]*log(T_ref);// - this->Rs[ispecies]*log(this->density_ref);
+        species_entropy_term *= ((this->R_ref*this->temperature_ref)/(this->u_ref_sqr));
+        // species_cp_term *= ((this->R_ref*this->temperature_ref)/(this->u_ref_sqr));
 
 
         std::cout << "species " << ispecies << " enthalpy term " << species_enthalpy_term << std::endl;
@@ -1217,9 +1219,11 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
         sum_of_log_mean_densities += log_mean_species_densities[ispecies];
 
         pressure_diagonal += this->Rs[ispecies] * (0.5*(rho_species1[ispecies] + rho_species2[ispecies]));
-        summation_term_of_energy_flux += (species_enthalpy_term + species_entropy_term + species_cp_term - 0.5*vel_sqr_avg)*log_mean_species_densities[ispecies];
+        summation_term_of_energy_flux += (species_enthalpy_term + species_entropy_term + species_cp_term- 0.5*vel_sqr_avg)*log_mean_species_densities[ispecies];
         std::cout << " species " << ispecies << " summed term " << species_enthalpy_term + species_entropy_term + species_cp_term << " vel_sqr_avg " << vel_sqr_avg << std::endl; 
+        std::cout << " species " << ispecies << " species_cp_term " << species_cp_term << " cv ln t " << Cv[ispecies]*log(T_ref) << std::endl;
     }
+    std::cout << std::endl;
     pressure_diagonal /= inv_temp_avg;
     pressure_diagonal /= (this->gam_ref*this->mach_ref_sqr);
 
