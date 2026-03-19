@@ -316,6 +316,82 @@ private:
     /// Returns the square of the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
     real get_tensor_magnitude_sqr (const dealii::Tensor<2,dim,real> &tensor) const;
 
+public:
+    //----------------------Below are copied from NavierStokes with minimal changes to validate the TGV run----------------------//
+    //----------------------No guarantee that these are all 100% correct----------------------//
+
+    /// Evaluate vorticity from conservative variables and gradient of conservative variables
+    dealii::Tensor<1,3,real> compute_vorticity (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /// Evaluate vorticity magnitude squared from conservative variables and gradient of conservative variables
+    real compute_vorticity_magnitude_sqr (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /// Evaluate vorticity magnitude from conservative variables and gradient of conservative variables
+    real compute_vorticity_magnitude (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;    
+
+    /** Evaluate non-dimensional theoretical vorticity-based dissipation rate integrated enstrophy. 
+     *  Note: For incompressible flows or when dilatation effects are negligible
+     *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
+     *                between the spectral difference and flux reconstruction schemes." 
+     *                Computers & Fluids 221 (2021): 104922.
+     *  -- Equation (56) with free-stream nondimensionalization applied
+     * */
+    real compute_vorticity_based_dissipation_rate_from_integrated_enstrophy (
+        const real integrated_enstrophy) const;
+
+    /// Evaluate enstrophy from conservative variables and gradient of conservative variables
+    real compute_enstrophy (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /// Evaluate incompressible enstrophy from conservative variables and gradient of conservative variables
+    real compute_incompressible_enstrophy (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+    
+    /** Evaluate pressure dilatation from conservative variables and gradient of conservative variables
+     *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
+     *                between the spectral difference and flux reconstruction schemes." 
+     *                Computers & Fluids 221 (2021): 104922.
+     * */
+    real compute_pressure_dilatation (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Evaluate dilatation from conservative variables and gradient of conservative variables 
+     * */
+    real compute_dilatation (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /// Evaluate incompressible palinstrophy from conservative variables and gradient of vorticity
+    real compute_incompressible_palinstrophy (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,3> &vorticity_gradient) const;
+
+    /// For post processing purposes, computes all the quantities we write to the VTK files
+    dealii::Vector<double> post_compute_derived_quantities_vector (
+        const dealii::Vector<double>              &uh,
+        const std::vector<dealii::Tensor<1,dim> > &duh,
+        const std::vector<dealii::Tensor<2,dim> > &dduh,
+        const dealii::Tensor<1,dim>               &normals,
+        const dealii::Point<dim>                  &evaluation_points) const override;
+    
+    /// For post processing purposes, sets the base names (with no prefix or suffix) of the computed quantities
+    std::vector<std::string> post_get_names () const override;
+    
+    /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
+    std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const override;
+    
+    /// For post processing purposes, updates the required flags for dealii
+    dealii::UpdateFlags post_get_needed_update_flags () const override;
+
 };
 
 } // Physics namespace

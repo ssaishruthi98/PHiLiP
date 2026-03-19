@@ -166,7 +166,9 @@ protected:
     dealii::Tensor<1,dim,real> compute_velocities ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 3 (f_M3): Compute squared velocities from conservative_soln
-    real compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const;
+    real compute_velocity_squared_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
+
+    real compute_velocity_squared ( const dealii::Tensor<1,dim,real> &velocities ) const;
 
     /// Given primitive variables, returns velocities.
     dealii::Tensor<1,dim,real> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
@@ -178,6 +180,18 @@ protected:
     real compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
 public:
+    /// Given primitive variables, returns kinetic energy
+    real compute_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const;
+
+    /// Given primitive variables, returns incompressible kinetic energy
+    real compute_incompressible_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const;
+
+    /// Given conservative variables, returns kinetic energy
+    real compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Given conservative variables, returns incompressible kinetic energy
+    real compute_incompressible_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
+
     // Algorithm 6 (f_M6): Compute species densities from conservative_soln 
     std::array<real,nspecies> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 

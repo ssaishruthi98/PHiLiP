@@ -10,7 +10,7 @@ set dimension = 3
 # Chemical species
 set species = 2
 set run_type = flow_simulation
-set pde_type = real_gas
+set pde_type = navier_stokes_real_gas
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 
 set flux_nodes_type = GL
@@ -40,6 +40,11 @@ end
 # freestream Mach number
 subsection euler
   set mach_infinity = 0.08
+end
+
+subsection navier_stokes
+  set reynolds_number_inf = 1600.0
+  set prandtl_number = 0.72
 end
 
 subsection flow_solver

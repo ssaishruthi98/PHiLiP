@@ -239,7 +239,7 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     std::array<real,nstate> entropy_var;
     const real temperature = compute_temperature(conservative_soln);
     std::array<real,nspecies> species_gibbs = compute_species_gibbs_function(conservative_soln);
-    real vel2 = compute_velocity_squared(conservative_soln);
+    real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
 
     entropy_var[0] = species_gibbs[nspecies-1] - (0.5*vel2);
     entropy_var[dim+1] = -1.0;
@@ -353,7 +353,7 @@ real RealGas<dim,nspecies,nstate,real>
 {
     // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
     const real sound = compute_sound(conservative_soln);
-    real vel2 = compute_velocity_squared(conservative_soln);
+    real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
 
     const real max_eig = sqrt(vel2) + sound;
 
@@ -533,12 +533,24 @@ inline dealii::Tensor<1,dim,real> RealGas<dim,nspecies,nstate,real>
 // Algorithm 3 (f_M3): Compute squared velocities
 template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>
-::compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const
+::compute_velocity_squared_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
 {
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     real vel2 = 0.0;
     for (int d=0; d<dim; d++) { 
         vel2 = vel2 + vel[d]*vel[d]; 
+    }  
+
+    return vel2;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim,nspecies,nstate,real>
+::compute_velocity_squared ( const dealii::Tensor<1,dim,real> &velocities ) const
+{
+    real vel2 = 0.0;
+    for (int d=0; d<dim; d++) { 
+        vel2 = vel2 + velocities[d]*velocities[d]; 
     }  
 
     return vel2;
@@ -558,7 +570,7 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>
 ::compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real vel2 = compute_velocity_squared(conservative_soln);
+    const real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
     const real k = 0.5*vel2;
 
     return k;
@@ -573,6 +585,45 @@ inline real RealGas<dim,nspecies,nstate,real>
     const real mixture_specific_total_energy = conservative_soln[dim+1]/mixture_density;
 
     return mixture_specific_total_energy;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim,nspecies,nstate,real>
+::compute_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const
+{
+    const real density = primitive_soln[0];
+    const dealii::Tensor<1,dim,real> velocities = extract_velocities_from_primitive(primitive_soln);
+    const real vel2 = compute_velocity_squared(velocities);
+    const real kinetic_energy = 0.5*density*vel2;
+    return kinetic_energy;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim,nspecies,nstate,real>
+::compute_incompressible_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const
+{
+    const dealii::Tensor<1,dim,real> velocities = extract_velocities_from_primitive(primitive_soln);
+    const real vel2 = compute_velocity_squared(velocities);
+    const real kinetic_energy = 0.5*vel2;
+    return kinetic_energy;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim,nspecies,nstate,real>
+::compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const std::array<real,nstate> primitive_soln = convert_conservative_to_primitive(conservative_soln);
+    const real kinetic_energy = compute_kinetic_energy_from_primitive_solution(primitive_soln);
+    return kinetic_energy;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim,nspecies,nstate,real>
+::compute_incompressible_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const std::array<real,nstate> primitive_soln = convert_conservative_to_primitive(conservative_soln);
+    const real kinetic_energy = compute_incompressible_kinetic_energy_from_primitive_solution(primitive_soln);
+    return kinetic_energy;
 }
 
 // Algorithm 6 (f_M6): Compute species densities
