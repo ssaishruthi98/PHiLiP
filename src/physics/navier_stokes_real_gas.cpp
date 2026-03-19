@@ -898,7 +898,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
     const std::array<dealii::Tensor<1,dim,real>, nspecies> species_diffusion_flux = compute_species_diffusion_flux(primitive_soln, primitive_soln_gradient);
     const dealii::Tensor<1,dim,real> total_heat_flux = compute_total_heat_flux(conservative_soln, solution_gradient, species_diffusion_flux);
 
-
     // Step 4: Construct viscous flux; Note: sign corresponds to LHS
     const std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux = dissipative_flux_given_velocities_viscous_stress_tensor_heat_flux_species_diffusion_flux(vel,viscous_stress_tensor,total_heat_flux,species_diffusion_flux);
     return viscous_flux;
@@ -937,7 +936,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
         for (int s=0; s<nspecies-1; ++s) {
             viscous_flux[dim+2+s][flux_dim] = 1.0*species_diffusion_flux[s][flux_dim];
         }
-
     }
     return viscous_flux;
 }
@@ -992,7 +990,301 @@ void NavierStokes_RealGas<dim,nspecies,nstate,real>
     }
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<1,3,real> NavierStokes_RealGas<dim,nspecies,nstate,real>
+::compute_vorticity (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute the vorticity
+    dealii::Tensor<1,3,real> vorticity;
+    for(int d=0; d<3; ++d) {
+        vorticity[d] = 0.0;
+    }
+    if constexpr(dim>1) {
+        // Get velocity gradient
+        const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient(conservative_soln, conservative_soln_gradient);
+        const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
+        if constexpr(dim==2) {
+            // vorticity exists only in z-component
+            vorticity[2] = velocities_gradient[1][0] - velocities_gradient[0][1]; // z-component
+        }
+        if constexpr(dim==3) {
+            vorticity[0] = velocities_gradient[2][1] - velocities_gradient[1][2]; // x-component
+            vorticity[1] = velocities_gradient[0][2] - velocities_gradient[2][0]; // y-component
+            vorticity[2] = velocities_gradient[1][0] - velocities_gradient[0][1]; // z-component
+        }
+    }
+    return vorticity;
+}
 
+template <int dim, int nspecies, int nstate, typename real>
+real NavierStokes_RealGas<dim,nspecies,nstate,real>
+::compute_vorticity_magnitude_sqr (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute the vorticity
+    dealii::Tensor<1,3,real> vorticity = compute_vorticity(conservative_soln, conservative_soln_gradient);
+    // Compute vorticity magnitude squared
+    real vorticity_magnitude_sqr = 0.0;
+    for(int d=0; d<3; ++d) {
+        vorticity_magnitude_sqr += vorticity[d]*vorticity[d];
+    }
+    return vorticity_magnitude_sqr;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real NavierStokes_RealGas<dim,nspecies,nstate,real>
+::compute_vorticity_magnitude (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    real vorticity_magnitude_sqr = compute_vorticity_magnitude_sqr(conservative_soln, conservative_soln_gradient);
+    real vorticity_magnitude = sqrt(vorticity_magnitude_sqr); 
+    return vorticity_magnitude;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real NavierStokes_RealGas<dim,nspecies,nstate,real>
+::compute_vorticity_based_dissipation_rate_from_integrated_enstrophy (
+    const real integrated_enstrophy) const
+{
+    real dissipation_rate = 2.0*integrated_enstrophy/(this->reynolds_number_inf);
+    return dissipation_rate;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real NavierStokes_RealGas<dim,nspecies,nstate,real>
+::compute_enstrophy (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute enstrophy
+    const real density = conservative_soln[0];
+    real enstrophy = 0.5*density*compute_vorticity_magnitude_sqr(conservative_soln, conservative_soln_gradient);
+    return enstrophy;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real NavierStokes_RealGas<dim,nspecies,nstate,real>
+::compute_incompressible_enstrophy (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute incompressible enstrophy
+    real enstrophy = 0.5*compute_vorticity_magnitude_sqr(conservative_soln, conservative_soln_gradient);
+    return enstrophy;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real NavierStokes_RealGas<dim,nspecies,nstate,real>
+::compute_pressure_dilatation (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Get pressure
+    const real pressure = this->template compute_mixture_pressure(conservative_soln);
+
+    // Compute the pressure dilatation
+    real pressure_dilatation = compute_dilatation(conservative_soln,conservative_soln_gradient);
+    pressure_dilatation *= pressure;
+
+    return pressure_dilatation;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real NavierStokes_RealGas<dim,nspecies,nstate,real>
+::compute_dilatation (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Get velocity gradient
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient(conservative_soln, conservative_soln_gradient);
+    const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient(primitive_soln_gradient);
+
+    // Compute the dilatation
+    real dilatation = 0.0;
+    for(int d=0; d<dim; ++d) {
+        dilatation += velocities_gradient[d][d]; // divergence
+    }
+
+    return dilatation;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real NavierStokes_RealGas<dim,nspecies,nstate,real>
+::compute_incompressible_palinstrophy (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,3> &vorticity_gradient) const
+{
+    // Compute vorticity gradient magnitude squared
+    real vorticity_gradient_magnitude_sqr = 0.0;
+    for(int istate=0; istate<3; ++istate) {
+        for(int d=0; d<dim; ++d) {
+            vorticity_gradient_magnitude_sqr += vorticity_gradient[istate][d]*vorticity_gradient[istate][d];
+        }
+    }
+    // Compute incompressible palinstrophy
+    const real palinstrophy = 0.5*vorticity_gradient_magnitude_sqr;
+    return palinstrophy;
+}
+
+
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Vector<double> NavierStokes_RealGas<dim,nspecies,nstate,real>::post_compute_derived_quantities_vector (
+    const dealii::Vector<double>              &uh,
+    const std::vector<dealii::Tensor<1,dim> > &duh,
+    const std::vector<dealii::Tensor<2,dim> > &dduh,
+    const dealii::Tensor<1,dim>               &normals,
+    const dealii::Point<dim>                  &evaluation_points) const
+{
+    std::vector<std::string> names = post_get_names ();
+    dealii::Vector<double> computed_quantities = PhysicsBase<dim,nspecies,nstate,real>::post_compute_derived_quantities_vector ( uh, duh, dduh, normals, evaluation_points);
+    unsigned int current_data_index = computed_quantities.size() - 1;
+    computed_quantities.grow_or_shrink(names.size());
+    if constexpr (std::is_same<real,double>::value) {
+        // get the solution
+        std::array<double, nstate> conservative_soln;
+        for (unsigned int s=0; s<nstate; ++s) {
+            conservative_soln[s] = uh(s);
+        }
+    
+        // get the solution gradient
+        std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
+        for (unsigned int s=0; s<nstate; ++s) {
+            for (unsigned int d=0; d<dim; ++d) {
+                conservative_soln_gradient[s][d] = duh[s][d];
+            }
+        }
+        // Mixture density
+        computed_quantities(++current_data_index) = this->template compute_mixture_density(conservative_soln);
+        // Velocities
+        const dealii::Tensor<1,dim,real> vel = this->template compute_velocities(conservative_soln);
+        for (unsigned int d=0; d<dim; ++d) {
+            computed_quantities(++current_data_index) = vel[d];
+        }
+        // Mixture momentum
+        for (unsigned int d=0; d<dim; ++d) {
+            computed_quantities(++current_data_index) = conservative_soln[1+d];
+        }
+        // Mixture energy
+        computed_quantities(++current_data_index) = this->template compute_mixture_specific_total_energy(conservative_soln);
+        // Mixture pressure
+        computed_quantities(++current_data_index) = this->template compute_mixture_pressure(conservative_soln);
+        // Non-dimensional temperature
+        computed_quantities(++current_data_index) = this->template compute_temperature(conservative_soln); 
+        // Dimensional temperature
+        computed_quantities(++current_data_index) = this->template compute_dimensional_temperature(this->template compute_temperature(conservative_soln));
+        // Mixture specific total enthalpy
+        computed_quantities(++current_data_index) = this->template compute_mixture_specific_total_enthalpy(conservative_soln);  
+        // Mass fractions
+        const std::array<real,nspecies> mass_fractions = this->template compute_mass_fractions(conservative_soln);
+        for (unsigned int s=0; s<nspecies; ++s) 
+        {
+            computed_quantities(++current_data_index) = mass_fractions[s];
+        }
+        // Species densities
+        const std::array<real,nspecies> species_densities = this->template compute_species_densities(conservative_soln);
+        for (unsigned int s=0; s<nspecies; ++s) 
+        {
+            computed_quantities(++current_data_index) = species_densities[s];
+        }
+        // Vorticity
+        dealii::Tensor<1,3,double> vorticity = compute_vorticity(conservative_soln,conservative_soln_gradient);
+        for (unsigned int d=0; d<3; ++d) {
+            computed_quantities(++current_data_index) = vorticity[d];
+        }
+    }
+    if (computed_quantities.size()-1 != current_data_index) {
+        std::cout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
+                  << " If you added a new output variable, make sure the names and DataComponentInterpretation match the above. "
+                  << std::endl;
+    }
+
+    return computed_quantities;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> NavierStokes_RealGas<dim,nspecies,nstate,real>
+::post_get_data_component_interpretation () const
+{
+    namespace DCI = dealii::DataComponentInterpretation;
+    std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nspecies,nstate,real>::post_get_data_component_interpretation (); // state variables
+    interpretation.push_back (DCI::component_is_scalar); // Mixture density
+    for (unsigned int d=0; d<dim; ++d) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Velocity
+    }
+    for (unsigned int d=0; d<dim; ++d) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Mixture momentum
+    }
+    interpretation.push_back (DCI::component_is_scalar); // Mixture energy
+    interpretation.push_back (DCI::component_is_scalar); // Mixture pressure
+    interpretation.push_back (DCI::component_is_scalar); // Non-dimensional temperature
+    interpretation.push_back (DCI::component_is_scalar); // Dimensional temperature
+    interpretation.push_back (DCI::component_is_scalar); // Mixture specific total enthalpy
+    for (unsigned int s=0; s<nspecies; ++s) {
+         interpretation.push_back (DCI::component_is_scalar); // Mass fractions
+    }
+    for (unsigned int s=0; s<nspecies; ++s) {
+        interpretation.push_back (DCI::component_is_scalar); // Species densities
+    }
+    for (unsigned int d=0; d<3; ++d) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // vorticity
+    }
+
+    std::vector<std::string> names = post_get_names();
+    if (names.size() != interpretation.size()) {
+        std::cout << "Number of DataComponentInterpretation is not the same as number of names for output file" << std::endl;
+    }
+    return interpretation;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::vector<std::string> NavierStokes_RealGas<dim,nspecies,nstate,real>
+::post_get_names () const
+{
+    std::vector<std::string> names = PhysicsBase<dim,nspecies,nstate,real>::post_get_names ();
+    names.push_back ("mixture_density");
+    for (unsigned int d=0; d<dim; ++d) {
+      names.push_back ("velocity");
+    }
+    for (unsigned int d=0; d<dim; ++d) {
+      names.push_back ("mixture_momentum");
+    }
+    names.push_back ("mixture_energy");
+    names.push_back ("mixture_pressure");
+    names.push_back ("temperature");
+    names.push_back ("dimensional_temperature");
+    names.push_back ("mixture_specific_total_enthalpy");
+    for (unsigned int s=0; s<nspecies; ++s) 
+    {
+      std::string string_mass_fraction = "mass_fraction";
+      std::string string_species_mass_fraction = string_mass_fraction + "_" + this->species_name[s];
+      names.push_back (string_species_mass_fraction);
+    }
+    for (unsigned int s=0; s<nspecies; ++s) 
+    {
+      std::string string_density = "species_density";
+      std::string string_species_density = string_density + "_" + this->species_name[s];
+      names.push_back (string_species_density);
+    }
+    for (unsigned int d=0; d<3; ++d) {
+        names.push_back ("vorticity");
+    }
+
+    return names;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+dealii::UpdateFlags NavierStokes_RealGas<dim,nspecies,nstate,real>
+::post_get_needed_update_flags () const
+{
+    //return update_values | update_gradients;
+    return dealii::update_values 
+            | dealii::update_gradients
+            | dealii::update_quadrature_points;
+}
 
 template class NavierStokes_RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double >;
 template class NavierStokes_RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadType >;
