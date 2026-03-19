@@ -865,46 +865,38 @@ dealii::Tensor<2,dim,real> NavierStokes_RealGas<dim,nspecies,nstate,real>
 template <int dim, int nspecies, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,nstate,real>
 ::dissipative_flux (
-    const std::array<real,nstate> &/*conservative_soln*/,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
     /* Nondimensionalized viscous flux (i.e. dissipative flux)
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
      */
-    std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux{};
-    // = dissipative_flux_templated(conservative_soln, solution_gradient);
+    std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux = dissipative_flux_templated(conservative_soln, solution_gradient);
     return viscous_flux;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,nstate,real>
 ::dissipative_flux_templated (
-    const std::array<real,nstate> &/*conservative_soln*/,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/) const
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
 {
     /* Nondimensionalized viscous flux (i.e. dissipative flux)
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
      */
 
     // Step 1: Primitive solution
-    //const std::array<real,nstate> primitive_soln{};
-    // = this->template convert_conservative_to_primitive(conservative_soln); // from Real Gas
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive(conservative_soln); // from Real Gas
     
     // Step 2: Gradient of primitive solution
-    //const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient{};
-    // = convert_conservative_gradient_to_primitive_gradient(conservative_soln, solution_gradient);
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient(conservative_soln, solution_gradient);
     
     // Step 3: Viscous stress tensor, Velocities, Heat flux
-    const dealii::Tensor<2,dim,real> viscous_stress_tensor;
-    // = compute_viscous_stress_tensor(primitive_soln, primitive_soln_gradient);
-    const dealii::Tensor<1,dim,real> vel;
-    //this->template extract_velocities_from_primitive(primitive_soln); // from Real Gas
-    const std::array<dealii::Tensor<1,dim,real>, nspecies> species_diffusion_flux{};
-    //compute_species_diffusion_flux(primitive_soln, primitive_soln_gradient);
-    // const dealii::Tensor<1,dim,real> total_heat_flux = compute_heat_flux(conservative_soln, solution_gradient);
-    const dealii::Tensor<1,dim,real> total_heat_flux;
-    //compute_heat_flux(primitive_soln, primitive_soln_gradient);
+    const dealii::Tensor<2,dim,real> viscous_stress_tensor = compute_viscous_stress_tensor(primitive_soln, primitive_soln_gradient);
+    const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive(primitive_soln); // from Real Gas
+    const std::array<dealii::Tensor<1,dim,real>, nspecies> species_diffusion_flux = compute_species_diffusion_flux(primitive_soln, primitive_soln_gradient);
+    const dealii::Tensor<1,dim,real> total_heat_flux = compute_total_heat_flux(conservative_soln, solution_gradient, species_diffusion_flux);
 
 
     // Step 4: Construct viscous flux; Note: sign corresponds to LHS
@@ -915,10 +907,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
 template <int dim, int nspecies, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,nstate,real>
 ::dissipative_flux_given_velocities_viscous_stress_tensor_heat_flux_species_diffusion_flux (
-    const dealii::Tensor<1,dim,real> &/*vel*/,
-    const dealii::Tensor<2,dim,real> &/*viscous_stress_tensor*/,
-    const dealii::Tensor<1,dim,real> &/*total_heat_flux*/,
-    const std::array<dealii::Tensor<1,dim,real>, nspecies> &/*species_diffusion_flux*/) const
+    const dealii::Tensor<1,dim,real> &vel,
+    const dealii::Tensor<2,dim,real> &viscous_stress_tensor,
+    const dealii::Tensor<1,dim,real> &total_heat_flux,
+    const std::array<dealii::Tensor<1,dim,real>, nspecies> &species_diffusion_flux) const
 {
     /* Nondimensionalized viscous flux (i.e. dissipative flux)
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
@@ -929,24 +921,21 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
      */
     std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux;
     for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
-        // // Mixture Density equation
-        // viscous_flux[0][flux_dim] = 0.0;
-        // // Mixture Momentum equation
-        // for (int stress_dim=0; stress_dim<dim; ++stress_dim){
-        //     viscous_flux[1+stress_dim][flux_dim] = -viscous_stress_tensor[stress_dim][flux_dim];
-        // }
-        // // Mixture Energy equation
-        // viscous_flux[dim+1][flux_dim] = 0.0;
-        // for (int stress_dim=0; stress_dim<dim; ++stress_dim){
-        //    viscous_flux[dim+1][flux_dim] -= vel[stress_dim]*viscous_stress_tensor[flux_dim][stress_dim];
-        // }
-        // viscous_flux[dim+1][flux_dim] += total_heat_flux[flux_dim];
-        // // Species density equation
-        // for (int s=0; s<nspecies-1; ++s) {
-        //     viscous_flux[dim+2+s][flux_dim] = 1.0*species_diffusion_flux[s][flux_dim];
-        // }
-        for (int i=0; i<nstate; i++) {
-            viscous_flux[i]=0.0;
+        // Mixture Density equation
+        viscous_flux[0][flux_dim] = 0.0;
+        // Mixture Momentum equation
+        for (int stress_dim=0; stress_dim<dim; ++stress_dim){
+            viscous_flux[1+stress_dim][flux_dim] = -viscous_stress_tensor[stress_dim][flux_dim];
+        }
+        // Mixture Energy equation
+        viscous_flux[dim+1][flux_dim] = 0.0;
+        for (int stress_dim=0; stress_dim<dim; ++stress_dim){
+           viscous_flux[dim+1][flux_dim] -= vel[stress_dim]*viscous_stress_tensor[flux_dim][stress_dim];
+        }
+        viscous_flux[dim+1][flux_dim] += total_heat_flux[flux_dim];
+        // Species density equation
+        for (int s=0; s<nspecies-1; ++s) {
+            viscous_flux[dim+2+s][flux_dim] = 1.0*species_diffusion_flux[s][flux_dim];
         }
 
     }

@@ -10,7 +10,7 @@ set dimension = 3
 # Chemical species
 set species = 2
 set run_type = flow_simulation
-set pde_type = real_gas
+set pde_type = navier_stokes_real_gas
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 
 set flux_nodes_type = GL
@@ -27,6 +27,11 @@ set do_renumber_dofs = false
 
 # numerical fluxes
 set conv_num_flux = lax_friedrichs
+
+subsection navier_stokes
+  set reynolds_number_inf = 1600.0
+  set prandtl_number = 0.71
+end 
 
 # ODE solver
 subsection ODE solver

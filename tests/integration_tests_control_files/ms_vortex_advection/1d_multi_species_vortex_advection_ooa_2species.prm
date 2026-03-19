@@ -52,8 +52,8 @@ subsection flow_solver
   # Final time is set to 34.614724700315755 * m_inf for one full cycle 
   # ie. final solution = initial condition
   set final_time =  28.760076701316 # 1 full cycle
-  set adaptive_time_step = false
-  set constant_time_step = 28.760076701316e-3
+  set adaptive_time_step = true
+  # set constant_time_step = 28.760076701316e-3
   set courant_friedrichs_lewy_number = 0.25
   set unsteady_data_table_filename = ms_vortex_advection
   subsection grid
