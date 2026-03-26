@@ -1271,6 +1271,7 @@ using codi_HessianComputationType = codi::RealReversePrimalIndexGen< codi::RealF
 //using RadFadType = codi_JacobianComputationType; ///< Reverse only mode that only allows Jacobian computation.
 using RadType = codi_JacobianComputationType; ///< CoDiPaco reverse-AD type for first derivatives.
 using RadFadType = codi_HessianComputationType; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
+
 #if PHILIP_SPECIES==1
     // Define a sequence of the types to be used for instantiation
     #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)

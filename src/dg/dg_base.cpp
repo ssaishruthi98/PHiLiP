@@ -4611,7 +4611,7 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPES)
 
 
 template void 
-DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
@@ -4633,7 +4633,7 @@ DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::Triangulation<PHILI
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
 
 template void 
-DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
@@ -4654,7 +4654,7 @@ DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::Triangulation<PHILI
     dealii::LinearAlgebra::distributed::Vector<double>                               &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM>        &rhs_aux);
 template void 
-DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
@@ -4676,7 +4676,7 @@ DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::parallel::distribut
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
 
 template void 
-DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
@@ -4698,7 +4698,7 @@ DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::parallel::distribut
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
 
 template void 
-DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
@@ -4720,7 +4720,7 @@ DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::parallel::shared::T
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
 
 template void 
-DGBase<PHILIP_DIM,PHILIP_DIM+PHILIP_SPECIES+1,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
