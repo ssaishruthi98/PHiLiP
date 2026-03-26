@@ -17,6 +17,8 @@ set chemistry_input_file = ../../chemistry_files/H2_O2.kinetics
 # DG formulation
 set use_weak_form = true
 set non_physical_behavior = abort_run
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
 
 # set directry to write output data
 #set solution_vtk_files_directory_name = multi_species
@@ -39,14 +41,13 @@ end
 
 # freestream Mach number
 subsection euler
-  set mach_infinity = 0.1
+  set mach_infinity = 0.8308625
 end
 
 subsection flow_solver
   set flow_case_type = multi_species_vortex_advection_high_temp
   set poly_degree = 2
-  # 34.614724700315755 is 1 second in physical time. It takes 0.1 second (physical time) to run the case for one cycle.
-  set final_time = 34.614724700315755e-1 # It is 0.1 second or 1 cycle
+  set final_time = 28.760076701316 # It is 0.1 second or 1 cycle
   #set adaptive_time_step = false
   #set constant_time_step = 0.00129807 #34.614724700315755e-6 # It is 1*10^(-6) second in physical time
   set adaptive_time_step = true
