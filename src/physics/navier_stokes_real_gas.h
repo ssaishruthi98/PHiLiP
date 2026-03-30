@@ -214,7 +214,8 @@ public:
      */
     real compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient_and_prandtl_number (
         const real scaled_viscosity_coefficient, 
-        const real prandtl_number_input) const;
+        const real prandtl_number_input,
+        const std::array<real,nstate> &conservative_soln) const;
 
     /** Scaled nondimensionalized heat conductivity, hat{kappa*}
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)

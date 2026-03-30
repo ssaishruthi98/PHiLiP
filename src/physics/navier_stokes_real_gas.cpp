@@ -668,12 +668,18 @@ inline real NavierStokes_RealGas<dim,nspecies,nstate,real>
 
 template <int dim, int nspecies, int nstate, typename real>
 inline real NavierStokes_RealGas<dim,nspecies,nstate,real>
-::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient_and_prandtl_number (const real scaled_viscosity_coefficient, const real prandtl_number_input) const
+::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient_and_prandtl_number (const real scaled_viscosity_coefficient, const real prandtl_number_input, const std::array<real,nstate> &conservative_soln) const
 {
     /* Scaled nondimensionalized heat conductivity, $\hat{\kappa}^{*}$, given the scaled viscosity coefficient
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
-    const real scaled_heat_conductivity = scaled_viscosity_coefficient/(this->gamm1*this->mach_ref_sqr*prandtl_number_input);
+
+    const real temperature = this->compute_temperature(conservative_soln);
+    const std::array<real,nspecies> mass_fractions = this->compute_mass_fractions(conservative_soln);
+    const std::array<real,nspecies> Cp = this->compute_species_specific_Cp(temperature);
+    const real mixture_Cp = this->compute_mixture_from_species(mass_fractions,Cp);
+
+    const real scaled_heat_conductivity = scaled_viscosity_coefficient * mixture_Cp /(this->gam_ref*this->mach_ref_sqr*prandtl_number_input);
     
     return scaled_heat_conductivity;
 }
@@ -685,9 +691,11 @@ inline real NavierStokes_RealGas<dim,nspecies,nstate,real>
     /* Scaled nondimensionalized heat conductivity, $\hat{\kappa}^{*}$
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.13)
      */
+
+    const std::array<real,nstate> conservative_soln = this->convert_primitive_to_conservative(primitive_soln);
     const real scaled_viscosity_coefficient = compute_scaled_viscosity_coefficient(primitive_soln);
 
-    const real scaled_heat_conductivity = compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient_and_prandtl_number(scaled_viscosity_coefficient,prandtl_number);
+    const real scaled_heat_conductivity = compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient_and_prandtl_number(scaled_viscosity_coefficient,prandtl_number, conservative_soln);
     
     return scaled_heat_conductivity;
 }
@@ -721,7 +729,7 @@ dealii::Tensor<1,dim,real> NavierStokes_RealGas<dim,nspecies,nstate,real>
      */
     dealii::Tensor<1,dim,real> heat_flux;
     for (int d=0; d<dim; d++) {
-        heat_flux[d] = -scaled_heat_conductivity*temperature_gradient[d];
+        heat_flux[d] = -scaled_heat_conductivity * temperature_gradient[d];
     }
     return heat_flux;
 }
@@ -730,17 +738,17 @@ template <int dim, int nspecies, int nstate, typename real>
 dealii::Tensor<1, dim, real> NavierStokes_RealGas<dim, nspecies, nstate, real>
     ::compute_total_heat_flux(
         const std::array<real, nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>, nstate> &/*conservative_soln_gradient*/,
+        const std::array<dealii::Tensor<1,dim,real>, nstate> &conservative_soln_gradient,
         const std::array<dealii::Tensor<1,dim,real>, nspecies> &species_diffusion_flux) const
 {
-    dealii::Tensor<1,dim,real> total_heat_flux; // = compute_heat_flux(conservative_soln, conservative_soln_gradient);
+    dealii::Tensor<1,dim,real> total_heat_flux = compute_heat_flux(conservative_soln, conservative_soln_gradient);
 
     const real temperature = this->template compute_temperature(conservative_soln);
     const std::array<real, nspecies> species_enthalpy = this->template compute_species_specific_enthalpy(temperature);
 
     for (int s=0; s<nspecies; s++) {
         for (int d=0; d<dim; d++) {
-            total_heat_flux[d] = species_enthalpy[s] * species_diffusion_flux[s][d];
+            total_heat_flux[d] += species_enthalpy[s] * species_diffusion_flux[s][d];
         }
     }
 

@@ -48,7 +48,7 @@ end
 subsection flow_solver
   set flow_case_type = multi_species_isentropic_vortex
   set poly_degree = 4
-  set final_time = 20.0
+  set final_time = 60.0
   set adaptive_time_step = true
   set courant_friedrichs_lewy_number = 0.2
   #set constant_time_step = 0.005
