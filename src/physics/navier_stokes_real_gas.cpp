@@ -738,17 +738,17 @@ template <int dim, int nspecies, int nstate, typename real>
 dealii::Tensor<1, dim, real> NavierStokes_RealGas<dim, nspecies, nstate, real>
     ::compute_total_heat_flux(
         const std::array<real, nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>, nstate> &conservative_soln_gradient,
+        const std::array<dealii::Tensor<1,dim,real>, nstate> &/*conservative_soln_gradient*/,
         const std::array<dealii::Tensor<1,dim,real>, nspecies> &species_diffusion_flux) const
 {
-    dealii::Tensor<1,dim,real> total_heat_flux = compute_heat_flux(conservative_soln, conservative_soln_gradient);
+    dealii::Tensor<1,dim,real> total_heat_flux; //compute_heat_flux(conservative_soln, conservative_soln_gradient);
 
     const real temperature = this->template compute_temperature(conservative_soln);
     const std::array<real, nspecies> species_enthalpy = this->template compute_species_specific_enthalpy(temperature);
 
     for (int s=0; s<nspecies; s++) {
         for (int d=0; d<dim; d++) {
-            total_heat_flux[d] += species_enthalpy[s] * species_diffusion_flux[s][d];
+            total_heat_flux[d] = species_enthalpy[s] * species_diffusion_flux[s][d];
         }
     }
 
