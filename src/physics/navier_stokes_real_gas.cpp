@@ -937,7 +937,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
         // Mixture Energy equation
         viscous_flux[dim+1][flux_dim] = 0.0;
         for (int stress_dim=0; stress_dim<dim; ++stress_dim){
-           viscous_flux[dim+1][flux_dim] -= vel[stress_dim]*0.0*viscous_stress_tensor[flux_dim][stress_dim];
+           viscous_flux[dim+1][flux_dim] -= vel[stress_dim]*viscous_stress_tensor[flux_dim][stress_dim];
         }
         viscous_flux[dim+1][flux_dim] += total_heat_flux[flux_dim];
         // Species density equation
