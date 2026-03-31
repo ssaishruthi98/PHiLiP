@@ -949,56 +949,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes_RealGas<dim,nspecies,
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-void NavierStokes_RealGas<dim,nspecies,nstate,real>
-::boundary_wall (
-   const dealii::Tensor<1,dim,real> &/*normal_int*/,
-   const std::array<real,nstate> &soln_int,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
-   std::array<real,nstate> &soln_bc,
-   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
-{
-    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
-
-    // No-slip wall boundary conditions
-    // Given by equations 460-461 of the following paper
-    // Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
-    const std::array<real,nstate> primitive_interior_values = this->template convert_conservative_to_primitive(soln_int);
-
-    // Copy density
-    std::array<real,nstate> primitive_boundary_values;
-    primitive_boundary_values[0] = primitive_interior_values[0];
-
-    // Associated thermal boundary condition
-    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::isothermal) { 
-        // isothermal boundary
-        primitive_boundary_values[dim+1] = this->compute_pressure_from_density_temperature(primitive_boundary_values[0], isothermal_wall_temperature,soln_int);
-    } else if(thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic) {
-        // adiabatic boundary
-        primitive_boundary_values[dim+1] = primitive_interior_values[dim+1];
-    }
-    
-    // No-slip boundary condition on velocity
-    dealii::Tensor<1,dim,real> velocities_bc;
-    for (int d=0; d<dim; d++) {
-        velocities_bc[d] = 0.0;
-    }
-    for (int d=0; d<dim; ++d) {
-        primitive_boundary_values[1+d] = velocities_bc[d];
-    }
-
-    // Apply boundary conditions:
-    // -- solution at boundary
-    const std::array<real,nstate> modified_conservative_boundary_values = this->convert_primitive_to_conservative(primitive_boundary_values);
-    for (int istate=0; istate<nstate; ++istate) {
-        soln_bc[istate] = modified_conservative_boundary_values[istate];
-    }
-    // -- gradient of solution at boundary
-    for (int istate=0; istate<nstate; ++istate) {
-        soln_grad_bc[istate] = soln_grad_int[istate];
-    }
-}
-
-template <int dim, int nspecies, int nstate, typename real>
 dealii::Tensor<1,3,real> NavierStokes_RealGas<dim,nspecies,nstate,real>
 ::compute_vorticity (
     const std::array<real,nstate> &conservative_soln,
@@ -1138,6 +1088,49 @@ real NavierStokes_RealGas<dim,nspecies,nstate,real>
     return palinstrophy;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+void NavierStokes_RealGas<dim,nspecies,nstate,real>
+::boundary_wall (
+   const dealii::Tensor<1,dim,real> &/*normal_int*/,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+
+    // No-slip wall boundary conditions
+    // Reference: Page 48 of Julien Brillon's thesis available at https://escholarship.mcgill.ca/concern/theses/h989r903p
+
+    // Apply boundary conditions:
+    // -- solution at boundary
+    soln_bc[0] = soln_int[0]; // density
+    soln_bc[dim+1] = soln_int[dim+1]; // energy
+    for (int d=0; d<dim; ++d) {
+        soln_bc[1+d] = -soln_int[1+d]; // velocity
+    }
+    for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        int index = dim + 2 + ispecies;
+        soln_bc[index] = soln_int[index]; // species density
+    }
+
+    // -- gradient of solution at boundary
+    for (int istate=0; istate<nstate; ++istate) {
+        soln_grad_bc[istate] = soln_grad_int[istate];
+    }
+    // If isothermal wall, set temperature at exterior such that the average is the isothermal wall temperature
+    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::isothermal){
+        // Step 1: Primitive solutions
+        const std::array<real,nstate> primitive_soln_int = this->template convert_conservative_to_primitive(soln_int); // from Real Gas
+        std::array<real,nstate> primitive_soln_ext = this->template convert_conservative_to_primitive(soln_bc); // from Real Gas
+        const real temperature_int = this->template compute_temperature(primitive_soln_int); // from Real Gas
+        const real temperature_ext = 2.0*this->isothermal_wall_temperature - temperature_int;
+        // override the pressure based on the temperature
+        primitive_soln_ext[dim+1] = this->compute_pressure_from_density_temperature(primitive_soln_ext[0],temperature_ext, soln_int);
+        // set the equivalent total energy
+        soln_bc[dim+1] = this->compute_mixture_specific_total_energy(primitive_soln_ext);
+    }
+}
 
 template <int dim, int nspecies, int nstate, typename real>
 dealii::Vector<double> NavierStokes_RealGas<dim,nspecies,nstate,real>::post_compute_derived_quantities_vector (

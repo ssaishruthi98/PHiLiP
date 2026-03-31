@@ -34,6 +34,11 @@ template<int dim, typename TriangulationType>
 void svsw_grid(
     TriangulationType&  grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
+
+template<int dim, typename TriangulationType>
+void hydrogen_injection_grid(
+    TriangulationType&  grid,
+    const Parameters::FlowSolverParam *const flow_solver_param);
 } 
 
 // namespace PHiLiP::Grids

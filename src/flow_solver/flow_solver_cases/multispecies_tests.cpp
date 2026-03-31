@@ -64,6 +64,8 @@ std::shared_ptr<Triangulation> MultispeciesTests<dim,nspecies,nstate>::generate_
 
     if(dim==1 && flow_case_type == flow_case_enum::multi_species_sod_shock_tube) {
         Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param.flow_solver_param);
+    } else if (dim==2 && flow_case_type == flow_case_enum::multi_species_hydrogen_injection) {
+        Grids::hydrogen_injection_grid<dim>(*grid, &this->all_param.flow_solver_param);        
     } else {
         Grids::straight_periodic_cube<dim, Triangulation>(grid, domain_left, domain_right,
                                                             number_of_cells_per_direction);
@@ -81,6 +83,8 @@ void MultispeciesTests<dim,nspecies,nstate>::display_grid_parameters() const
     std::string grid_type_string = "";
     if(flow_case_type == flow_case_enum::multi_species_sod_shock_tube) {
         grid_type_string = "1d_shock_tube";
+    } else if (flow_case_type == flow_case_enum::multi_species_hydrogen_injection) {
+        grid_type_string = "hydrogen_injection_chamber";
     } else {
         grid_type_string = "straight_periodic_cube";
     }
