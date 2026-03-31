@@ -140,6 +140,11 @@ FlowSolverFactory<dim,nspecies,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
+    } else if (flow_type == FlowCaseEnum::multi_species_kelvin_helmholtz_instability){
+        if constexpr (nspecies==2 && nstate==dim+2+nspecies-1){
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
     } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection_high_temp){
         if constexpr ((nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1){
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
