@@ -36,7 +36,7 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
             parameters_input->euler_param.side_slip_angle,
             manufactured_solution_function,
             parameters_input->two_point_num_flux_type);
-    } else if (pde_type == PDE_enum::real_gas && nstate == (dim  + nspecies + 1)) {
+    } else if (nstate == (dim  + nspecies + 1)) {
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
         if(limiter_type == limiter_enum::positivity_preservingZhang2010) {

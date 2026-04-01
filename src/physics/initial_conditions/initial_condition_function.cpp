@@ -1358,32 +1358,33 @@ real InitialConditionFunction_Multispecies_RTI<dim, nspecies, nstate, real>
     // Note: This is in non-dimensional form (free-stream values as reference)
     real value = 0.0;
     const double pi = dealii::numbers::PI;
-    
-    const double rho1 = 1.0;
-    const double rho2 = rho1 * (1 + atwood_number) / (1 - atwood_number);
+
+    const double B = 0.5*tanh(15*point[1])+0.5;
+    const double Y_O2 = B;
+    const double Y_H2 = 1.0 - Y_O2;
+
+    const double pressure = 101325.0; // [N/m^2]
+    const double temp = 300; //K
+    const std::array<real,nspecies> Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+    const double R_mixture = (Y_H2*Rs[0] + Y_O2*Rs[1])*this->real_gas_physics->R_ref;
+
+    const double mixture_density = pressure/(R_mixture*temp);
 
     if(istate == 0) {
-        if(point[1] > 0.0)
-            value = rho2;
-        else
-            value = rho1;
+        value = mixture_density / this->real_gas_physics->density_ref;
     }
     else if (istate == 1) {
         value = 0.0;
     }
     else if (istate == 2) {
-        value = 0.05*sin((4.0*pi*point[0]))*cos((pi*point[1])/4.0);
+        value = -0.05*sin((4.0*pi*point[0]))*cos((pi*point[1])/4.0);
     }
     else if (istate == 3) {
-        value = 6.0;
-        if(point[1] > 0.0)
-            value -= rho2*point[1];
-        else
-            value -= rho1*point[1];
+        value = pressure / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+        value -= (mixture_density / this->real_gas_physics->density_ref)*point[1];
     }
     else if (istate == 4) {
-        if(point[1] > 0.0)
-            value = 1.0;
+        value = Y_H2;
     }
 
     return value;
