@@ -44,7 +44,8 @@ public:
         multi_species_isentropic_vortex,
         multi_species_taylor_green_vortex_smooth,
         multi_species_taylor_green_vortex_sharp,
-        multi_species_kelvin_helmholtz_instability
+        multi_species_kelvin_helmholtz_instability,
+        multi_species_rayleigh_taylor_instability
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

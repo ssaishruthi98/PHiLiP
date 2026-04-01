@@ -27,7 +27,7 @@ set conv_num_flux = lax_friedrichs
 # ODE solver
 subsection ODE solver
   #set output_solution_every_x_steps = 20
-  set output_solution_every_dt_time_intervals = 0.1
+  set output_solution_every_dt_time_intervals = 0.05
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
@@ -39,25 +39,34 @@ subsection euler
 end
 
 subsection navier_stokes
-  set reynolds_number_inf = 1000.0
+  set reynolds_number_inf = 100000.0
 end 
 
 subsection flow_solver
-  set flow_case_type = multi_species_kelvin_helmholtz_instability
+  set flow_case_type = multi_species_rayleigh_taylor_instability
   set poly_degree = 3
-  set final_time = 10.0
+  set final_time = 5.0
   set adaptive_time_step = true
-  set courant_friedrichs_lewy_number = 0.2
+  set courant_friedrichs_lewy_number = 0.25
   #set constant_time_step = 0.005
   set output_restart_files = true
   set restart_files_directory_name = restart_files
   set output_restart_files_every_dt_time_intervals = 1.0
   subsection grid
-    set grid_left_bound = -1.0
-    set grid_right_bound = 1.0
-    set number_of_grid_elements_per_dimension = 32
+    set grid_left_bound = -0.5
+    set grid_right_bound = 0.5
+    subsection grid_rectangle
+      set grid_top_bound = 1.0
+      set grid_bottom_bound = -1.0
+      set number_of_grid_elements_x = 8
+      set number_of_grid_elements_y = 16
+    end
   end
   subsection kelvin_helmholtz_instability
-    set atwood_number = 0.33
+    set atwood_number = 0.5
   end
+end
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = true
 end

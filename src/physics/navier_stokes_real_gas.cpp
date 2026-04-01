@@ -1131,6 +1131,24 @@ real NavierStokes_RealGas<dim,nspecies,nstate,real>
     return palinstrophy;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> NavierStokes_RealGas<dim,nspecies,nstate,real>
+::source_term (
+    const dealii::Point<dim,real> &/*pos*/,
+    const std::array<real,nstate> &conservative_soln,
+    const real /*current_time*/,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    std::array<real,nstate> physical_source;
+    for(int istate = 0; istate < nstate; ++istate)
+        physical_source[istate] = 0.0;
+    
+    double gravity = 1.0;
+    physical_source[dim] -= conservative_soln[0]*gravity;
+    physical_source[dim+1] -= conservative_soln[0]*gravity*conservative_soln[dim];
+
+    return physical_source;
+}
 
 template <int dim, int nspecies, int nstate, typename real>
 dealii::Vector<double> NavierStokes_RealGas<dim,nspecies,nstate,real>::post_compute_derived_quantities_vector (

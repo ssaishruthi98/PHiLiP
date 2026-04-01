@@ -64,6 +64,8 @@ std::shared_ptr<Triangulation> MultispeciesTests<dim,nspecies,nstate>::generate_
 
     if(dim==1 && flow_case_type == flow_case_enum::multi_species_sod_shock_tube) {
         Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param.flow_solver_param);
+    } else if (dim==2 && flow_case_type == flow_case_enum:: multi_species_rayleigh_taylor_instability) {
+        Grids::rti_grid<dim>(*grid, &this->all_param.flow_solver_param);
     } else {
         Grids::straight_periodic_cube<dim, Triangulation>(grid, domain_left, domain_right,
                                                             number_of_cells_per_direction);

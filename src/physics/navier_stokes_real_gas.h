@@ -375,6 +375,13 @@ public:
     real compute_incompressible_palinstrophy (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,3> &vorticity_gradient) const;
+    
+    /// Source term is zero or depends on manufactured solution
+    std::array<real,nstate> source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &conservative_soln,
+        const real current_time,
+        const dealii::types::global_dof_index cell_index) const;
 
     /// For post processing purposes, computes all the quantities we write to the VTK files
     dealii::Vector<double> post_compute_derived_quantities_vector (

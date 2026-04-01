@@ -1334,6 +1334,57 @@ real InitialConditionFunction_Multispecies_KHI<dim, nspecies, nstate, real>
 }
 
 // ========================================================
+// MULTISPECIES RAYLEIGH-TAYLOR INSTABILITY
+// Trojak & Dzanic implemented a 3D version which I've 
+// simplified into a 2D version...
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Multispecies_RTI<dim,nspecies,nstate,real>
+::InitialConditionFunction_Multispecies_RTI (
+        Parameters::AllParameters const* const param)
+        : InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>(param)
+        , atwood_number(param->flow_solver_param.atwood_number)
+{}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Multispecies_RTI<dim, nspecies, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.0;
+    const double pi = dealii::numbers::PI;
+    
+    const double rho1 = 1.0;
+    const double rho2 = rho1 * (1 + atwood_number) / (1 - atwood_number);
+
+    if(istate == 0) {
+        if(point[1] > 0.0)
+            value = rho2;
+        else
+            value = rho1;
+    }
+    else if (istate == 1) {
+        value = 0.0;
+    }
+    else if (istate == 2) {
+        value = 0.05*cos((4.0*pi*point[0]))*cos((pi*point[1])/4.0);
+    }
+    else if (istate == 3) {
+        value = 6.0;
+        if(point[1] > 0.0)
+            value -= rho2*point[1];
+        else
+            value -= rho1*point[1];
+    }
+    else if (istate == 4) {
+        if(point[1] > 0.0)
+            value = 1.0;
+    }
+
+    return value;
+}
+
+// ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
 template <int dim, int nspecies, int nstate, typename real>
@@ -1444,6 +1495,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr (dim==3 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate,real> >(param, false);
     } else if (flow_type == FlowCaseEnum::multi_species_kelvin_helmholtz_instability) {
         if constexpr (dim==2 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_KHI<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_rayleigh_taylor_instability) {
+        if constexpr (dim==2 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_RTI<dim,nspecies,nstate,real> >(param);
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -1518,6 +1571,7 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     #elif PHILIP_DIM==2
     template class InitialConditionFunction_Multispecies_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     template class InitialConditionFunction_Multispecies_KHI <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    template class InitialConditionFunction_Multispecies_RTI <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #elif PHILIP_DIM==3
     template class InitialConditionFunction_Multispecies_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #endif

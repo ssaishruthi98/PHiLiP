@@ -242,6 +242,42 @@ void svsw_grid(
     }
 }
 
+template<int dim, typename TriangulationType>
+void rti_grid(
+    TriangulationType&  grid,
+    const Parameters::FlowSolverParam *const flow_solver_param) 
+{
+    dealii::Point<dim> p1;
+    dealii::Point<dim> p2;
+    p1[0] = flow_solver_param->grid_left_bound; p1[1] = flow_solver_param->grid_bottom_bound;
+    p2[0] = flow_solver_param->grid_right_bound; p2[1] = flow_solver_param->grid_top_bound;
+    
+    std::vector<unsigned int> n_subdivisions(2);
+
+    n_subdivisions[0] = flow_solver_param->number_of_grid_elements_x;
+    n_subdivisions[1] = flow_solver_param->number_of_grid_elements_y;
+
+
+    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
+
+    // Add periodicity in x direction
+    std::vector<dealii::GridTools::PeriodicFacePair<typename TriangulationType::cell_iterator> > matched_pairs;
+    dealii::GridTools::collect_periodic_faces(grid,0,1,0,matched_pairs);
+    grid.add_periodicity(matched_pairs);
+
+    // Set boundary type and design type
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                unsigned int current_id = cell->face(face)->boundary_id();
+                if (current_id == 2 || current_id == 3) {
+                    cell->face(face)->set_boundary_id(1001); // y_top, viscous wall
+                }
+            }
+        }
+    }
+}
+
 #if PHILIP_DIM==1
 template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
@@ -257,6 +293,9 @@ template void astrophysical_jet_grid<2, dealii::parallel::distributed::Triangula
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
 template void svsw_grid<2, dealii::parallel::distributed::Triangulation<2>>(
+    dealii::parallel::distributed::Triangulation<2>&    grid,
+    const Parameters::FlowSolverParam *const flow_solver_param);
+template void rti_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
     const Parameters::FlowSolverParam *const flow_solver_param);
 #endif

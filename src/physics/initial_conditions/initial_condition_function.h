@@ -645,6 +645,27 @@ protected:
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 };
 
+/// 2D Initial Condition Function: Multispecies_RTI (viscous)
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_Multispecies_RTI: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+{
+public:
+    /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+     *  This sets the public attribute n_components = nstate, which can then be accessed
+     *  by all the other functions
+     *  Reference: TBD
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
+     */
+    InitialConditionFunction_Multispecies_RTI (
+            Parameters::AllParameters const *const param);
+
+    const double atwood_number; ///< Atwood Number used to decide densities
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+};
+
 /// Initial condition 0.
 template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nspecies,nstate,real>
