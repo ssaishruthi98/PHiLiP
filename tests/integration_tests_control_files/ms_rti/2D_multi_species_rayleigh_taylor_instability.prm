@@ -8,7 +8,7 @@ set dimension = 2
 set species = 2
 set run_type = flow_simulation
 set pde_type = navier_stokes_real_gas
-set chemistry_input_file = ../../chemistry_files/H2_O2.kinetics
+set chemistry_input_file = ../../chemistry_files/N2_O2.kinetics
 
 
 # DG formulation
@@ -64,8 +64,8 @@ subsection flow_solver
     subsection grid_rectangle
       set grid_top_bound = 1.0
       set grid_bottom_bound = -1.0
-      set number_of_grid_elements_x = 8
-      set number_of_grid_elements_y = 16
+      set number_of_grid_elements_x = 32
+      set number_of_grid_elements_y = 64
     end
   end
 end

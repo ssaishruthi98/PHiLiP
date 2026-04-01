@@ -1143,7 +1143,7 @@ std::array<real,nstate> NavierStokes_RealGas<dim,nspecies,nstate,real>
     for(int istate = 0; istate < nstate; ++istate)
         physical_source[istate] = 0.0;
     
-    double gravity = 1.0;
+    double gravity = 5.0;
     physical_source[dim] -= conservative_soln[0]*gravity;
     physical_source[dim+1] -= conservative_soln[0]*gravity*conservative_soln[dim];
 
