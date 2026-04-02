@@ -1214,6 +1214,8 @@ dealii::Vector<double> NavierStokes_RealGas<dim,nspecies,nstate,real>::post_comp
         for (unsigned int d=0; d<3; ++d) {
             computed_quantities(++current_data_index) = vorticity[d];
         }
+        // Vorticity Z
+        computed_quantities(++current_data_index) = vorticity[3];
     }
     if (computed_quantities.size()-1 != current_data_index) {
         std::cout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
@@ -1251,6 +1253,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
     for (unsigned int d=0; d<3; ++d) {
         interpretation.push_back (DCI::component_is_part_of_vector); // vorticity
     }
+    interpretation.push_back (DCI::component_is_scalar); // vorticity z magnitude
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1291,7 +1294,7 @@ std::vector<std::string> NavierStokes_RealGas<dim,nspecies,nstate,real>
     for (unsigned int d=0; d<3; ++d) {
         names.push_back ("vorticity");
     }
-
+    names.push_back("vorticity_z");
     return names;
 }
 
