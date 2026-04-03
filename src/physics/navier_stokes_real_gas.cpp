@@ -1215,7 +1215,7 @@ dealii::Vector<double> NavierStokes_RealGas<dim,nspecies,nstate,real>::post_comp
             computed_quantities(++current_data_index) = vorticity[d];
         }
         // Vorticity Z
-        computed_quantities(++current_data_index) = vorticity[3];
+        computed_quantities(++current_data_index) = vorticity[2];
     }
     if (computed_quantities.size()-1 != current_data_index) {
         std::cout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
