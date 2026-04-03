@@ -1358,7 +1358,7 @@ real InitialConditionFunction_Multispecies_RTI<dim, nspecies, nstate, real>
     // Note: This is in non-dimensional form (free-stream values as reference)
     real value = 0.0;
     const double pi = dealii::numbers::PI;
-    const double gravity = 5.0;
+    const double gravity = 10.0;
 
     const double B = 0.5*tanh(15*point[1])+0.5;
     const double Y_O2 = B;
