@@ -1378,7 +1378,7 @@ real InitialConditionFunction_Multispecies_RTI<dim, nspecies, nstate, real>
         value = 0.0;
     }
     else if (istate == 2) {
-        value = -0.05*sin((4.0*pi*point[0]))*cos((pi*point[1])/4.0);
+        value = -0.05*sin((8.0*pi*point[0]))*cos((pi*point[1])/4.0);
     }
     else if (istate == 3) {
         value = pressure / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
