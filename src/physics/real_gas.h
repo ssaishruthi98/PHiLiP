@@ -296,10 +296,12 @@ protected:
 protected:
     /// Variables to store NASA Coefficients
     std::array<std::array<std::array<double,3>,9>,nspecies> NASACAPCoeffs;
+    std::array<std::array<double,6>,nspecies> refitted_Cp_coeffs;
     std::array<std::array<double,4>,nspecies> NASACAPTemperatureLimits;
     std::array<std::string,nspecies> species_name; // Species name
     std::array<real,nspecies> species_weight; // Species molecular weight [kg/mol]
     std::array<real,nspecies> species_enthalpy_offset; // Species enthalpy offset [J/mol]
+    std::array<real,nspecies> species_entropy_offset; // Species entropy offset [J/mol·K]
     std::array<real,nspecies> Rs; // Species gas constant
     std::array<real,nspecies> species_sutherland_temperature; // Sutherland temperature for each species (used by NavierStokes_RealGas)
     std::array<real,nspecies> species_boiling_temperature; // Sutherland temperature for each species (used by NavierStokes_RealGas)
