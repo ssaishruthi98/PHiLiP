@@ -243,6 +243,9 @@ protected:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
         const std::array<real,nstate> &conservative_soln) const;
     
+    /// Compute mean of the two values passed in
+    real compute_mean(const real val1, const real val2) const;
+
     /// Compute Ismail-Roe logarithmic mean
     real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
 

@@ -356,7 +356,7 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     // species energy
     for (int s=0; s<nspecies; ++s) 
     { 
-      species_specific_internal_energy[s] = species_specific_enthalpy[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
+      species_specific_internal_energy[s] = (this->R_ref*this->temperature_ref/this->u_ref_sqr)*(species_specific_enthalpy[s] - Rs[s]*temperature);
       species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
     }     
     // mixture energy
@@ -877,8 +877,8 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
         }
         h[ispecies] += this->species_enthalpy_offset[ispecies] - h_ref;
 
-        h[ispecies] *= (this->R_ref*this->temperature_ref);
-        h[ispecies] /= this->u_ref_sqr;
+        // h[ispecies] *= (this->R_ref*this->temperature_ref);
+        // h[ispecies] /= this->u_ref_sqr;
     }
 
     return h;
@@ -894,7 +894,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     std::array<real,nspecies> e;
     for (int s=0; s<nspecies; ++s) 
     {
-        e[s] = h[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)*this->Rs[s]*temperature;
+        e[s] =(this->R_ref*this->temperature_ref/this->u_ref_sqr)*(h[s] - this->Rs[s]*temperature);
     }
 
     return e;
@@ -937,7 +937,7 @@ inline real RealGas<dim,nspecies,nstate,real>
         // species specific enthalpy at T_n
         species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // nondimensional mass value
         // mixture specific enthalpy at T_n
-        mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dimensional value
+        mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*(this->R_ref*this->temperature_ref); // dimensional value
         // std::cout << "mixture_specific_enthalpy " << mixture_specific_enthalpy << std::endl;
         // Newton-Raphson function
         f = (mixture_specific_enthalpy - mixture_gas_constant*this->R_ref* T_n) - mixture_specific_internal_energy; // dimensional value
@@ -1072,6 +1072,16 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
 
 template <int dim, int nspecies, int nstate, typename real>
 real RealGas<dim, nspecies, nstate, real>
+::compute_mean(const real val1, const real val2) const
+{
+    // Compute mean of the two values passed in
+    const real mean_val = (val1+val2)/(2.0);
+
+    return mean_val;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real RealGas<dim, nspecies, nstate, real>
 ::compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const
 {
     // See Appendix B [Ismail and Roe, 2009, Entropy-Consistent Euler Flux Functions II]
@@ -1190,48 +1200,20 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     const real temp2 = compute_temperature(conservative_soln2);
 
     // PULL EVERYTHING FROM HERE UNTIL ASTERISKS INTO A SEPARATE FUNCTION 
-    real dimensional_temp1 = compute_dimensional_temperature(temp1);
-    real dimensional_temp2 = compute_dimensional_temperature(temp2);
-    const std::array<int,nspecies> species_tempindex1 = GetNASACAP_TemperatureIndex(compute_dimensional_temperature(temp1));
-    const std::array<int,nspecies> species_tempindex2 = GetNASACAP_TemperatureIndex(compute_dimensional_temperature(temp2));
-
-    const real T_ref = this->temperature_ref;
-    const real inv_T_ref = 1.0/this->temperature_ref;
-    const real ln_T_ref = log(T_ref);
+    const real temp_avg = compute_mean(temp1, temp2);
+    const real temp_sqr_avg = compute_mean(pow(temp1,2.0),pow(temp2,2.0));
+    const real temp_cubed_avg = compute_mean(pow(temp1,3.0),pow(temp2,3.0));
     const real inv_temp_avg = 0.5*(pow(temp1,-1.0) + pow(temp2,-1.0));
-    const real ln_inv_temp_avg = 0.5*(log(pow(temp1,-1.0)) + log(pow(temp2,-1.0)));
     const real inv_temp_log_mean = compute_ismail_roe_logarithmic_mean(pow(temp1,-1.0), pow(temp2,-1.0));
     const real temp_product_operator = temp1*temp2;
-    const real temp_avg = 0.5*(temp1+temp2);
-    const real temp_sqr_avg = 0.5*(log(pow(temp1,2.0)) + log(pow(temp2,2.0)));
 
-
-    const std::array<real,8> enthalpy_temp_coeffs = {{-2.0*inv_T_ref*inv_temp_avg, 
-                                                      -1.0*(ln_inv_temp_avg + inv_temp_avg*(1.0/inv_temp_log_mean)) + ln_T_ref,
-                                                       0.0, 
-                                                      -0.5*pow(T_ref,2.0)*temp_product_operator, 
-                                                      -(2.0/3.0)*pow(T_ref,3.0)*temp_avg*temp_product_operator,
-                                                      -0.25*pow(T_ref,4.0)*(temp_sqr_avg*temp_product_operator + 2.0*temp_avg*temp_avg*temp_product_operator),
-                                                      -0.8*pow(T_ref,5.0)*(temp_sqr_avg*temp_avg*temp_product_operator),
-                                                       1.0}};
-
-    const std::array<real,8> entropy_temp_coeffs = {{inv_T_ref*inv_T_ref*inv_temp_avg, 
-                                                     inv_T_ref, 
-                                                     1.0/inv_temp_log_mean, 
-                                                     T_ref*temp_product_operator, 
-                                                     pow(T_ref,2.0)*temp_avg*temp_product_operator,
-                                                     (1.0/3.0)*pow(T_ref,3.0)*(temp_sqr_avg*temp_product_operator + 2.0*temp_avg*temp_avg*temp_product_operator),
-                                                     pow(T_ref,4.0)*temp_sqr_avg*temp_avg*temp_product_operator,
-                                                     0.0}};
-    
-    const std::array<real,8> cp_temp_coeffs = {{-2.0*inv_T_ref*inv_T_ref*inv_temp_avg,
-                                                -1.0*inv_T_ref,
-                                                0.0,
-                                                T_ref*temp_product_operator, 
-                                                2.0*pow(T_ref,2.0)*temp_avg*temp_product_operator,
-                                                pow(T_ref,3.0)*(temp_sqr_avg*temp_product_operator + 2.0*temp_avg*temp_avg*temp_product_operator),
-                                                4.0*pow(T_ref,4.0)*temp_sqr_avg*temp_avg*temp_product_operator,
-                                                0.0}};
+    std::array<real,6> energy_flux_sum_term_coeffs = {{(2.0*temp_cubed_avg*temp_avg + temp_sqr_avg*temp_sqr_avg + 2.0*temp_sqr_avg*temp_avg*temp_avg)*(temp_product_operator/30.0),
+                                                        (4.0*temp_sqr_avg*temp_avg)*(temp_product_operator/20.0),
+                                                        (temp_sqr_avg + 2.0*temp_avg*temp_avg)*(temp_product_operator/12.0),
+                                                        (2.0*temp_avg)*(temp_product_operator/6.0),
+                                                        temp_product_operator/2.0,
+                                                        1.0/inv_temp_log_mean
+                                                        }};
     // ******************************************************************//
     const dealii::Tensor<1,dim,real> vel1 = compute_velocities(conservative_soln1);
     const dealii::Tensor<1,dim,real> vel2 = compute_velocities(conservative_soln2);
@@ -1253,52 +1235,27 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     std::array<real, nspecies> log_mean_species_densities;
     real sum_of_log_mean_densities = 0.0;
     real pressure_diagonal = 0.0;
-    real summation_term_of_energy_flux = 0.0;
+    std::array<real, nspecies> energy_flux_species_sum;
     // const std::array<real,nspecies> Cv = compute_species_specific_Cv(0.5*(temp1+temp2));
     for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
-        real species_enthalpy_term = 0.0;
-        real species_entropy_term = 0.0;
-        real species_cp_term = 0.0;
-        for(int i = 0; i < 8; ++i) {
-            if (species_tempindex1[ispecies] == species_tempindex2[ispecies]) {
-                species_enthalpy_term += this->NASACAPCoeffs[ispecies][i][species_tempindex1[ispecies]]*enthalpy_temp_coeffs[i];
-                species_entropy_term += this->NASACAPCoeffs[ispecies][i][species_tempindex1[ispecies]]*entropy_temp_coeffs[i];
-                species_cp_term += this->NASACAPCoeffs[ispecies][i][species_tempindex1[ispecies]]*cp_temp_coeffs[i];
-
-                // std::cout << "index " << i << " enthalpy " << enthalpy_temp_coeffs[i] << " entropy " << entropy_temp_coeffs[i] << " cp " << cp_temp_coeffs[i] << std::endl;
-            } else {
-                std::cout << "The provided temperatures lie in different ranges...Unsure how to handle this situation yet...Aborting." << std::endl
-                          << "Temperature 1: " << dimensional_temp1 << " Temperature 2: " << dimensional_temp2 << std::endl;
-                std::abort();
-            }
+        energy_flux_species_sum[ispecies] = 0.0;
+        real h_ref = 0.0;
+        std::cout << std::endl << "species " << ispecies << " energy flux sum terms: ";
+        for(int icoeff = 0; icoeff < 6; ++icoeff) {
+            // Sum them terms
+            energy_flux_species_sum[ispecies] += this->refitted_Cp_coeffs[ispecies][icoeff]*energy_flux_sum_term_coeffs[icoeff];
+            std::cout << this->refitted_Cp_coeffs[ispecies][icoeff]*energy_flux_sum_term_coeffs[icoeff] << " ";
+            h_ref += this->refitted_Cp_coeffs[ispecies][icoeff]*pow(1.0, 6.0-icoeff)*pow(6.0-icoeff, -1.0);
         }
+        std::cout << std::endl;
+        std::cout << "The enthalpy offset is : " << this->species_enthalpy_offset[ispecies] << " and the enthalpy at ref temp is : " << h_ref << std::endl;
+        energy_flux_species_sum[ispecies] += (this->species_enthalpy_offset[ispecies] - h_ref);
+        std::cout << "Total species term: " << energy_flux_species_sum[ispecies] << std::endl << std::endl;
 
-        // std::cout << std::endl;
-        // std::cout << "species " << ispecies << " enthalpy term " << species_enthalpy_term << std::endl;
-        // std::cout << "species " << ispecies << " entropy term " << species_entropy_term << std::endl;
-        // std::cout << "species " << ispecies << " nondim cp term " << species_cp_term << std::endl;
-        // std::cout << std::endl;
-        species_enthalpy_term *= ((this->Ru)/(this->species_weight[ispecies]*this->u_ref_sqr)); // nondimensionalize enthalpy term
-        species_enthalpy_term += species_enthalpy_offset[ispecies];
-        //nondimensionalize entropy term
-        species_entropy_term *= this->Rs[ispecies];
-        species_cp_term *= this->Rs[ispecies]*ln_T_ref;
-        // species_entropy_term += Cv[ispecies]*log(T_ref);// - this->Rs[ispecies]*log(this->density_ref);
-        species_entropy_term *= ((this->R_ref*this->temperature_ref)/(this->u_ref_sqr));
-        // species_cp_term *= ((this->R_ref*this->temperature_ref)/(this->u_ref_sqr));
-
-
-        // std::cout << "species " << ispecies << " enthalpy term " << species_enthalpy_term << std::endl;
-        // std::cout << "species " << ispecies << " entropy term " << species_entropy_term << std::endl;
-        // std::cout << "species " << ispecies << " nondim cp term " << species_cp_term << std::endl;
-        // std::cout << std::endl;
         log_mean_species_densities[ispecies] = compute_ismail_roe_logarithmic_mean(rho_species1[ispecies],rho_species2[ispecies]);
         sum_of_log_mean_densities += log_mean_species_densities[ispecies];
 
         pressure_diagonal += this->Rs[ispecies] * (0.5*(rho_species1[ispecies] + rho_species2[ispecies]));
-        summation_term_of_energy_flux += (species_enthalpy_term + species_entropy_term - 0.5*vel_sqr_avg)*log_mean_species_densities[ispecies];
-        // std::cout << " species " << ispecies << " summed term " << species_enthalpy_term + species_entropy_term + species_cp_term << " vel_sqr_avg " << vel_sqr_avg << std::endl; 
-        // std::cout << " species " << ispecies << " species_cp_term " << species_cp_term << " cv ln t " << Cv[ispecies]*log(T_ref) << std::endl;
     }
     // std::cout << std::endl;
     pressure_diagonal /= inv_temp_avg;
@@ -1311,6 +1268,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
         // std::cout << " cons1 density = " << conservative_soln1[0] << " cons2 density = " << conservative_soln2[0] << std::endl;
         // std::cout << " ch flux = " << conv_num_split_flux[0][flux_dim] << " kg flux = " << conv_num_split_flux_kg[0][flux_dim];
         // std::cout << std::endl;
+
         // Momentum equation
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
             conv_num_split_flux[1+velocity_dim][flux_dim] = sum_of_log_mean_densities*vel_avg[flux_dim]*vel_avg[velocity_dim];
@@ -1320,21 +1278,27 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
         // std::cout << " ch flux = " << conv_num_split_flux[1+flux_dim][flux_dim] << " kg flux = " << conv_num_split_flux_kg[1+flux_dim][flux_dim];
         // std::cout << std::endl;
         
-        // Energy equation
-        conv_num_split_flux[dim+1][flux_dim] = summation_term_of_energy_flux*vel_avg[flux_dim];
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[flux_dim];
-        }
-        std::cout << " cons1 energy = " << conservative_soln1[dim+1] << " cons2 energy = " << conservative_soln2[dim+1] << std::endl;
-        std::cout << " ch flux = " << conv_num_split_flux[dim+1][flux_dim] << " kg flux = " << conv_num_split_flux_kg[dim+1][flux_dim];
-        std::cout << std::endl;
         // Species density equation
         for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
             conv_num_split_flux[dim+2+ispecies][flux_dim] = log_mean_species_densities[ispecies] * vel_avg[flux_dim];
             // std::cout << " cons1 density_k = " << conservative_soln1[dim+2+ispecies] << " cons2 density_k = " << conservative_soln2[dim+2+ispecies] << std::endl;
             // std::cout << " ch flux = " << conv_num_split_flux[dim+2+ispecies][flux_dim]  << " kg flux = " << conv_num_split_flux_kg[dim+2+ispecies][flux_dim];
             // std::cout << std::endl;
+
+            // Energy equation
+            conv_num_split_flux[dim+1][flux_dim] += energy_flux_species_sum[ispecies] * conv_num_split_flux[dim+2+ispecies][flux_dim];
         }
+        // Add last species contribution to energy flux
+        conv_num_split_flux[dim+1][flux_dim] += energy_flux_species_sum[nspecies-1]* (log_mean_species_densities[nspecies-1] * vel_avg[flux_dim]);
+
+        // Energy equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[velocity_dim];
+        }
+        std::cout << " cons1 energy = " << conservative_soln1[dim+1] << " cons2 energy = " << conservative_soln2[dim+1] << std::endl;
+        std::cout << " ch flux = " << conv_num_split_flux[dim+1][flux_dim] << " kg flux = " << conv_num_split_flux_kg[dim+1][flux_dim];
+        std::cout << std::endl;
+        
         // std::cout << std::endl;
     }
     // sleep(5);
@@ -1396,7 +1360,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     // mixture enthalpy
     const real mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy);
     // mixture specific internal energy
-    const real mixture_specific_internal_energy = mixture_specific_enthalpy - mixture_pressure/mixture_density;
+    const real mixture_specific_internal_energy = ((this->R_ref*this->temperature_ref)/this->u_ref_sqr)*mixture_specific_enthalpy - mixture_pressure/mixture_density;
     // std::cout << "enthalpy is:  " << mixture_specific_enthalpy << " P/rho is:  " << mixture_pressure/mixture_density << std::endl;
     // mixture specific total energy
     const real mixture_specific_total_energy = mixture_specific_internal_energy + specific_kinetic_energy;
