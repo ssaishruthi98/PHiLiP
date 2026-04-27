@@ -258,6 +258,23 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const dealii::Tensor<1,dim,real> &normal) const;
 
+    ///  Evaluates convective flux based on the chosen split form.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const override;
+
+    /** Entropy conserving split form flux of Kennedy and Gruber.
+     *  Refer to Gassner's paper (2016) Eq. 3.10  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_kennedy_gruber (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /** Entropy conserving split form flux of Pirozzoli.
+     *  Refer to Gassner's paper (2016) Eq. 3.11  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_pirozzoli (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
 protected:
     // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
     virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;

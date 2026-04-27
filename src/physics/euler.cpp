@@ -572,6 +572,9 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nspecies, nstate, real>
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     if(two_point_num_flux_type == two_point_num_flux_enum::KG) {
         conv_num_split_flux = convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::PI) {
+        std::cout << "The Pirozzoli two-point flux has not been implemented for Euler...Aborting." << std::endl;
+        std::abort();
     } else if(two_point_num_flux_type == two_point_num_flux_enum::IR) {
         conv_num_split_flux = convective_numerical_split_flux_ismail_roe(conservative_soln1, conservative_soln2);
     } else if(two_point_num_flux_type == two_point_num_flux_enum::CH) {
