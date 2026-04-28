@@ -241,6 +241,9 @@ public:
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
 
+    /// For Euler it returns this->gam
+    virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
+    
     /// Evaluate pressure from conservative variables
     template<typename real2>
     real2 compute_pressure_templated ( const std::array<real2,nstate> &conservative_soln ) const;

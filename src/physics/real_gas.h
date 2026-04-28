@@ -69,6 +69,10 @@ public:
     /// Computes the conservative variables from the entropy variables.
     std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
                 const std::array<real,nstate> &entropy_var) const;
+    
+    /// Computes the kinetic energy variables.
+    virtual std::array<real,nstate> compute_kinetic_energy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (

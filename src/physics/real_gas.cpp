@@ -819,6 +819,29 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     return conservative_var;
 }
 
+// Computes the kinetic energy variables (Based off Cicchino 2025, Eq. 59)
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
+::compute_kinetic_energy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<real,nstate> kin_energy_var;
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    const real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
+
+    kin_energy_var[0] = - 0.5 * vel2;
+    for(int idim=0; idim<dim; idim++){
+        kin_energy_var[idim+1] = vel[idim];
+    }
+    kin_energy_var[dim+1] = 0.0;
+    for(int ispecies=0; ispecies<nspecies-1; ispecies++) {
+        int index = dim+2+ispecies;
+        kin_energy_var[index] = 0.0;
+    }
+
+    return kin_energy_var;
+}
+
 // Algorithm 15 (f_M15): Compute temperature
 template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>

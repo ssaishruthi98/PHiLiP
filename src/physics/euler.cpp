@@ -311,6 +311,13 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nspecies,nstate,real>
     return convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln,conservative_soln_gradient);
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+inline real Euler<dim,nspecies,nstate,real>
+::compute_gamma ( const std::array<real,nstate> &/*conservative_soln*/ ) const
+{
+    return this->gam;
+}
+
 //template <int dim, int nstate, typename real>
 //inline dealii::Tensor<1,dim,double> Euler<dim,nstate,real>::compute_velocities_inf() const
 //{

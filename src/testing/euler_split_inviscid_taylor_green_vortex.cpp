@@ -30,8 +30,8 @@ std::array<double,2> EulerTaylorGreen<dim, nspecies, nstate>::compute_change_in_
     dealii::LinearAlgebra::distributed::Vector<double> energy_var_hat_global(dg->right_hand_side);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters));
-
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > physics_double  = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nspecies,nstate,double>>(
+                                                                                        Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters));
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
         cell->get_dof_indices (dofs_indices);
@@ -61,8 +61,8 @@ std::array<double,2> EulerTaylorGreen<dim, nspecies, nstate>::compute_change_in_
             for(int istate=0; istate<nstate; istate++){
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
-            std::array<double,nstate> entropy_var_state = euler_double->compute_entropy_variables(soln_state);
-            std::array<double,nstate> kin_energy_state = euler_double->compute_kinetic_energy_variables(soln_state);
+            std::array<double,nstate> entropy_var_state = physics_double->compute_entropy_variables(soln_state);
+            std::array<double,nstate> kin_energy_state = physics_double->compute_kinetic_energy_variables(soln_state);
             for(int istate=0; istate<nstate; istate++){
                 if(iquad==0){
                     entropy_var_at_q[istate].resize(n_quad_pts);
@@ -130,8 +130,8 @@ double EulerTaylorGreen<dim, nspecies, nstate>::compute_volume_term(const std::s
 
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters));
-
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > physics_double  = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nspecies,nstate,double>>(
+                                                                                        Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters));
     double volume_term = 0.0;
     auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
     for (auto cell = dg->dof_handler.begin_active(); cell!= dg->dof_handler.end(); ++cell, ++metric_cell) {
@@ -196,7 +196,7 @@ double EulerTaylorGreen<dim, nspecies, nstate>::compute_volume_term(const std::s
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
             std::array<double,nstate> energy_var;
-            energy_var = euler_double->compute_kinetic_energy_variables(soln_state);
+            energy_var = physics_double->compute_kinetic_energy_variables(soln_state);
             for(int istate=0; istate<nstate; istate++){
                 if(iquad==0){
                     energy_var_vol_int[istate].resize(n_quad_pts);
@@ -253,11 +253,11 @@ double EulerTaylorGreen<dim, nspecies, nstate>::compute_volume_term(const std::s
                     soln_state_flux_basis[istate] = soln_at_q[istate][flux_basis];
                 }
                 //Compute the physical flux
-                conv_phys_flux_2pt = euler_double->convective_numerical_split_flux(soln_state, soln_state_flux_basis);
+                conv_phys_flux_2pt = physics_double->convective_numerical_split_flux(soln_state, soln_state_flux_basis);
 
                 //Need to subtract off the pressure average term
-                const double pressure_int = euler_double->compute_pressure(soln_state);
-                const double pressure_ext = euler_double->compute_pressure(soln_state_flux_basis);
+                const double pressure_int = physics_double->compute_pressure(soln_state);
+                const double pressure_ext = physics_double->compute_pressure(soln_state_flux_basis);
                 for(int idim=0; idim<dim; idim++){
                     conv_phys_flux_2pt[1+idim][idim] -= 0.5*(pressure_int + pressure_ext);
                 }
@@ -345,8 +345,8 @@ double EulerTaylorGreen<dim, nspecies, nstate>::compute_entropy(const std::share
 
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters));
-
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > physics_double  = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nspecies,nstate,double>>(
+                                                                                        Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters));
     double entropy_fn = 0.0;
     const std::vector<double> &quad_weights = dg->volume_quadrature_collection[poly_degree].get_weights();
 
@@ -407,9 +407,9 @@ double EulerTaylorGreen<dim, nspecies, nstate>::compute_entropy(const std::share
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
             const double density = soln_state[0];
-            const double pressure = euler_double->compute_pressure(soln_state);
-            const double entropy = log(pressure) - euler_double->gam * log(density);
-            const double quadrature_entropy = -density*entropy/euler_double->gamm1;
+            const double pressure = physics_double->compute_pressure(soln_state);
+            const double entropy = log(pressure) - physics_double->compute_gamma(soln_state) * log(density);
+            const double quadrature_entropy = -density*entropy/(physics_double->compute_gamma(soln_state)-1);
 
             entropy_fn += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
 
@@ -520,7 +520,9 @@ double EulerTaylorGreen<dim, nspecies, nstate>::get_timestep(const std::shared_p
     std::vector<dealii::types::global_dof_index> dofs_indices1 (n_dofs_cell);
 
     double cfl_min = 1e100;
-    std::shared_ptr < Physics::PhysicsBase<dim, nspecies, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters);
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > physics_double  = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nspecies,nstate,double>>(
+                                                                                        Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters));
+
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
 
@@ -541,7 +543,7 @@ double EulerTaylorGreen<dim, nspecies, nstate>::get_timestep(const std::shared_p
 
         std::vector< double > convective_eigenvalues(n_quad_pts);
         for (unsigned int isol = 0; isol < n_quad_pts; ++isol) {
-            convective_eigenvalues[isol] = pde_physics_double->max_convective_eigenvalue (soln_at_q[isol]);
+            convective_eigenvalues[isol] = physics_double->max_convective_eigenvalue (soln_at_q[isol]);
         }
         const double max_eig = *(std::max_element(convective_eigenvalues.begin(), convective_eigenvalues.end()));
 
@@ -613,6 +615,7 @@ int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
     const double initial_entropy_mpi = (dealii::Utilities::MPI::sum(initial_entropy, mpi_communicator));
     //create a file to wirte entorpy and energy results to
     std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
+    myfile << "time change_in_entropy KE_volume_work" << std::endl;
     //loop over time
     while(ode_solver->current_time < finalTime){
         //get timestep
@@ -635,8 +638,7 @@ int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
         const std::array<double,2> current_change_entropy = compute_change_in_entropy(dg, poly_degree);
         const double current_change_entropy_mpi = dealii::Utilities::MPI::sum(current_change_entropy[0], mpi_communicator);
         const double current_change_energy_mpi = dealii::Utilities::MPI::sum(current_change_entropy[1], mpi_communicator);
-        //write to the file the change in entropy mpi
-        myfile<<ode_solver->current_time<<" "<< current_change_entropy_mpi <<std::endl;
+
         pcout << "M plus K norm Change in Entropy at time " << ode_solver->current_time << " is " << current_change_entropy_mpi<< std::endl;
         pcout << "M plus K norm Change in Kinetic Energy at time " << ode_solver->current_time << " is " << current_change_energy_mpi<< std::endl;
         //check if change in entropy is conserved at machine precision
@@ -658,7 +660,9 @@ int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
         double current_vol_work = compute_volume_term(dg, poly_degree);
         double current_vol_work_mpi = (dealii::Utilities::MPI::sum(current_vol_work, mpi_communicator));
         pcout<<"volume work "<<current_vol_work_mpi<<std::endl;
-        myfile << ode_solver->current_time << " " << std::fixed << std::setprecision(16) << current_vol_work_mpi<< std::endl;
+
+        //output the entropy change and volume work to file
+        myfile << ode_solver->current_time << " " << std::fixed << std::setprecision(16) << current_change_entropy_mpi << " " << current_vol_work_mpi<< std::endl;
         //check for non overintegrated case
         if(!all_parameters->use_curvilinear_grid and all_parameters->overintegration == 0){
             if(abs(current_vol_work_mpi) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::Ra || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::KG ) ){
@@ -672,8 +676,8 @@ int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
     return 0;
 }
 
-#if PHILIP_DIM==3 && PHILIP_SPECIES==1
-    template class EulerTaylorGreen <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
+#if PHILIP_DIM==3
+    template class EulerTaylorGreen <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1>;
 #endif
 
 } // Tests namespace
