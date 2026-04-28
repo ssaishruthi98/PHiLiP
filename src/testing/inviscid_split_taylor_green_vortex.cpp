@@ -1,6 +1,6 @@
 #include <fstream>
 #include "dg/dg_factory.hpp"
-#include "euler_split_inviscid_taylor_green_vortex.h"
+#include "inviscid_split_taylor_green_vortex.h"
 #include "physics/initial_conditions/set_initial_condition.h"
 #include "physics/initial_conditions/initial_condition_function.h"
 #include "mesh/grids/nonsymmetric_curved_periodic_grid.hpp"
@@ -10,11 +10,11 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nspecies, int nstate>
-EulerTaylorGreen<dim, nspecies, nstate>::EulerTaylorGreen(const Parameters::AllParameters *const parameters_input)
+InviscidTaylorGreen<dim, nspecies, nstate>::InviscidTaylorGreen(const Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
 {}
 template<int dim, int nspecies, int nstate>
-std::array<double,2> EulerTaylorGreen<dim, nspecies, nstate>::compute_change_in_entropy(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
+std::array<double,2> InviscidTaylorGreen<dim, nspecies, nstate>::compute_change_in_entropy(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
 {
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
@@ -99,7 +99,7 @@ std::array<double,2> EulerTaylorGreen<dim, nspecies, nstate>::compute_change_in_
     return change_entropy_and_energy;
 }
 template<int dim, int nspecies, int nstate>
-double EulerTaylorGreen<dim, nspecies, nstate>::compute_volume_term(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
+double InviscidTaylorGreen<dim, nspecies, nstate>::compute_volume_term(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
 {
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
@@ -329,7 +329,7 @@ double EulerTaylorGreen<dim, nspecies, nstate>::compute_volume_term(const std::s
 }
 
 template<int dim, int nspecies, int nstate>
-double EulerTaylorGreen<dim, nspecies, nstate>::compute_entropy(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
+double InviscidTaylorGreen<dim, nspecies, nstate>::compute_entropy(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
 {
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
@@ -420,7 +420,7 @@ double EulerTaylorGreen<dim, nspecies, nstate>::compute_entropy(const std::share
 }
 
 template<int dim, int nspecies, int nstate>
-double EulerTaylorGreen<dim, nspecies, nstate>::compute_kinetic_energy(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
+double InviscidTaylorGreen<dim, nspecies, nstate>::compute_kinetic_energy(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
 {
     //returns the energy in the L2-norm (physically relevant)
     int overintegrate = 10 ;
@@ -512,7 +512,7 @@ double EulerTaylorGreen<dim, nspecies, nstate>::compute_kinetic_energy(const std
 }
 
 template<int dim, int nspecies, int nstate>
-double EulerTaylorGreen<dim, nspecies, nstate>::get_timestep(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree, const double delta_x) const
+double InviscidTaylorGreen<dim, nspecies, nstate>::get_timestep(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree, const double delta_x) const
 {
     //get local CFL
     const unsigned int n_dofs_cell = nstate*pow(poly_degree+1,dim);
@@ -556,7 +556,7 @@ double EulerTaylorGreen<dim, nspecies, nstate>::get_timestep(const std::shared_p
 }
 
 template <int dim, int nspecies, int nstate>
-int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
+int InviscidTaylorGreen<dim, nspecies, nstate>::run_test() const
 {
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
@@ -677,7 +677,7 @@ int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==3
-    template class EulerTaylorGreen <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1>;
+    template class InviscidTaylorGreen <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1>;
 #endif
 
 } // Tests namespace

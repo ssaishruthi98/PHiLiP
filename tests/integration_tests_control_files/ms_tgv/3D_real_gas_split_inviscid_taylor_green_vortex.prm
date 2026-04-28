@@ -1,42 +1,33 @@
-# -------------------
+# Listing of Parameters
+# ---------------------
+
+# Reference:
+# Will Trojak and Tarik Dzanic. Positivity-preserving discontinuous spectral element methods for compressible multi-species flows. Computers & Fluids, page 106343, 2024.
+
 # Number of dimensions
 set dimension = 3
 
-set test_type = real_gas_split_taylor_green
+# Number of chemical species
+set number_of_species = 2
 
-set use_weak_form = false
-
-set flux_nodes_type = GLL
-
-set do_renumber_dofs = false
-
-set overintegration = 0
-
-set use_split_form = true
-
-set two_point_num_flux_type = PI
-
-set use_curvilinear_split_form = true
-
-set energy_file = ms-tgv-pi
-
-set use_curvilinear_grid = false
-
-# The PDE we want to solve
+# Test set up
 set pde_type = real_gas
+set test_type = real_gas_split_taylor_green
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 
-#set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+# DG formulation
+set use_weak_form = false
+set flux_nodes_type = GLL
+set do_renumber_dofs = false
+set use_split_form = true
 set conv_num_flux = two_point_flux
-#set conv_num_flux = roe
+set two_point_num_flux_type = KG
+set flux_reconstruction = cDG
+set use_inverse_mass_on_the_fly = true
+set use_weight_adjusted_mass = true
 
 set use_energy = true
-
-set flux_reconstruction = cDG
-
-set use_inverse_mass_on_the_fly = true
-
-set use_weight_adjusted_mass = true
+set energy_file = ms-tgv-kg
 
 set all_boundaries_are_periodic = true
 set check_same_coords_in_weak_dg = false
@@ -44,22 +35,12 @@ set check_same_coords_in_weak_dg = false
 set enable_higher_order_vtk_output = true
 
 subsection ODE solver
-
   set ode_output = verbose
-  
   set nonlinear_max_iterations = 500
-
   set print_iteration_modulo = 100
-
   set ode_solver_type = runge_kutta
-
   set initial_time_step = 0.001
-
- # set output_solution_every_x_steps = 50
-  set output_solution_every_x_steps = 1
-
   set runge_kutta_method = ssprk3_ex
-
 end
 
 # freestream Mach number
