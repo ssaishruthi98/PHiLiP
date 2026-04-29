@@ -69,7 +69,7 @@ set (filename "airfoil.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing NACA0012 mesh file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=drive_link
+    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
@@ -91,7 +91,7 @@ set (filename "naca0012_hopw_ref2.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing NACA0012 mesh file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=drive_link
+    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
