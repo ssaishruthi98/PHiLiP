@@ -1136,12 +1136,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
             conv_num_split_flux[dim+2+ispecies][flux_dim] = mean_species_densities[ispecies] * mean_vel[flux_dim];
         }
     }
-    // std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux1 = convective_flux(conservative_soln1);
-    // std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux2 = convective_flux(conservative_soln2);
-    // for (int istate = 0; istate < nstate; istate++) {
-    //     this->pcout << "the conv flux for state " << istate << " is : " << conv_flux1[istate][0] << " or " << conv_flux2[istate][0] << " the two pt flux is: " <<  conv_num_split_flux[istate][0] << std::endl;
-    // }
-    // sleep(5);
+
     return conv_num_split_flux;
 }
 
