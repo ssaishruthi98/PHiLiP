@@ -58,9 +58,6 @@ public:
     
      /// Reads in data from chemistry file
     void readspeciesdata(std::string reactionFilename);
-    
-     /// Determine the  
-    std::array<int,nspecies>GetNASACAP_TemperatureIndex ( const real temperature ) const;
 
      /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (
@@ -313,12 +310,13 @@ protected:
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
 
 protected:
-    /// Variables to store NASA Coefficients
-    std::array<std::array<std::array<double,3>,9>,nspecies> NASACAPCoeffs;
-    std::array<std::array<double,4>,nspecies> NASACAPTemperatureLimits;
+    /// Variables to store chemical data of species
+    std::array<std::array<double, 6>, nspecies> Cp_poly_coeffs; // Coefficients of Cp polynomial (refitted function using NASA CAP data)
+    std::array<std::array<double, 2>, nspecies> NASACAPTemperatureLimits; // Upper and lower temperature bound for the NASA CAP data
     std::array<std::string,nspecies> species_name; // Species name
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
-    std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset - reads in [J/mol], stores nondimesnional
+    std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset - reads in nondimensional value (nondims using R_ref*T_ref)
+    std::array<double,nspecies> species_entropy_offset; // Species enthalpy offset - reads in nondimensional value (nondims using R_ref)
     std::array<real,nspecies> Rs; // Species gas constant
 };
 

@@ -85,13 +85,17 @@ void RealGas<dim, nspecies, nstate, real>
         std::getline(chemfile, line);
         std::getline(chemfile, line);
         std::getline(chemfile, line);
-        species_enthalpy_offset[i] = std::stof(line); // Species enthalpy from T = 0 to T= 298.15K [J/mol]
-        species_enthalpy_offset[i] /= (this->species_weight[i]*this->u_ref_sqr); // nondimensionalized mass value
+        species_enthalpy_offset[i] = std::stof(line); // Species enthalpy from T = 0 to T= 1 (nondimensional)
 
         std::getline(chemfile, line);
         std::getline(chemfile, line);
         std::getline(chemfile, line);
-        for(int j=0; j<4; j++)
+        species_entropy_offset[i] = std::stof(line); // Species entropy from T = 0 to T= 1 (nondimensional)
+
+        std::getline(chemfile, line);
+        std::getline(chemfile, line);
+        std::getline(chemfile, line);
+        for(int j=0; j<2; j++)
         {
             line = line.substr(sz1);
             sz1 = 0;
@@ -101,64 +105,17 @@ void RealGas<dim, nspecies, nstate, real>
         std::getline(chemfile, line);
         std::getline(chemfile, line);
         // Init
-        for(int k=0; k<3; k++) {
+        sz1 = 0;
+        std::getline(chemfile, line);
+        for(int j=0; j<6; j++) 
+        {
+            line = line.substr(sz1);
             sz1 = 0;
-            std::getline(chemfile, line);
-            for(int j=0; j<9; j++)
-            {
-                line = line.substr(sz1);
-                sz1 = 0;
-                NASACAPCoeffs[i][j][k] = std::stod(line,&sz1);
-            }
+            Cp_poly_coeffs[i][j] = std::stod(line,&sz1);
         }
     }
 
     this->Rs = compute_Rs(this->Ru);
-}
-
-// Get the temperature index of the species
-template <int dim, int nspecies, int nstate, typename real>
-std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
-::GetNASACAP_TemperatureIndex( const real temperature) const
-{
-    if (temperature != temperature) {
-        std::cout<<"Temperature passed in is NaN...Aborting." << std::endl;
-        std::abort();
-    }
-    if (temperature < 0) {
-        std::cout<<"Temperature passed in is negative... Temperature = " << temperature << "...Aborting." << std::endl;
-        std::abort();
-    }
-    std::array<int,nspecies> species_tempindex;
-	for(int ispecies=0; ispecies<nspecies; ispecies++)
-	{
-		species_tempindex[ispecies] = -2; // initialize to value with no meaning
-        if(temperature < NASACAPTemperatureLimits[ispecies][0]) {
-			species_tempindex[ispecies] = -1; // clip to lower bound
-        }
-		else if((temperature >= NASACAPTemperatureLimits[ispecies][0]) && (temperature < NASACAPTemperatureLimits[ispecies][1]))
-		{
-			species_tempindex[ispecies] = 0; // low temp
-		}
-		else if((temperature >= NASACAPTemperatureLimits[ispecies][1]) && (temperature < NASACAPTemperatureLimits[ispecies][2]))
-		{
-			species_tempindex[ispecies] = 1; // mid temp
-		}
-		else if((temperature >= NASACAPTemperatureLimits[ispecies][2]) && (temperature <= NASACAPTemperatureLimits[ispecies][3]))
-		{
-			species_tempindex[ispecies] = 2; // high temp
-		}
-        else if(temperature > NASACAPTemperatureLimits[ispecies][2]) {
-			species_tempindex[ispecies] = 3; // clip to higher bound
-        }
-		else
-		{
-			std::cout<<"Invalid temperature of " << temperature << " was passed in...Aborting." << std::endl;
-            std::abort();
-		}
-	}
-
-    return species_tempindex;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -495,33 +452,24 @@ template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 ::compute_species_specific_Cp ( const real temperature ) const
 {
-    real dimensional_temperature = compute_dimensional_temperature(temperature);
-    std::array<real,nspecies> Cp;
-    // const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
-
-    if (dimensional_temperature < 0) {
-        std::cout<<"Cp Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
+    if (temperature < 0.0) {
+        std::cout<<"Species Cp Calculation ERROR: Temperature passed in is negative... Nondimensional Temperature = " << temperature << "...Aborting." << std::endl;
         std::abort();
     }
-    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
+    real dimensional_temperature = compute_dimensional_temperature(temperature);
+    std::array<real,nspecies> Cp;
+
     // species loop
-    for (int s=0; s<nspecies; ++s) 
+    for (int ispecies=0; ispecies<nspecies; ++ispecies) 
     { 
         // main computation
-        Cp[s] = 0.0;
-        if(species_tempindex[s] == -1) { // clip to lower temperature bound's Cp (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 0;
-            dimensional_temperature = NASACAPTemperatureLimits[s][0];
+        if (dimensional_temperature < 0.8*NASACAPTemperatureLimits[ispecies][0] || dimensional_temperature > 1.2*NASACAPTemperatureLimits[ispecies][1]) {
+            std::cout << "Species Cp Calculation WARNING: Temperature exceeds the " << species_name[ispecies] << " polynomial limits by more than 20%..." << std::endl;
         }
-        if(species_tempindex[s] == 3) { // clip to higher temperature bound's Cp (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 2;
-            dimensional_temperature = NASACAPTemperatureLimits[s][2];
+        Cp[ispecies] = 0;
+        for (int icoeffs = 0; icoeffs < 6; ++icoeffs) {
+            Cp[ispecies] += this->Cp_poly_coeffs[ispecies][icoeffs]*pow(temperature, 5.0-icoeffs);
         }
-        for (int i=0; i<7; i++)
-        {
-            Cp[s] += this->NASACAPCoeffs[s][i][species_tempindex[s]]*pow(dimensional_temperature,i-2);
-        }
-        Cp[s] *= this->Rs[s];
     }
 
     return Cp; // nondimensional mass value
@@ -551,58 +499,29 @@ template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 ::compute_species_specific_enthalpy ( const real temperature ) const
 {
-    real dimensional_temperature = compute_dimensional_temperature(temperature);
-    std::array<real,nspecies> h;
-    
-    if (dimensional_temperature < 0) {
-        std::cout<<"Species Enthalpy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
+    if (temperature < 0.0) {
+        std::cout<<"Species Enthalpy Calculation ERROR: Temperature passed in is negative... Nondimensional Temperature = " << temperature << "...Aborting." << std::endl;
         std::abort();
     }
-    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
+    real dimensional_temperature = compute_dimensional_temperature(temperature);
+    std::array<real,nspecies> h;
+
     /// species loop
-    for (int s=0; s<nspecies; ++s) 
+    for (int ispecies=0; ispecies<nspecies; ++ispecies) 
     { 
         // main computation
-        real Cp = 0.0;
-        real out_of_bounds_temp = -1.0;
-        if(species_tempindex[s] == -1) { // Calculate enthalpy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 0;
-            std::array<real,nspecies> Cp_species = compute_species_specific_Cp(NASACAPTemperatureLimits[s][0]);
-            Cp = Cp_species[s]; // obtain Cp so the enthalpy can be calculated with CPG model
-            Cp /= this->Rs[s]; // nondimensional molar value of Cp;
-            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate enthalpy using CPG model
-            dimensional_temperature = NASACAPTemperatureLimits[s][0];
+        if (dimensional_temperature < 0.8*NASACAPTemperatureLimits[ispecies][0] || dimensional_temperature > 1.2*NASACAPTemperatureLimits[ispecies][1]) {
+            std::cout << "Species Enthalpy Calculation WARNING: Temperature exceeds the " << species_name[ispecies] << " polynomial limits by more than 20%..." << std::endl;
         }
-        if(species_tempindex[s] == 3) { // Calculate enthalpy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 2;
-            std::array<real,nspecies> Cp_species = compute_species_specific_Cp(NASACAPTemperatureLimits[s][2]);
-            Cp = Cp_species[s]; // obtain Cp so the enthalpy can be calculated with CPG model
-            Cp /= this->Rs[s]; // nondimensional molar value of Cp;
-            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate enthalpy using CPG model
-            dimensional_temperature = NASACAPTemperatureLimits[s][2];
-        }
-        h[s] = -this->NASACAPCoeffs[s][0][species_tempindex[s]]*pow(dimensional_temperature,-2)
-                +this->NASACAPCoeffs[s][1][species_tempindex[s]]*pow(dimensional_temperature,-1)*log(dimensional_temperature) 
-                +this->NASACAPCoeffs[s][7][species_tempindex[s]]*pow(dimensional_temperature,-1); // The first 2 terms and the last term are added
-        for (int i=2; i<7; i++)
-        {
-            h[s] += this->NASACAPCoeffs[s][i][species_tempindex[s]]*pow(dimensional_temperature,i-2)/((double)(i-1)); // The other terms are added
-        }
+        real h_ref = 0;
+        for (int icoeffs = 0; icoeffs < 6; ++icoeffs)
+            h_ref += this->Cp_poly_coeffs[ispecies][icoeffs]*pow(1.0, 6.0-icoeffs)*pow(6.0-icoeffs, -1.0);
 
-        if(out_of_bounds_temp != -1.0) {
-            h[s] = h[s]*(dimensional_temperature/out_of_bounds_temp) + ((out_of_bounds_temp - dimensional_temperature)/out_of_bounds_temp) * Cp;
+        h[ispecies] = 0;
+        for (int icoeffs = 0; icoeffs < 6; ++icoeffs) {
+            h[ispecies] += this->Cp_poly_coeffs[ispecies][icoeffs]*pow(temperature, 6.0-icoeffs)*pow(6.0-icoeffs, -1.0);
         }
-
-        if(out_of_bounds_temp != -1.0)
-            h[s] *= ((this->Ru*out_of_bounds_temp)/(this->species_weight[s]*this->u_ref_sqr)); //nondimensional mass value
-        else
-            h[s] *= ((this->Ru*dimensional_temperature)/(this->species_weight[s]*this->u_ref_sqr)); //nondimensional mass value
-        
-        h[s] += species_enthalpy_offset[s]; // add the species_enthalpy_offset to account for enthalpy of formation for T=0 -> T=298.15K
-
-        // set dimensional temp back to the out of bounds temp for the next species in the loop
-        if (out_of_bounds_temp != -1.0)
-            dimensional_temperature = out_of_bounds_temp;
+        h[ispecies] += this->species_enthalpy_offset[ispecies] - h_ref;
     }
     return h;
 }
@@ -617,7 +536,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     std::array<real,nspecies> e;
     for (int s=0; s<nspecies; ++s) 
     {
-        e[s] = h[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
+        e[s] = (this->R_ref*this->temperature_ref/this->u_ref_sqr)*(h[s] -  Rs[s]*temperature);
     }
 
     return e;
@@ -629,55 +548,33 @@ std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
 ::compute_species_entropy_cv_integral ( 
     const real temperature) const
 {
+    if (temperature < 0.0) {
+        std::cout<<"Species Entropy Calculation ERROR: Temperature passed in is negative... Nondimensional Temperature = " << temperature << "...Aborting." << std::endl;
+        std::abort();
+    }
     real dimensional_temperature = compute_dimensional_temperature(temperature);
     std::array<real,nspecies> species_entropy;
-
-    if (dimensional_temperature < 0) {
-        std::cout<<" Species Entropy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
-        std::abort();
-    }    
-    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
     
     /// species loop
-    for (int s=0; s<nspecies; ++s) 
+    for (int ispecies=0; ispecies<nspecies; ++ispecies) 
     { 
         // main computation
-        real Cp = 0.0;
-        real out_of_bounds_temp = -1.0;
-        if(species_tempindex[s] == -1) { // Calculate entropy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 0;
-            std::array<real,nspecies> Cp_species = compute_species_specific_Cp(NASACAPTemperatureLimits[s][0]);
-            Cp = Cp_species[s]; // obtain Cp so the entropy can be calculated with CPG model
-            Cp /= this->Rs[s]; // nondimensional molar value of Cp;
-            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate entropy using CPG model
-            dimensional_temperature = NASACAPTemperatureLimits[s][0];
-        }
-        if(species_tempindex[s] == 3) { // Calculate entropy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 2;
-            std::array<real,nspecies> Cp_species = compute_species_specific_Cp(NASACAPTemperatureLimits[s][2]);
-            Cp = Cp_species[s]; // obtain Cp so the entropy can be calculated with CPG model
-            Cp /= this->Rs[s]; // nondimensional molar value of Cp;
-            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate entropy using CPG model
-            dimensional_temperature = NASACAPTemperatureLimits[s][2];
-        }
-        species_entropy[s] = -this->NASACAPCoeffs[s][0][species_tempindex[s]]*pow(dimensional_temperature,-2)*0.5
-                -this->NASACAPCoeffs[s][1][species_tempindex[s]]*pow(dimensional_temperature,-1) 
-                +this->NASACAPCoeffs[s][2][species_tempindex[s]]*log(dimensional_temperature)
-                +this->NASACAPCoeffs[s][8][species_tempindex[s]];
-        for (int i=3; i<7; i++)
-        {
-            species_entropy[s] += this->NASACAPCoeffs[s][i][species_tempindex[s]]*pow(dimensional_temperature,double(i-2))/((double)(i-2)); // The other terms are added
+        if (dimensional_temperature < 0.8*NASACAPTemperatureLimits[ispecies][0] || dimensional_temperature > 1.2*NASACAPTemperatureLimits[ispecies][1]) {
+            std::cout << "Species Entropy Calculation WARNING: Temperature exceeds the " << species_name[ispecies] << " polynomial limits by more than 20%..." << std::endl;
         }
 
-        if(out_of_bounds_temp != -1.0) {
-            species_entropy[s] = species_entropy[s] + log(dimensional_temperature/out_of_bounds_temp) * Cp;
-        }
+        species_entropy[ispecies] = 0;
 
-        // set dimensional temp back to the out of bounds temp for the next species in the loop
-        if (out_of_bounds_temp != -1.0)
-            dimensional_temperature = out_of_bounds_temp;
-        species_entropy[s] *= this->Rs[s];
-        species_entropy[s] -= this->Rs[s]*log(temperature);
+        real entropy_ref = 0;
+        for (int icoeffs = 0; icoeffs < 5; ++icoeffs)
+            entropy_ref += this->Cp_poly_coeffs[ispecies][icoeffs]*pow(1.0, 5.0-icoeffs)*pow(5.0-icoeffs, -1.0);
+        for (int icoeffs = 0; icoeffs < 5; ++icoeffs) {
+            species_entropy[ispecies] += this->Cp_poly_coeffs[ispecies][icoeffs]*pow(temperature, 5.0-icoeffs)*pow(5.0-icoeffs, -1.0);
+        }
+        entropy_ref += this->Cp_poly_coeffs[ispecies][5]*log(1.0);
+        species_entropy[ispecies] += this->Cp_poly_coeffs[ispecies][5]*log(temperature);
+        species_entropy[ispecies] += this->species_entropy_offset[ispecies] - entropy_ref;
+        species_entropy[ispecies] -= this->Rs[ispecies]*log(temperature);
     }
 
     return species_entropy;
@@ -806,7 +703,7 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     // species energy
     for (int s=0; s<nspecies; ++s) 
     { 
-      species_specific_internal_energy[s] = species_specific_enthalpy[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
+      species_specific_internal_energy[s] = (this->R_ref*this->temperature_ref/this->u_ref_sqr)*(species_specific_enthalpy[s] -  Rs[s]*temperature);
       species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
     }     
     // mixture energy
@@ -875,7 +772,7 @@ inline real RealGas<dim,nspecies,nstate,real>
         // species specific enthalpy at T_n
         species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // nondimensional mass value
         // mixture specific enthalpy at T_n
-        mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dimensional value
+        mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*(this->R_ref*this->temperature_ref); // dimensional value
         // Newton-Raphson function
         f = (mixture_specific_enthalpy - mixture_gas_constant*this->R_ref* T_n) - mixture_specific_internal_energy; // dimensional value
 
@@ -1249,7 +1146,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     // mixture enthalpy
     const real mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy);
     // mixture specific internal energy
-    const real mixture_specific_internal_energy = mixture_specific_enthalpy - mixture_pressure/mixture_density;
+    const real mixture_specific_internal_energy = ((this->R_ref*this->temperature_ref)/this->u_ref_sqr)*mixture_specific_enthalpy - mixture_pressure/mixture_density;
     // mixture specific total energy
     const real mixture_specific_total_energy = mixture_specific_internal_energy + specific_kinetic_energy;
 
