@@ -55,9 +55,17 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
         std::cout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
         std::abort();
     }
+    if(dim >= 2 && (flow_solver_param.grid_bottom_bound == flow_solver_param.grid_top_bound)) {
+        std::cout << "Error: grid bounds must be passed for all directions to use PPL Limiter." << std::endl;
+        std::abort();
+    }
 
     if(dim == 3 && flow_solver_param.number_of_grid_elements_z == 1) {
         std::cout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
+        std::abort();
+    }
+    if(dim >= 3 && (flow_solver_param.grid_z_lower_bound == flow_solver_param.grid_z_upper_bound)) {
+        std::cout << "Error: grid bounds must be passed for all directions to use PPL Limiter." << std::endl;
         std::abort();
     }
 }
@@ -352,6 +360,10 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nspecies, nstate, real
 
             if (isnan(soln_cell_avg[istate])) {
                 std::cout << "Error: Solution Cell Avg is NaN - Aborting... " << std::endl << std::flush;
+                std::cout << "mu: " << mu << std::endl;
+                std::cout << "max_local_wave_speed_1: " << max_local_wave_speed_1 << " lambda_1: " << lambda_1 << std::endl;
+                std::cout << "max_local_wave_speed_2: " << max_local_wave_speed_2 << " lambda_2: " << lambda_2 << std::endl;
+                std::cout << "max_local_wave_speed_3: " << max_local_wave_speed_3 << " lambda_3: " << lambda_3 << std::endl;
                 std::abort();
             }
         }
@@ -516,8 +528,10 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                 std::array<real,nspecies> species_densities;
                 for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
                     real density_sum = 0.0;
-                    if(ispecies != nspecies-1)
+                    if(ispecies != nspecies-1) {
                         species_densities[ispecies] = soln_at_iquad[dim+2+ispecies];
+                        density_sum += species_densities[ispecies];
+                    }
                     else
                         species_densities[ispecies] = soln_at_iquad[0] - density_sum;
                 }
@@ -595,7 +609,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
-        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + nspecies + 1) {
+        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + 2 && nspecies == 1) {
             std::array<real, dim> theta2_quad;
             for(unsigned int idim = 0; idim < dim; ++idim) {
                 theta2_quad[idim] = get_theta2_Wang2012(soln_at_q[idim], n_quad_pts, p_avg);
@@ -616,6 +630,13 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                     soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
                             + soln_cell_avg[istate];
                 }
+            }
+        }
+
+        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + nspecies + 1 && nspecies > 1) {
+            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                if (soln_coeff[dim+1][iquad] < 0)
+                    std::cout << "Unmodified energy value is negative!!" << std::endl;
             }
         }
 

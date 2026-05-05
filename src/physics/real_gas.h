@@ -217,9 +217,6 @@ protected:
     // Modified by Shruthi
     std::array<real,nspecies> compute_species_specific_enthalpy ( const real temperature ) const;   
 
-    // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
-    std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
-
     // Compute Cv integral component of the species entropy equation
     // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
     std::array<real,nspecies> compute_species_entropy_cv_integral ( const real temperature ) const; 
@@ -230,6 +227,9 @@ protected:
     // Compute species Gibbs' energy using species entropy and species Cp
     std::array<real,nspecies> compute_species_gibbs_energy ( const std::array<real,nstate> &conservative_soln ) const;
 public:
+    // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
+    std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
+    
     // Algorithm 15 (f_M15): Compute temperature from conservative_soln
     virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -315,6 +315,7 @@ protected:
     std::array<std::array<double, 2>, nspecies> NASACAPTemperatureLimits; // Upper and lower temperature bound for the NASA CAP data
     std::array<std::string,nspecies> species_name; // Species name
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
+public:
     std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset - reads in nondimensional value (nondims using R_ref*T_ref)
     std::array<double,nspecies> species_entropy_offset; // Species enthalpy offset - reads in nondimensional value (nondims using R_ref)
     std::array<real,nspecies> Rs; // Species gas constant

@@ -594,6 +594,7 @@ int InviscidTaylorGreen<dim, nspecies, nstate>::run_test() const
 
     const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
     double delta_x = (right-left)/pow(n_global_active_cells2,1.0/dim)/(poly_degree+1.0);
+    pcout<<" active cells "<<n_global_active_cells2<<std::endl;
     pcout<<" delta x "<<delta_x<<std::endl;
 
     all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
