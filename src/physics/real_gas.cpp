@@ -606,11 +606,11 @@ std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
     const real temperature = compute_temperature(conservative_soln);
 
     std::array<real,nspecies> species_entropy = compute_species_entropy(conservative_soln);
-    std::array<real,nspecies> species_Cp = compute_species_specific_Cp(temperature);
+    std::array<real,nspecies> species_enthalpy = compute_species_specific_enthalpy(temperature);
 
     std::array<real, nspecies> species_gibbs;
     for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
-        species_gibbs[ispecies] = temperature*(species_Cp[ispecies] - species_entropy[ispecies]);
+        species_gibbs[ispecies] = species_enthalpy[ispecies] - temperature*species_entropy[ispecies];
     }
 
     return species_gibbs;
@@ -669,11 +669,11 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     }
 
     std::array<real,nspecies> species_entropy;
-    std::array<real,nspecies> species_Cp = compute_species_specific_Cp(temperature);
+    std::array<real,nspecies> species_enthalpy = compute_species_specific_enthalpy(temperature);
     for(int ispecies = 0; ispecies < nth_species_idx; ++ispecies) {
-        species_entropy[ispecies] = species_Cp[ispecies] - (species_gibbs[ispecies]/temperature);
+        species_entropy[ispecies] = (species_enthalpy[ispecies] - species_gibbs[ispecies])/temperature;
     }
-    species_entropy[nth_species_idx] = species_Cp[nth_species_idx] - (species_gibbs[nth_species_idx]/temperature);
+    species_entropy[nth_species_idx] = (species_enthalpy[nth_species_idx] - species_gibbs[nth_species_idx])/temperature;
 
     std::array<real,nspecies> species_density;
     const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
@@ -863,9 +863,10 @@ inline real RealGas<dim,nspecies,nstate,real>
 ::compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_specific_total_energy = compute_mixture_specific_total_energy(conservative_soln);
+    const real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
     const real mixture_pressure = compute_mixture_pressure(conservative_soln);
     const real mixture_density = compute_mixture_density(conservative_soln);
-    const real mixture_specific_total_enthalpy = mixture_specific_total_energy + mixture_pressure/mixture_density;
+    const real mixture_specific_total_enthalpy = mixture_specific_total_energy - 0.5*vel2 + mixture_pressure/mixture_density;
 
     return mixture_specific_total_enthalpy;
 }
@@ -880,8 +881,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
     const real mixture_density = compute_mixture_density(conservative_soln);
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     const real mixture_pressure = compute_mixture_pressure(conservative_soln);
-    const real mixture_specific_total_enthalpy = compute_mixture_specific_total_enthalpy(conservative_soln);
     const std::array<real,nspecies> species_densities = compute_species_densities(conservative_soln);
+    const real mixture_specific_total_energy = compute_mixture_specific_total_energy(conservative_soln);
 
     // flux dimension loop; E -> F -> G
     for (int flux_dim=0; flux_dim<dim; ++flux_dim) 
@@ -897,7 +898,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
         conv_flux[1+flux_dim][flux_dim] += mixture_pressure; // Add diagonal of pressure
 
         /* C) mixture energy equations */
-        conv_flux[dim+1][flux_dim] = mixture_density*vel[flux_dim]*mixture_specific_total_enthalpy;
+        conv_flux[dim+1][flux_dim] = mixture_density*vel[flux_dim]*(mixture_specific_total_energy + mixture_pressure/mixture_density);
 
         /* D) species density equations */
         for (int s=0; s<nspecies-1; ++s)
@@ -1050,8 +1051,12 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     const std::array<real,nspecies> species_densities_2 = compute_species_densities(conservative_soln2);
 
     std::array<real, nspecies> mean_species_densities;
+    real density1 = 0.0;
+    real density2 = 0.0;
     real mean_density = 0.0;
     for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        density1 += species_densities_1[ispecies];
+        density2 += species_densities_2[ispecies];
         mean_species_densities[ispecies] = (species_densities_1[ispecies]+species_densities_2[ispecies])/2.0;
         mean_density += mean_species_densities[ispecies];
     }
@@ -1069,10 +1074,12 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     const real pressure2 = compute_mixture_pressure(conservative_soln2);
     const real mean_pressure = (pressure1 + pressure2)/2.0;
 
-    // Compute mean enthalpy
-    const real enthalpy1 = compute_mixture_specific_total_enthalpy(conservative_soln1);
-    const real enthalpy2 = compute_mixture_specific_total_enthalpy(conservative_soln2);
-    const real mean_enthalpy = (enthalpy1 + enthalpy2)/2.0;
+    // Compute mean E + P/rho
+    const real total_energy1 = compute_mixture_specific_total_energy(conservative_soln1);
+    const real total_energy2 = compute_mixture_specific_total_energy(conservative_soln2);
+    const real sum_total_energy_and_pressure_over_rho1 = total_energy1 + pressure1/density1;
+    const real sum_total_energy_and_pressure_over_rho2 = total_energy2 + pressure2/density2;
+    const real mean_sum_total_energy_and_pressure_over_rho = (sum_total_energy_and_pressure_over_rho1 + sum_total_energy_and_pressure_over_rho2)/2.0;
 
     for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
     {
@@ -1084,7 +1091,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
         }
         conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
         // Energy equation
-        conv_num_split_flux[dim+1][flux_dim] = mean_density*mean_enthalpy*mean_vel[flux_dim];
+        conv_num_split_flux[dim+1][flux_dim] = mean_density*mean_sum_total_energy_and_pressure_over_rho*mean_vel[flux_dim];
         // Species density equation
         for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
             conv_num_split_flux[dim+2+ispecies][flux_dim] = mean_species_densities[ispecies] * mean_vel[flux_dim];
