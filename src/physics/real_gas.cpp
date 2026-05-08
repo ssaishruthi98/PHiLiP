@@ -1051,12 +1051,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     const std::array<real,nspecies> species_densities_2 = compute_species_densities(conservative_soln2);
 
     std::array<real, nspecies> mean_species_densities;
-    real density1 = 0.0;
-    real density2 = 0.0;
     real mean_density = 0.0;
     for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
-        density1 += species_densities_1[ispecies];
-        density2 += species_densities_2[ispecies];
         mean_species_densities[ispecies] = (species_densities_1[ispecies]+species_densities_2[ispecies])/2.0;
         mean_density += mean_species_densities[ispecies];
     }
@@ -1075,6 +1071,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     const real mean_pressure = (pressure1 + pressure2)/2.0;
 
     // Compute mean E + P/rho
+    const real density1 = conservative_soln1[0];
+    const real density2 = conservative_soln2[0];
     const real total_energy1 = compute_mixture_specific_total_energy(conservative_soln1);
     const real total_energy2 = compute_mixture_specific_total_energy(conservative_soln2);
     const real sum_total_energy_and_pressure_over_rho1 = total_energy1 + pressure1/density1;
