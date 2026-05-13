@@ -40,7 +40,7 @@ class PositivityPreservingTests : public CubeFlow_UniformGrid<dim, nspecies, nst
     /// Check positivity of density and total energy + verify that density is not NaN
     void check_positivity_density(DGBase<dim, nspecies, double>& dg);
 
-    /// Updates the maximum local wave speed
+    /// Compute integrated numerical entropy
     double compute_integrated_entropy(DGBase<dim, nspecies, double>& dg) const;
 
     /// Filename (with extension) for the unsteady data table

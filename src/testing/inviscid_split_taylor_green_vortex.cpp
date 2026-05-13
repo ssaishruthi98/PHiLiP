@@ -94,6 +94,7 @@ std::array<double,2> InviscidTaylorGreen<dim, nspecies, nstate>::compute_change_
     //evaluate the change in entropy and change in KE
     dg->assemble_residual();
     std::array<double,2> change_entropy_and_energy;
+
     change_entropy_and_energy[0] = entropy_var_hat_global * dg->right_hand_side;
     change_entropy_and_energy[1] = energy_var_hat_global * dg->right_hand_side;
     return change_entropy_and_energy;
@@ -407,9 +408,14 @@ double InviscidTaylorGreen<dim, nspecies, nstate>::compute_entropy(const std::sh
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
             const double density = soln_state[0];
-            const double pressure = physics_double->compute_pressure(soln_state);
-            const double entropy = log(pressure) - physics_double->compute_gamma(soln_state) * log(density);
-            const double quadrature_entropy = -density*entropy/(physics_double->compute_gamma(soln_state)-1);
+            const double entropy = physics_double->compute_entropy(soln_state);
+            double quadrature_entropy = 0.0;
+            if (nspecies == 1)
+                quadrature_entropy = -density*entropy/(physics_double->compute_gamma(soln_state)-1);
+            else {
+                // pcout << "entropy " << entropy << std::endl;
+                quadrature_entropy = -density*entropy;
+            }
 
             entropy_fn += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
 
@@ -655,12 +661,12 @@ int InviscidTaylorGreen<dim, nspecies, nstate>::run_test() const
         //get the entropy
         const double current_entropy = compute_entropy(dg, poly_degree);
         const double current_entropy_mpi = (dealii::Utilities::MPI::sum(current_entropy, mpi_communicator));
-        pcout << "Normalized entropy " << ode_solver->current_time << " is " << current_entropy_mpi/initial_entropy_mpi<< std::endl;
+        pcout << "Normalized entropy " << ode_solver->current_time << " is " << current_entropy_mpi/initial_entropy_mpi<< std::endl << std::endl;
 
         //get the volume work for kinetic energy
         double current_vol_work = compute_volume_term(dg, poly_degree);
         double current_vol_work_mpi = (dealii::Utilities::MPI::sum(current_vol_work, mpi_communicator));
-        pcout<<"volume work "<<current_vol_work_mpi<<std::endl;
+        pcout<<"volume work "<<current_vol_work_mpi<<std::endl << std::endl;
 
         //output the entropy change and volume work to file
         myfile << ode_solver->current_time << " " << std::fixed << std::setprecision(16) << current_change_entropy_mpi << " " << current_vol_work_mpi<< std::endl;

@@ -597,6 +597,24 @@ std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
     return species_entropy;
 }
 
+// Compute mixture entropy
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim, nspecies, nstate, real>
+::compute_entropy (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    const std::array<real,nspecies> species_entropy = compute_species_entropy(conservative_soln);
+    const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
+
+    const real entropy = compute_mixture_from_species(mass_fractions,species_entropy);
+    if(entropy != entropy) {
+        std::cout << "The calculated entropy is NaN - this is likely due to a species having a mass fraction of zero...Aborting." << std::endl;
+        std::abort();
+    }
+
+    return entropy;
+}
+
 // Compute Gibbs' energy of species using species entropy and species Cp
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
@@ -614,6 +632,19 @@ std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
     }
 
     return species_gibbs;
+}
+
+// Compute the numerical entropy
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim,nspecies,nstate,real>
+::compute_numerical_entropy_function ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real density = conservative_soln[0];
+    const real entropy = compute_entropy(conservative_soln);
+
+    const real numerical_entropy_function = - density * entropy;
+
+    return numerical_entropy_function;
 }
 
 // Compute the entropy variables from conservative solution
@@ -1377,6 +1408,8 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         {
             computed_quantities(++current_data_index) = species_densities[s];
         }
+
+        computed_quantities(++current_data_index) = compute_numerical_entropy_function(conservative_soln);
     }
     if (computed_quantities.size()-1 != current_data_index) {
         this->pcout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
@@ -1411,6 +1444,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     for (unsigned int s=0; s<nspecies; ++s) {
         interpretation.push_back (DCI::component_is_scalar); // Species densities
     }
+    interpretation.push_back (DCI::component_is_scalar); // Numerical Entropy
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1448,6 +1482,7 @@ std::vector<std::string> RealGas<dim,nspecies,nstate,real>
       std::string string_species_density = string_density + "_" + this->species_name[s];
       names.push_back (string_species_density);
     }
+    names.push_back ("numerical_entropy");
 
     return names;
 }

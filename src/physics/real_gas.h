@@ -226,7 +226,14 @@ protected:
 
     // Compute species Gibbs' energy using species entropy and species Cp
     std::array<real,nspecies> compute_species_gibbs_energy ( const std::array<real,nstate> &conservative_soln ) const;
+
 public:
+    /// Compute numerical entropy function -rho s 
+    real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
+
+    // Compute mixture entropy
+    real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
     // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
     std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
     
@@ -239,7 +246,7 @@ protected:
 
 public:
     // Algorithm 17 (f_M17): Compute mixture pressure from conservative_soln
-    virtual real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+    real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 17b: Calls compute_mixture_pressure (required for limiter)
     virtual real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;

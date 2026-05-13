@@ -55,7 +55,7 @@ end
 
 subsection flow_solver
     set flow_case_type = multi_species_taylor_green_vortex_smooth
-    #set apply_initial_condition_method = project_initial_condition_function
+    set apply_initial_condition_method = project_initial_condition_function
     set poly_degree = 3
     set final_time = 14.0
     subsection grid

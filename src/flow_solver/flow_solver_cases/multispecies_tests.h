@@ -33,6 +33,9 @@ protected:
     /// Updates the maximum local wave speed
     using CubeFlow_UniformGrid<dim, nspecies, nstate>::update_maximum_local_wave_speed;
 
+   /// Compute integrated numerical entropy
+    double compute_integrated_entropy(DGBase<dim, nspecies, double>& dg) const;
+
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 
@@ -61,6 +64,15 @@ protected:
 private:
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
+
+    /// Storing entropy at first step
+    double initial_entropy;
+
+    /// Store previous entropy
+    double previous_numerical_entropy;
+
+    // euler physics pointer for computing physical quantities.
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 } // FlowSolver namespace
