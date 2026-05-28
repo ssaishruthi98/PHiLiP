@@ -412,7 +412,6 @@ double InviscidTaylorGreen<dim, nspecies, nstate>::compute_entropy(const std::sh
             if (nspecies == 1)
                 quadrature_entropy = -density*entropy/(physics_double->compute_gamma(soln_state)-1);
             else {
-                // pcout << "entropy " << entropy << std::endl;
                 quadrature_entropy = -density*entropy;
             }
 
