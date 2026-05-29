@@ -356,7 +356,7 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     // species energy
     for (int s=0; s<nspecies; ++s) 
     { 
-      species_specific_internal_energy[s] = (this->R_ref*this->temperature_ref/this->u_ref_sqr)*(species_specific_enthalpy[s] - Rs[s]*temperature);
+      species_specific_internal_energy[s] = species_specific_enthalpy[s] - Rs[s]*temperature;
       species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
     }     
     // mixture energy
@@ -894,7 +894,7 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     std::array<real,nspecies> e;
     for (int s=0; s<nspecies; ++s) 
     {
-        e[s] =(this->R_ref*this->temperature_ref/this->u_ref_sqr)*(h[s] - this->Rs[s]*temperature);
+        e[s] =(h[s] - this->Rs[s]*temperature);
     }
 
     return e;
@@ -930,7 +930,7 @@ inline real RealGas<dim,nspecies,nstate,real>
     {
         /// 1) f(T_n)
         // mixture specific internal energy: e = E - k
-        mixture_specific_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy)*this->u_ref_sqr; // dimensional value
+        mixture_specific_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy)*(this->R_ref*this->temperature_ref); // dimensional value
         // std::cout << "mixture_specific_total_energy " << mixture_specific_total_energy << std::endl;
         // std::cout << "specific_kinetic_energy " << specific_kinetic_energy << std::endl;
         // std::cout << "mixture_specific_internal_energy " << mixture_specific_internal_energy << std::endl;
@@ -1004,7 +1004,7 @@ inline real RealGas<dim,nspecies,nstate,real>
     const real mixture_density = compute_mixture_density(conservative_soln);
     const real mixture_gas_constant = compute_mixture_gas_constant(conservative_soln);
     const real temperature = compute_temperature(conservative_soln);
-    const real mixture_pressure = mixture_density*mixture_gas_constant*temperature/(this->gam_ref*this->mach_ref_sqr);
+    const real mixture_pressure = mixture_density*mixture_gas_constant*temperature;
 
     return mixture_pressure;
 }
@@ -1014,7 +1014,7 @@ inline real RealGas<dim,nspecies,nstate,real>
 ::compute_pressure_from_density_temperature ( const real density, const real temperature, const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_gas_constant = compute_mixture_gas_constant(conservative_soln);
-    const real mixture_pressure = density*mixture_gas_constant*temperature/(this->gam_ref*this->mach_ref_sqr);
+    const real mixture_pressure = density*mixture_gas_constant*temperature;
     return mixture_pressure;
 }
 
@@ -1250,6 +1250,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
         std::cout << std::endl;
         std::cout << "The enthalpy offset is : " << this->species_enthalpy_offset[ispecies] << " and the enthalpy at ref temp is : " << h_ref << std::endl;
         energy_flux_species_sum[ispecies] += (this->species_enthalpy_offset[ispecies] - h_ref);
+        energy_flux_species_sum[ispecies] -= this->Rs[ispecies]*inv_temp_log_mean;
         std::cout << "Total species term: " << energy_flux_species_sum[ispecies] << std::endl << std::endl;
 
         log_mean_species_densities[ispecies] = compute_ismail_roe_logarithmic_mean(rho_species1[ispecies],rho_species2[ispecies]);
@@ -1259,7 +1260,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     }
     // std::cout << std::endl;
     pressure_diagonal /= inv_temp_avg;
-    pressure_diagonal /= (this->gam_ref*this->mach_ref_sqr);
 
     for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
     {
@@ -1352,7 +1352,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     // mixturegas constant
     const real mixture_gas_constant = compute_mixture_from_species(mass_fractions,this->Rs);
     // temperature
-    const real temperature = mixture_pressure/(mixture_density*mixture_gas_constant) * (this->u_ref_sqr/(this->R_ref*this->temperature_ref));
+    const real temperature = mixture_pressure/(mixture_density*mixture_gas_constant);
     // specific kinetic energy
     const real specific_kinetic_energy = 0.50*vel2;
     // species specific enthalpy
@@ -1360,7 +1360,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     // mixture enthalpy
     const real mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy);
     // mixture specific internal energy
-    const real mixture_specific_internal_energy = ((this->R_ref*this->temperature_ref)/this->u_ref_sqr)*mixture_specific_enthalpy - mixture_pressure/mixture_density;
+    const real mixture_specific_internal_energy = mixture_specific_enthalpy - mixture_pressure/mixture_density;
     // std::cout << "enthalpy is:  " << mixture_specific_enthalpy << " P/rho is:  " << mixture_pressure/mixture_density << std::endl;
     // mixture specific total energy
     const real mixture_specific_total_energy = mixture_specific_internal_energy + specific_kinetic_energy;
@@ -1414,7 +1414,7 @@ inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 
     for (int s=0; s<nspecies; ++s) 
     {
-        gamma[s] = Cp[s]/Cv[s];
+        gamma[s] = (Cp[s]/Cv[s])/this->gam_ref;
     }
 
     return gamma;
@@ -1434,7 +1434,7 @@ inline real RealGas<dim,nspecies,nstate,real>
     real mixture_Cp = compute_mixture_from_species(mass_fractions,Cp);
     real mixture_Cv = compute_mixture_from_species(mass_fractions,Cv);
 
-    real gamma = mixture_Cp/mixture_Cv;
+    real gamma = (mixture_Cp/mixture_Cv)/this->gam_ref;
     return gamma;
 }
 
@@ -1449,7 +1449,7 @@ inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     std::array<real,nspecies> speed_of_sound;
     for (int s=0; s<nspecies; ++s) 
         { 
-            speed_of_sound[s] = sqrt(gamma[s]*Rs[s]*temperature/(this->mach_ref_sqr)); 
+            speed_of_sound[s] = sqrt(gamma[s]*Rs[s]*temperature/this->mach_ref_sqr); 
         }
 
     return speed_of_sound;
@@ -1469,7 +1469,7 @@ inline real RealGas<dim,nspecies,nstate,real>
     const real temperature = compute_temperature(conservative_soln);
     const real gamma = compute_gamma(conservative_soln);
 
-    const real sound = sqrt(gamma*R_mix*temperature/(this->mach_ref_sqr)); 
+    const real sound = sqrt(gamma*R_mix*temperature/this->mach_ref_sqr); 
 
     return sound;
 }
