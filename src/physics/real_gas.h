@@ -230,6 +230,9 @@ protected:
     // Compute species Gibbs' energy using species entropy and species Cp
     std::array<real,nspecies> compute_species_gibbs_energy ( const std::array<real,nstate> &conservative_soln ) const;
 public:
+    /// Compute numerical entropy function -rho s 
+    real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
+
     // Compute mixture entropy
     real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
     
@@ -262,14 +265,28 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const dealii::Tensor<1,dim,real> &normal) const;
 
+    /// Helper function to compute mean for split fluxes
+    real compute_mean(const real val1, const real val2) const;
+
+    /// Helper function to compute Ismail-Roe logarithmic mean for split fluxes
+    real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
+
     ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const override;
 
     /** Entropy conserving split form flux of Kennedy and Gruber.
-     *  Refer to Gassner's paper (2016) Eq. 3.10  */
+     *  Refer to Gassner's paper (2016) Eq. 3.10  for the single-species version
+     *  Multi-species version will be published in Shruthi's future paper hopefully!*/
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_kennedy_gruber (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /** Entropy conserving split form flux of Chandrashekar.
+     *  Refer to Gassner's paper (2016) Eq. 3.20  for the single-species version
+     *  Multi-species version will be published in Shruthi's future paper hopefully!*/
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 
