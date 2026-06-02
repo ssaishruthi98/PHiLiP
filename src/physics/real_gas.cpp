@@ -590,7 +590,7 @@ std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
 
     std::array<real,nspecies> species_entropy = compute_species_entropy_cv_integral(temperature);
     for(int ispecies = 0; ispecies < nspecies; ispecies++) {
-        species_entropy[ispecies] -= this->Rs[ispecies]*log(species_densities[ispecies]*this->density_ref);
+        species_entropy[ispecies] -= this->Rs[ispecies]*log(species_densities[ispecies]);
     }
 
     return species_entropy;
@@ -712,7 +712,7 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
         std::array<real,nspecies> species_entropy_integral = compute_species_entropy_cv_integral(temperature);
 
-        species_density[ispecies] = (exp((species_entropy_integral[ispecies] - species_entropy[ispecies])/(Rs[ispecies])))/(this->density_ref);
+        species_density[ispecies] = (exp((species_entropy_integral[ispecies] - species_entropy[ispecies])/(Rs[ispecies])));
         conservative_var[0] += species_density[ispecies];
 
         if (dim + 2 + ispecies < nstate)
@@ -1165,7 +1165,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
         // std::cout << std::endl;
         // std::cout << "The enthalpy offset is : " << this->species_enthalpy_offset[ispecies] << " and the enthalpy at ref temp is : " << h_ref << std::endl;
         energy_flux_species_sum[ispecies] += (this->species_enthalpy_offset[ispecies] - h_ref);
-        energy_flux_species_sum[ispecies] -= this->Rs[ispecies]*inv_temp_log_mean;
+        energy_flux_species_sum[ispecies] -= this->Rs[ispecies]*inv_temp_log_mean; // overleaf hasnt been updated but this is for Cp -> Cv
         // std::cout << "Total species term: " << energy_flux_species_sum[ispecies] << std::endl << std::endl;
 
         log_mean_species_densities[ispecies] = compute_ismail_roe_logarithmic_mean(rho_species1[ispecies],rho_species2[ispecies]);
