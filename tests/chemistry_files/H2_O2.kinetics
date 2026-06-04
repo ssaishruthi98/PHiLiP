@@ -7,6 +7,9 @@ H2
 Species Weight
 2.0158800
 
+Specific Heat at Constant Pressure
+14.32
+
 Species Enthalpy Offset
 8468.102
 
@@ -23,6 +26,9 @@ O2
 
 Species Weight
 31.9988000
+
+Specific Heat at Constant Pressure
+0.9189
 
 Species Enthalpy Offset
 8680.104

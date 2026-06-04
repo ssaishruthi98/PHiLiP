@@ -1,5 +1,5 @@
-#ifndef __REALGAS__
-#define __REALGAS__
+#ifndef __MULTISPECIES_CALORICALLYPERFECT__
+#define __MULTISPECIES_CALORICALLYPERFECT__
 
 #include <deal.II/base/tensor.h>
 #include "physics.h"
@@ -10,12 +10,12 @@
 namespace PHiLiP {
 namespace Physics {
 
-/// RealGas equations. Derived from PhysicsBase
+/// MultiSpecies_CaloricallyPerfect equations. Derived from PhysicsBase
 /* Functions designated with "// Algorithm # (f_M#)" are detailed in Matsuyama's M.Sc. thesis (2025)
    Algorithms that have "Modified by Shruthi" appended to it do not strictly follow the implementation in the thesis*/
 
 template <int dim, int nspecies, int nstate, typename real>
-class RealGas : public PhysicsBase <dim, nspecies, nstate, real>
+class MultiSpecies_CaloricallyPerfect : public PhysicsBase <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -30,14 +30,14 @@ protected:
 public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
-    RealGas ( 
+    MultiSpecies_CaloricallyPerfect ( 
         const Parameters::AllParameters *const                    parameters_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
     /// Destructor
-    ~RealGas() {};
+    ~MultiSpecies_CaloricallyPerfect() {};
 
     const double gam_ref; ///< reference gamma
     const double mach_ref; ///< reference mach number (Farfield Mach number)
@@ -203,8 +203,8 @@ protected:
     real compute_dimensional_temperature ( const real temperature ) const;
 
 public:
-    // Algorithm 10 (f_M10): Compute species gas constants from Ru (universal gas constant)
-    std::array<real,nspecies> compute_Rs ( const real Ru ) const;
+    // Algorithm 10 (f_M10): Compute species gas constants from the species Cp and Cv values
+    std::array<real,nspecies> compute_Rs () const;
 
 protected:
     // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
@@ -317,6 +317,8 @@ protected:
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
     std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset - reads in [J/mol], stores nondimesnional
     std::array<real,nspecies> Rs; // Species gas constant
+    std::array<real,nspecies> species_Cp; // Species specific heat ratio at constant pressure - CPG only
+    std::array<real,nspecies> species_Cv; // Species specific heat ratio at constant volume - CPG only
 };
 
 } // Physics namespace

@@ -17,7 +17,7 @@
 #include "mhd.h"
 #include "navier_stokes.h"
 #include "physics_model.h"
-#include "real_gas.h"
+#include "multispecies_calorically_perfect.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -206,9 +206,9 @@ PhysicsFactory<dim,nspecies,nstate,real>
         (void) diffusion_tensor;
         (void) advection_vector;
         (void) diffusion_coefficient;
-    } else if (pde_type == PDE_enum::real_gas) {
+    } else if (pde_type == PDE_enum::multispecies_calorically_perfect) {
         if constexpr (nstate==dim+nspecies+1) {
-            return std::make_shared < RealGas<dim,nspecies,nstate,real> > (parameters_input);
+            return std::make_shared < MultiSpecies_CaloricallyPerfect<dim,nspecies,nstate,real> > (parameters_input);
         }
     }
     std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;

@@ -43,7 +43,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("number_of_species", "1",
                       dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                       "Number of species. "
-                      "Default number of species is 1. For number_of_species > 1, only real_gas pde_type can be used.");
+                      "Default number of species is 1. For number_of_species > 1, only multispecies_calorically_perfect pde_type can be used.");
 
     prm.declare_entry("run_type", "integration_test",
                       dealii::Patterns::Selection(
@@ -221,7 +221,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " khi_robustness | "
                       " low_density | "
                       " multi_species_vortex_advection | "
-                      " real_gas_split_taylor_green"),
+                      " multispecies_calorically_perfect_split_taylor_green"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -278,7 +278,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  khi_robustness | "
                       "  low_density | " 
                       "  multi_species_vortex_advection | "
-                      "  real_gas_split_taylor_green>.");
+                      "  multispecies_calorically_perfect_split_taylor_green>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -296,7 +296,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " navier_stokes_channel_flow_constant_source_term_wall_model | "
                       " physics_model_filtered |"
                       " physics_model |"
-                      " real_gas"),
+                      " multispecies_calorically_perfect"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -313,7 +313,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  navier_stokes_channel_flow_constant_source_term_wall_model | "
                       "  physics_model_filtered |"
                       "  physics_model |"
-                      "  real_gas>.");
+                      "  multispecies_calorically_perfect>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
@@ -500,7 +500,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     else if (test_string == "multi_species_vortex_advection")           { test_type = multi_species_vortex_advection; }
-    else if (test_string == "real_gas_split_taylor_green")              { test_type = real_gas_split_taylor_green; }
+    else if (test_string == "multispecies_calorically_perfect_split_taylor_green")              { test_type = multispecies_calorically_perfect_split_taylor_green; }
     
     // WARNING: Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");
@@ -559,8 +559,8 @@ const std::string test_string = prm.get("test_type");
         if (model_type == large_eddy_simulation || model_type == navier_stokes_model) {
             nstate = dimension+2;
         }
-    } else if (pde_string == "real_gas") {
-        pde_type = real_gas;
+    } else if (pde_string == "multispecies_calorically_perfect") {
+        pde_type = multispecies_calorically_perfect;
         nstate = dimension+number_of_species+1;
     }
     

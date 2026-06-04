@@ -169,7 +169,9 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
-    std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
+    std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object = nullptr;
+    if (nspecies == 1)
+        std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
 
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;

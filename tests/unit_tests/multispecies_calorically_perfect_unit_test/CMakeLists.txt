@@ -1,11 +1,11 @@
 set(TEST_SRC
-    real_gas_convert_primitive_conservative.cpp
+    multispecies_calorically_perfect_convert_primitive_conservative.cpp
     )
 
 foreach(dim RANGE 1 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_real_gas_convert_primitive_conservative)
+    string(CONCAT TEST_TARGET ${dim}D_multispecies_calorically_perfect_convert_primitive_conservative)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -30,7 +30,7 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-    set_tests_labels(${TEST_TARGET} REAL_GAS_UNIT_TEST
+    set_tests_labels(${TEST_TARGET} multispecies_calorically_perfect_UNIT_TEST
                                     ${dim}D
                                     SERIAL
                                     QUICK
@@ -42,13 +42,13 @@ foreach(dim RANGE 1 3)
 endforeach()
 
 set(TEST_SRC
-    real_gas_convert_entropy_var_conservative.cpp
+    multispecies_calorically_perfect_convert_entropy_var_conservative.cpp
     )
 
 foreach(dim RANGE 1 3)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_real_gas_convert_entropy_var_conservative)
+    string(CONCAT TEST_TARGET ${dim}D_multispecies_calorically_perfect_convert_entropy_var_conservative)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -73,7 +73,7 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-    set_tests_labels(${TEST_TARGET} REAL_GAS_UNIT_TEST
+    set_tests_labels(${TEST_TARGET} multispecies_calorically_perfect_UNIT_TEST
                                     ${dim}D
                                     SERIAL
                                     QUICK

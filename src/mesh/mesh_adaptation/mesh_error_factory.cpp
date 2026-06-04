@@ -13,19 +13,23 @@ std::unique_ptr <MeshErrorEstimateBase <dim,nspecies, real, MeshType>> MeshError
     // Recursive templating required because template parameters must be compile time constants
     // As a results, this recursive template initializes all possible dimensions with all possible nstate
     // without having 15 different if-else statements
-    if(dim == dg->all_parameters->dimension && nspecies == 1)
+    if(dim == dg->all_parameters->dimension)
     {
-        // This template parameters dim and nstate match the runtime parameters
-        // then create the selected dual-weighted residual type with template parameters dim and nstate
-        // Otherwise, keep decreasing nstate and dim until it matches
-        if(nstate == dg->all_parameters->nstate) 
-        {
-            return std::make_unique<DualWeightedResidualError<dim,nspecies, nstate , real, MeshType>>(dg);
+        if (nspecies == 1) {
+            // This template parameters dim and nstate match the runtime parameters
+            // then create the selected dual-weighted residual type with template parameters dim and nstate
+            // Otherwise, keep decreasing nstate and dim until it matches
+            if(nstate == dg->all_parameters->nstate) 
+            {
+                return std::make_unique<DualWeightedResidualError<dim,nspecies, nstate , real, MeshType>>(dg);
+            }
+            else if constexpr (nstate > 1)
+                return MeshErrorFactory<dim,nspecies, nstate-1, real, MeshType>::create_mesh_error(dg);
+            else
+                return nullptr;
+        } else {
+            return std::make_unique<DualWeightedResidualError<dim,nspecies,dim+nspecies+1, real, MeshType>>(dg);
         }
-        else if constexpr (nstate > 1)
-            return MeshErrorFactory<dim,nspecies, nstate-1, real, MeshType>::create_mesh_error(dg);
-        else
-            return nullptr;
     }
     else
     {

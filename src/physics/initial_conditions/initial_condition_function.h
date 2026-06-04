@@ -6,7 +6,7 @@
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
 #include "../euler.h" // for FreeStreamInitialConditions
-#include "../real_gas.h" // for RealGasBase
+#include "../multispecies_calorically_perfect.h" // for MultiSpecies_CaloricallyPerfectBase
 #include "../navier_stokes.h" // for InitialConditionFunction_TurbulentChannelFlow
 
 namespace PHiLiP {
@@ -168,14 +168,14 @@ protected:
 
 /// Initial Condition Function: Euler Equations (primitive values)
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_RealGasBase : public InitialConditionFunction<dim, nspecies, nstate, real>
+class InitialConditionFunction_MultiSpecies_CaloricallyPerfectBase : public InitialConditionFunction<dim, nspecies, nstate, real>
 {
 protected:
     using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
 
 public:
     /// Constructor for test cases using Euler equations.
-    explicit InitialConditionFunction_RealGasBase(
+    explicit InitialConditionFunction_MultiSpecies_CaloricallyPerfectBase(
         Parameters::AllParameters const* const param);
 
     /// Value of initial condition expressed in terms of conservative variables
@@ -189,7 +189,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
 
     // Real Gas physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::MultiSpecies_CaloricallyPerfect<dim, nspecies, nstate, double > > multispecies_calorically_perfect_physics;
 };
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
@@ -682,7 +682,7 @@ public:
  * Computers & Fluids, 181, 364-382.
  */
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Multispecies_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+class InitialConditionFunction_Multispecies_VortexAdvection: public InitialConditionFunction_MultiSpecies_CaloricallyPerfectBase<dim,nspecies,nstate,real>
 {
 public:
     InitialConditionFunction_Multispecies_VortexAdvection (
@@ -700,7 +700,7 @@ protected:
  * Computers & Fluids, 181, 364-382.
  */
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Multispecies_SodShockTube: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+class InitialConditionFunction_Multispecies_SodShockTube: public InitialConditionFunction_MultiSpecies_CaloricallyPerfectBase<dim,nspecies,nstate,real>
 {
 public:
     InitialConditionFunction_Multispecies_SodShockTube (
@@ -717,7 +717,7 @@ protected:
  *  Computers & Fluids 280 (2024): 106343.
  */
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Multispecies_IsentropicVortex: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+class InitialConditionFunction_Multispecies_IsentropicVortex: public InitialConditionFunction_MultiSpecies_CaloricallyPerfectBase<dim,nspecies,nstate,real>
 {
 public:
     InitialConditionFunction_Multispecies_IsentropicVortex (
@@ -729,7 +729,7 @@ protected:
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Multispecies_TaylorGreenVortex : public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+class InitialConditionFunction_Multispecies_TaylorGreenVortex : public InitialConditionFunction_MultiSpecies_CaloricallyPerfectBase<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on

@@ -11,7 +11,7 @@ set dimension = 2
 # Chemical species
 set number_of_species = 2
 set test_type = multi_species_vortex_advection
-set pde_type = real_gas
+set pde_type = multispecies_calorically_perfect
 set chemistry_input_file = ../../chemistry_files/H2_O2.kinetics
 
 # DG formulation

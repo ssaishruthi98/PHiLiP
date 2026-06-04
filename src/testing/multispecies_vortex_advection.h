@@ -5,7 +5,7 @@
 #include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 #include "flow_solver/flow_solver.h"
-#include "physics/real_gas.h"
+#include "physics/multispecies_calorically_perfect.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -43,7 +43,7 @@ private:
     double get_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const; 
 
     /// Real Gas physics pointer for computing physical quantities.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::MultiSpecies_CaloricallyPerfect<dim, nspecies, nstate, double > > multispecies_calorically_perfect_physics;
 };
 
 } // End of Tests namespace
