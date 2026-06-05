@@ -20,7 +20,7 @@ MultispeciesVortexAdvection<dim, nspecies, nstate>::MultispeciesVortexAdvection(
     , parameter_handler(parameter_handler_input)
 {
     //create the Physics object
-    this->multispecies_calorically_perfect_physics = std::dynamic_pointer_cast<Physics::MultiSpecies_CaloricallyPerfect<dim,nspecies,dim+nspecies+1,double>>(
+    this->multispecies_calorically_perfect_physics = std::dynamic_pointer_cast<Physics::MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,dim+nspecies+1,double>>(
             PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));
 
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;

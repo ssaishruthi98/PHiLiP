@@ -86,7 +86,7 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
         !(pde_type==PDE_enum::physics_model && model_type==Model_enum::large_eddy_simulation) &&
         pde_type!=PDE_enum::navier_stokes_channel_flow_constant_source_term && 
         pde_type!=PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model && 
-        pde_type!=PDE_enum::multispecies_calorically_perfect && (pde_type==PDE_enum::multispecies_calorically_perfect && nspecies ==1)) 
+        pde_type!=PDE_enum::multispecies_calorically_perfect_euler && (pde_type==PDE_enum::multispecies_calorically_perfect_euler && nspecies ==1)) 
     {
         std::cout << "Invalid convective numerical flux for pde_type. Aborting..." << std::endl;
         std::abort();

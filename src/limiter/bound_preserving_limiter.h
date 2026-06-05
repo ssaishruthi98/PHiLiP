@@ -7,7 +7,7 @@
 #include "parameters/all_parameters.h"
 #include "operators/operators.h"
 #include "physics/euler.h"
-#include "physics/multispecies_calorically_perfect.h"
+#include "physics/multispecies_calorically_perfect_euler.h"
 
 namespace PHiLiP {
 

@@ -1,5 +1,5 @@
-#ifndef __MULTISPECIES_CALORICALLYPERFECT__
-#define __MULTISPECIES_CALORICALLYPERFECT__
+#ifndef __MultiSpecies_CaloricallyPerfect_Euler__
+#define __MultiSpecies_CaloricallyPerfect_Euler__
 
 #include <deal.II/base/tensor.h>
 #include "physics.h"
@@ -10,12 +10,12 @@
 namespace PHiLiP {
 namespace Physics {
 
-/// MultiSpecies_CaloricallyPerfect equations. Derived from PhysicsBase
+/// MultiSpecies_CaloricallyPerfect_Euler equations. Derived from PhysicsBase
 /* Functions designated with "// Algorithm # (f_M#)" are detailed in Matsuyama's M.Sc. thesis (2025)
    Algorithms that have "Modified by Shruthi" appended to it do not strictly follow the implementation in the thesis*/
 
 template <int dim, int nspecies, int nstate, typename real>
-class MultiSpecies_CaloricallyPerfect : public PhysicsBase <dim, nspecies, nstate, real>
+class MultiSpecies_CaloricallyPerfect_Euler : public PhysicsBase <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -30,14 +30,14 @@ protected:
 public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
-    MultiSpecies_CaloricallyPerfect ( 
+    MultiSpecies_CaloricallyPerfect_Euler ( 
         const Parameters::AllParameters *const                    parameters_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
     /// Destructor
-    ~MultiSpecies_CaloricallyPerfect() {};
+    ~MultiSpecies_CaloricallyPerfect_Euler() {};
 
     const double gam_ref; ///< reference gamma
     const double mach_ref; ///< reference mach number (Farfield Mach number)
@@ -265,6 +265,12 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const dealii::Tensor<1,dim,real> &normal) const;
 
+    /// Helper function to compute mean for split fluxes
+    real compute_average(const real val1, const real val2) const;
+
+    /// Helper function to compute Ismail-Roe logarithmic mean for split fluxes
+    real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
+    
     ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
@@ -276,6 +282,11 @@ public:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 
+    /** Entropy conserving split form flux of Kennedy and Gruber.
+     *  Refer to Gassner's paper (2016) Eq. 3.10  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
 protected:
     // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
     virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;

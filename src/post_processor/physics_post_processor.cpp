@@ -19,7 +19,7 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim,nspec
     const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
 #endif
 
-    if (pde_type == PDE_enum::multispecies_calorically_perfect) {
+    if (pde_type == PDE_enum::multispecies_calorically_perfect_euler) {
             return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+nspecies+1> >(parameters_input);
     }
 #if PHILIP_SPECIES==1

@@ -9,7 +9,7 @@ add_subdirectory(navier_stokes_unit_test)
 add_subdirectory(flow_variable_tests)
 add_subdirectory(tke_spectra_calculation_fix)
 elseif(${NUMBER_OF_SPECIES} EQUAL 2 OR ${NUMBER_OF_SPECIES} EQUAL 3)
-add_subdirectory(multispecies_calorically_perfect_unit_test)
+add_subdirectory(multispecies_calorically_perfect_euler_unit_test)
 endif()
 
 add_subdirectory(grid)
