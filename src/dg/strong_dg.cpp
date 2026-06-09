@@ -2055,7 +2055,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     std::array<std::vector<adtype>,nstate> entropy_var_vol;
     std::array<std::vector<adtype>,nstate> projected_entropy_var_vol;
     std::array<std::vector<adtype>,nstate> projected_entropy_var_surf;
-    if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->uncollocated_flux_nodes){
+    if(this->uncollocated_flux_nodes){
         for(unsigned int iquad=0; iquad<n_quad_pts_vol; iquad++){
             std::array<adtype,nstate> soln_state;
             for(int istate=0; istate<nstate; istate++){
