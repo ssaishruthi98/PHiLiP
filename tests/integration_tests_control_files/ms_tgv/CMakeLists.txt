@@ -1,11 +1,11 @@
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
 configure_file(3D_multispecies_calorically_perfect_euler_split_inviscid_taylor_green_vortex.prm 3D_multispecies_calorically_perfect_euler_split_inviscid_taylor_green_vortex.prm COPYONLY)                                                                                                                                            
 add_test(                                                                                                                                                                                                                                 
- NAME 3D_multispecies_calorically_perfect_euler_SPLIT_TAYLOR_GREEN_KEP_TEST                                                                                                                                                                                  
+ NAME 3D_MS_CPG_SPLIT_TAYLOR_GREEN_KEP_TEST                                                                                                                                                                                  
  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_multispecies_calorically_perfect_euler_split_inviscid_taylor_green_vortex.prm                                                                                                                                                                                                                                  
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
 )
-set_tests_labels(3D_multispecies_calorically_perfect_euler_SPLIT_TAYLOR_GREEN_KEP_TEST  multispecies_calorically_perfect_euler_SPLIT_TAYLOR_GREEN_KEP_TEST
+set_tests_labels(3D_MS_CPG_SPLIT_TAYLOR_GREEN_KEP_TEST  MS_CPG_SPLIT_TAYLOR_GREEN_KEP_TEST
                                                           3D
                                                           PARALLEL
                                                           REAL-GAS
