@@ -3444,7 +3444,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
 
         std::array<adtype,nstate> soln_state_int;
         std::array<adtype,nstate> soln_state_ext;
-        if((this->all_parameters->use_split_form && this->all_parameters->use_curvilinear_split_form) && this->uncollocated_flux_nodes) {
+        if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->uncollocated_flux_nodes) {
             soln_state_int = pde_physics.compute_conservative_variables_from_entropy_variables (entropy_var_face_int);
             soln_state_ext = pde_physics.compute_conservative_variables_from_entropy_variables (entropy_var_face_ext);
         } else {
