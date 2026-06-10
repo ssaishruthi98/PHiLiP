@@ -519,6 +519,19 @@ inline real MultiSpecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
     return entropy;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+inline real MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_numerical_entropy_function ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real density = conservative_soln[0];
+
+    const real entropy = compute_entropy(conservative_soln);
+
+    const real numerical_entropy_function = - density * entropy;
+
+    return numerical_entropy_function;
+}
+
 // Compute Gibbs' energy of species using species entropy and species Cp
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> MultiSpecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>

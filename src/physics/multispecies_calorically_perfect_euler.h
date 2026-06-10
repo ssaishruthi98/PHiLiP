@@ -236,6 +236,9 @@ public:
     // Compute mixture entropy
     real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
     
+    /// Compute numerical entropy function -rho s 
+    real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
+    
     // Algorithm 15 (f_M15): Compute temperature from conservative_soln
     virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
 

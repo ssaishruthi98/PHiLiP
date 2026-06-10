@@ -52,6 +52,9 @@ protected:
     /// Modifies the DG object to reverse the velocity of the flow for the isentropic vortex case
     virtual void modify_dg_object(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
+    /// Computes integrated entropy at the time step
+    double compute_integrated_entropy(DGBase<dim, nspecies, double>& dg) const;
+
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;
 
@@ -61,6 +64,15 @@ protected:
 private:
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
+
+    /// Storing entropy at first step
+    double initial_entropy;
+
+    /// Store previous entropy
+    double previous_numerical_entropy;
+
+    // ms euler physics pointer for computing physical quantities.
+    std::shared_ptr < Physics::MultiSpecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double > > ms_physics;
 };
 
 } // FlowSolver namespace
