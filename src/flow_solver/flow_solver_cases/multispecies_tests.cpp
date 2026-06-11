@@ -311,8 +311,8 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
         // Print to console
         this->pcout << "    Iter: " << current_iteration
                     << "    Time: " << std::setprecision(16) << current_time
-                    << "    Current Numerical Entropy:  " << current_numerical_entropy;
-                    // << "    Entropy: " << entropy
+                    // << "    Current Numerical Entropy:  " << current_numerical_entropy
+                    << "    Entropy: " << entropy;
                     // << "    (U-Uo)/Uo: " << entropy/initial_entropy;
 
         this->pcout << std::endl;

@@ -27,10 +27,10 @@ set check_same_coords_in_weak_dg = false
 set do_renumber_dofs = false
 
 # numerical fluxes
-#set conv_num_flux = lax_friedrichs
-set use_split_form = true
-set two_point_num_flux_type = KG
-set conv_num_flux = two_point_flux
+set conv_num_flux = lax_friedrichs
+#set use_split_form = true
+#set two_point_num_flux_type = CH
+#set conv_num_flux = two_point_flux
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
@@ -41,7 +41,7 @@ subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
-  set print_iteration_modulo = 1000
+  set print_iteration_modulo = 1
 end
 
 # freestream Mach number
@@ -80,5 +80,5 @@ subsection manufactured solution convergence study
   set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 8
+  set number_of_grids   = 2
 end
