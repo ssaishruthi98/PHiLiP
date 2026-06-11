@@ -169,9 +169,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
-    std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object = nullptr;
-    if (nspecies == 1)
-        std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
+    std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
 
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
@@ -337,9 +335,8 @@ std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,n
     // Type-cast to the appropriate RKTableau type
     std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,real,MeshType>>(rk_tableau); 
 
-    if ( ( (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy)
-            || ( !dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy ) )
-            && nspecies==1  ) {
+    if ( (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy)
+            || ( !dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy ) ) {
             return std::make_shared<RKNumEntropy<dim,nspecies,real,MeshType>>(rk_tableau_butcher);
     }
     else if (dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta){

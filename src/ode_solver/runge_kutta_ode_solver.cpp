@@ -61,8 +61,7 @@ void RungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::calculate_stag
     
     // If using the entropy formulation of RRK, solutions must be stored.
     // Call store_stage_solutions before overwriting rk_stage with the derivative.
-    if (nspecies == 1)
-        this->relaxation_runge_kutta->store_stage_solutions(istage, this->rk_stage[istage]);
+    this->relaxation_runge_kutta->store_stage_solutions(istage, this->rk_stage[istage]);
 
     this->dg->solution = this->rk_stage[istage];
 
@@ -104,11 +103,9 @@ real RungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::adjust_time_st
 {
     // Calculates relaxation parameter and modify the time step size as dt*=relaxation_parameter.
     // if not using RRK, the relaxation parameter will be set to 1, such that dt is not modified.
-    if (nspecies == 1) {
-        this->relaxation_parameter_RRK_solver = this->relaxation_runge_kutta->update_relaxation_parameter(dt, this->dg, this->rk_stage, this->solution_update);
-        dt *= this->relaxation_parameter_RRK_solver;
-        this->modified_time_step = dt;
-    }
+    this->relaxation_parameter_RRK_solver = this->relaxation_runge_kutta->update_relaxation_parameter(dt, this->dg, this->rk_stage, this->solution_update);
+    dt *= this->relaxation_parameter_RRK_solver;
+    this->modified_time_step = dt;
     return dt;
 }
 
