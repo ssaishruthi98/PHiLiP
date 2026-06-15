@@ -278,28 +278,34 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
 
     // All discrete proofs use solution nodes, therefore it is best to report 
     // entropy on the solution nodes rather than by overintegrating.
-    const double current_numerical_entropy = this->compute_integrated_entropy(*dg); // no overintegration
-    if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
-    const double entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
-    this->previous_numerical_entropy = current_numerical_entropy;
+    double current_numerical_entropy = 0.0;
+    double entropy = 0.0;
+    if (this->all_param.compute_multispecies_entropy) {
+        current_numerical_entropy = this->compute_integrated_entropy(*dg); // no overintegration
+        if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
+        entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
+        this->previous_numerical_entropy = current_numerical_entropy;
 
-    if (std::isnan(entropy)){
-        this->pcout << "Entropy is nan. Aborting flow simulation..." << std::endl << std::flush;
-        std::abort();
+        if (std::isnan(entropy)){
+            this->pcout << "Entropy is nan. Aborting flow simulation..." << std::endl << std::flush;
+            std::abort();
+        }
+        if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
     }
-    if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
 
     if (this->mpi_rank == 0) {
 
         unsteady_data_table->add_value("iteration", current_iteration);
         // Add values to data table
         this->add_value_to_data_table(current_time, "time", unsteady_data_table);
-        this->add_value_to_data_table(entropy,"entropy",unsteady_data_table);
-        unsteady_data_table->set_scientific("entropy", false);
-        this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
-        unsteady_data_table->set_scientific("current_numerical_entropy", false);
-        this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
-        unsteady_data_table->set_scientific("U/Uo", false);
+        if (this->all_param.compute_multispecies_entropy) {
+            this->add_value_to_data_table(entropy,"entropy",unsteady_data_table);
+            unsteady_data_table->set_scientific("entropy", false);
+            this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
+            unsteady_data_table->set_scientific("current_numerical_entropy", false);
+            this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
+            unsteady_data_table->set_scientific("U/Uo", false);
+        }
         // Write to file
         if(do_write_unsteady_data_table_file){
             std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
@@ -310,11 +316,12 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
     if (current_iteration % this->all_param.ode_solver_param.print_iteration_modulo == 0) {
         // Print to console
         this->pcout << "    Iter: " << current_iteration
-                    << "    Time: " << std::setprecision(16) << current_time
-                    // << "    Current Numerical Entropy:  " << current_numerical_entropy
-                    << "    Entropy: " << entropy;
-                    // << "    (U-Uo)/Uo: " << entropy/initial_entropy;
-
+                    << "    Time: " << std::setprecision(16) << current_time;
+        if(this->all_param.compute_multispecies_entropy) {
+        this->pcout << "    Current Numerical Entropy:  " << current_numerical_entropy
+                    << "    Entropy: " << entropy
+                    << "    (U-Uo)/Uo: " << entropy/initial_entropy;
+        }
         this->pcout << std::endl;
     }
 

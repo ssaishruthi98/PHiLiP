@@ -136,14 +136,7 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
-
-protected:
-    /// returns the solution vector without the species conservation states (only mixture)
-    std::array<real,dim+2> get_mixture_solution_vector ( const std::array<real,nstate> &full_soln ) const;
-    /// returns the solution gradient vector without the species conservation states (only mixture)
-    std::array<dealii::Tensor<1,dim,real>,dim+2> get_mixture_solution_gradient (
-            const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
-
+        
 public:
     // Algorithm 20 (f_S20): Convert primitive to conservative 
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const; 

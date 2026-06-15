@@ -86,7 +86,7 @@ std::array<std::array<double,3>,nstate+1> MultispeciesVortexAdvection<dim, nspec
     std::shared_ptr<FlowSolver::FlowSolver<dim, nspecies, nstate>> flow_solver) const
 {
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
+    int overintegrate = 0;
     dealii::QGauss<dim> quad_extra(poly_degree + 1 + overintegrate);
     dealii::FEValues<dim, dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra,
         dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -130,6 +130,10 @@ std::array<std::array<double,3>,nstate+1> MultispeciesVortexAdvection<dim, nspec
                 lerror_primitive[istate][1] += pow(abs(soln_at_q_primitive[istate] - soln_exact_primitive[istate]), 2.0) * fe_values_extra.JxW(iquad);
                 //L-infinity norm
                 lerror_primitive[istate][2] = std::max(abs(soln_at_q_primitive[istate]-soln_exact_primitive[istate]), lerror_primitive[istate][2]);
+                if (istate == dim + 1) {
+                    std::cout << " Pressure Exact " << soln_exact_primitive[istate] << std::endl;
+                    std::cout << " Pressure Soln " << soln_at_q_primitive[istate] << std::endl << std::endl;
+                }
             }
             lerror_primitive[nstate][0] += pow(abs(temperature_at_q - temperature_exact), 1.0) * fe_values_extra.JxW(iquad);
             lerror_primitive[nstate][1] += pow(abs(temperature_at_q - temperature_exact), 2.0) * fe_values_extra.JxW(iquad);

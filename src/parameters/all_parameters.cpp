@@ -395,14 +395,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Filename of the chemistry data file that contains the properties of the species used in simulation. (ex. H2_O2.kinetics");
 
+    prm.declare_entry("compute_multispecies_entropy", "false",
+                      dealii::Patterns::Bool(),
+                      "Flag for whether multi-species entropy should be computed. Default is false to prevent tests from failing when species density goes to zero.");
+
     prm.declare_entry("wall_model_input_from_second_element", "true",
                       dealii::Patterns::Bool(),
                       "Flag for using second element as wall model input. If false, uses buffer (i.e. wall-adjacent) element.");
-
-    prm.declare_entry("use_projected_entropy_variables_for_nsfr_boundary_term", "false",
-                      dealii::Patterns::Bool(),
-                      "Flag for using projected entropy variables for NSFR boundary term. "
-                      "Default is false since boundary condition was verified using conservative solution.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -668,9 +667,9 @@ const std::string test_string = prm.get("test_type");
 
     matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
     wall_model_input_from_second_element = prm.get_bool("wall_model_input_from_second_element");
-    use_projected_entropy_variables_for_nsfr_boundary_term = prm.get_bool("use_projected_entropy_variables_for_nsfr_boundary_term");
 
     chemistry_input_file = prm.get("chemistry_input_file");
+    compute_multispecies_entropy = prm.get_bool("compute_multispecies_entropy");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

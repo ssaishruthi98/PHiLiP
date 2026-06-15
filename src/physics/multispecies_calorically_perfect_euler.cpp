@@ -885,7 +885,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_CaloricallyPerfect_Eu
                                                  const std::array<real,nstate> &conservative_soln2) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-
     const std::array<real,nspecies> rho_species1 = compute_species_densities(conservative_soln1);
     const std::array<real,nspecies> rho_species2 = compute_species_densities(conservative_soln2);
 
@@ -1196,37 +1195,6 @@ inline real MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
     const real sound = sqrt(gamma*R_mix*temperature/(this->mach_ref_sqr)); 
 
     return sound;
-}
-
-// Compute mixture solution vector (without species solution)
-template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,dim+2> MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
-::get_mixture_solution_vector ( const std::array<real,nstate> &full_soln ) const 
-{
-    /* definitions */
-    std::array<real, dim+2> mixture_soln;
-    for (int s=0; s<(dim+2); ++s) 
-    { 
-        mixture_soln[s] = full_soln[s];
-    }
-    return mixture_soln;
-}
-
-// Compute mixture gradient
-template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,dim+2> MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
-::get_mixture_solution_gradient (
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
-{
-    std::array<dealii::Tensor<1,dim,real>,dim+2> mixture_soln_gradient;
-    for (int d1=0; d1<dim; d1++) {
-        mixture_soln_gradient[0][d1] = conservative_soln_gradient[0][d1];
-        for (int d2=0; d2<dim; d2++) {
-            mixture_soln_gradient[1+d1][d2] = conservative_soln_gradient[1+d2][d1];
-        }
-        mixture_soln_gradient[dim+1][d1] = conservative_soln_gradient[dim+1][d1];
-    }
-    return mixture_soln_gradient;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
