@@ -5,7 +5,7 @@
 #include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 #include "flow_solver/flow_solver.h"
-#include "physics/multispecies_calorically_perfect_euler.h"
+#include "physics/multispecies_euler.h"
 
 namespace PHiLiP {
 namespace Tests {

@@ -6,7 +6,7 @@
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
 #include "../euler.h" // for FreeStreamInitialConditions
-#include "../multispecies_calorically_perfect_euler.h" // for MultiSpecies_CaloricallyPerfect_EulerBase
+#include "../multispecies_euler.h" // for MultiSpecies_CaloricallyPerfect_EulerBase
 #include "../navier_stokes.h" // for InitialConditionFunction_TurbulentChannelFlow
 
 namespace PHiLiP {

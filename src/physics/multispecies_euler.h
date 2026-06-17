@@ -32,7 +32,10 @@ public:
     /// Constructor
     MultiSpecies_CaloricallyPerfect_Euler ( 
         const Parameters::AllParameters *const                    parameters_input,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
         std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type_input = two_point_num_flux_enum::KG,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
@@ -51,7 +54,6 @@ public:
     const double temperature_ref; ///< reference temperature [K]
     const double u_ref; ///< reference velocity [m/s]
     const double u_ref_sqr; ///< reference velocity squared[m/s]^2
-    const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
     const double density_ref; ///< reference mixture density: [kg/m^3]
 
 public:
@@ -317,17 +319,66 @@ protected:
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
 
 protected:
-    /// Variables to store NASA Coefficients
-    std::array<std::array<std::array<double,3>,9>,nspecies> NASACAPCoeffs;
-    std::array<std::array<double,4>,nspecies> NASACAPTemperatureLimits;
+    /// Variables to store chemical data of species
+    std::array<std::array<double, 6>, nspecies> Cp_poly_coeffs; // Coefficients of Cp polynomial (refitted function using NASA CAP data)
+    std::array<std::array<double, 2>, nspecies> NASACAPTemperatureLimits; // Upper and lower temperature bound for the NASA CAP data
     std::array<std::string,nspecies> species_name; // Species name
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
-    std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset - reads in [J/mol], stores nondimesnional
-    std::array<real,nspecies> Rs; // Species gas constant
     std::array<real,nspecies> species_Cp; // Species specific heat ratio at constant pressure - CPG only
     std::array<real,nspecies> species_Cv; // Species specific heat ratio at constant volume - CPG only
+public:
+    std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset - reads in nondimensional value (nondims using R_ref*T_ref)
+    std::array<double,nspecies> species_entropy_offset; // Species enthalpy offset - reads in nondimensional value (nondims using R_ref)
+    std::array<real,nspecies> Rs; // Species gas constant
 };
 
+
+/// MultiSpecies_ThermallyPerfect_Euler equations. Derived from MultiSpecies_CaloricallyPerfect_Euler
+template <int dim, int nspecies, int nstate, typename real>
+class MultiSpecies_ThermallyPerfect_Euler : public MultiSpecies_CaloricallyPerfect_Euler <dim, nspecies, nstate, real>
+{
+public:
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
+    /// Constructor
+    MultiSpecies_ThermallyPerfect_Euler ( 
+        const Parameters::AllParameters *const                    parameters_input,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type_input = two_point_num_flux_enum::KG,
+        const bool                                                has_nonzero_diffusion = false,
+        const bool                                                has_nonzero_physical_source = false);
+
+    /// Destructor
+    ~MultiSpecies_ThermallyPerfect_Euler() {};
+
+    const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
+
+    // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
+    // Modified by Shruthi: This function now uses a nondimensional polynomial that is a refit of the NASA9 model
+    std::array<real,nspecies> compute_species_specific_Cp ( const real temperature ) const;
+
+    // Algorithm 12 (f_M12): Compute species specific heat at constant volume from temperature
+    std::array<real,nspecies>compute_species_specific_Cv ( const real temperature ) const;
+
+    // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
+    std::array<real,nspecies> compute_species_specific_enthalpy ( const real temperature ) const;
+
+    // Compute Cv integral component of the species entropy equation
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
+    std::array<real,nspecies> compute_species_entropy_cv_integral ( const real temperature ) const; 
+
+    // Compute species entropy from temperature and species density
+    std::array<real,nspecies> compute_species_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Compute species Gibbs' energy using species entropy and species Cp
+    std::array<real,nspecies> compute_species_gibbs_energy ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Algorithm 15 (f_M15): Compute temperature from conservative_soln
+    virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
+
+};
 } // Physics namespace
 } // PHiLiP namespace
 

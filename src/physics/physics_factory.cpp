@@ -17,7 +17,7 @@
 #include "mhd.h"
 #include "navier_stokes.h"
 #include "physics_model.h"
-#include "multispecies_calorically_perfect_euler.h"
+#include "multispecies_euler.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -207,8 +207,16 @@ PhysicsFactory<dim,nspecies,nstate,real>
         (void) advection_vector;
         (void) diffusion_coefficient;
     } else if (pde_type == PDE_enum::multispecies_calorically_perfect_euler) {
+        // generating the manufactured solution from the manufactured solution factory
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >  manufactured_solution_function 
+            = ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(parameters_input, nstate);
         if constexpr (nstate==dim+nspecies+1) {
-            return std::make_shared < MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real> > (parameters_input);
+            return std::make_shared < MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real> > (
+                parameters_input,
+                parameters_input->euler_param.gamma_gas,
+                parameters_input->euler_param.mach_inf,
+                manufactured_solution_function,
+                parameters_input->two_point_num_flux_type);
         }
     }
     std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
