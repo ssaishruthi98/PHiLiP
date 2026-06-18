@@ -1,6 +1,7 @@
 #include <cmath>
 #include <vector>
 #include <fstream>
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include "ADTypes.hpp"
 
@@ -1797,16 +1798,14 @@ inline real MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
     return gamma;
 }
 
-// Instantiate explicitly
-template class MultiSpecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double     >;
-template class MultiSpecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadType    >;
-template class MultiSpecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadType    >;
-template class MultiSpecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadFadType >;
-template class MultiSpecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadFadType >;
-template class MultiSpecies_ThermallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double     >;
-template class MultiSpecies_ThermallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadType    >;
-template class MultiSpecies_ThermallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadType    >;
-template class MultiSpecies_ThermallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadFadType >;
-template class MultiSpecies_ThermallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadFadType >;
+// Define a sequence of possible types
+#define POSSIBLE_TYPES (double)(FadType)(RadType)(FadFadType)(RadFadType)
+
+// Define a macro to instantiate Euler and Euler functions for a specific type
+#define INSTANTIATE_TYPES(r, data, type) \
+    template class MultiSpecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type     >;\
+    template class MultiSpecies_ThermallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type     >;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPES)
+
 } // Physics namespace
 } // PHiLiP namespace

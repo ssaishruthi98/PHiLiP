@@ -27,10 +27,12 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = parameters_input->limiter_param.bound_preserving_limiter;
 
-        if(pde_type == PDE_enum::multispecies_calorically_perfect_euler && limiter_type == limiter_enum::positivity_preservingZhang2010) {
+        if((pde_type == PDE_enum::multispecies_calorically_perfect_euler || pde_type == PDE_enum::multispecies_thermally_perfect_euler) && limiter_type == limiter_enum::positivity_preservingZhang2010) {
             std::cout << "Error: Zhang 2010 limiting has not been implemented for multispecies flow" << std::endl;
             std::abort();
-        } else if (pde_type == PDE_enum::euler || pde_type == PDE_enum::multispecies_calorically_perfect_euler || pde_type == PDE_enum::navier_stokes) {
+        } else if (pde_type == PDE_enum::euler || pde_type == PDE_enum::navier_stokes
+                    || pde_type == PDE_enum::multispecies_calorically_perfect_euler
+                    || pde_type == PDE_enum::multispecies_thermally_perfect_euler) {
             //create the Physics object
             this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nspecies,nstate,double>>(
                         Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));

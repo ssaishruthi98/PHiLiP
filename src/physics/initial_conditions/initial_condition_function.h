@@ -166,16 +166,16 @@ protected:
     std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
 };
 
-/// Initial Condition Function: Euler Equations (primitive values)
+/// Initial Condition Function: Multi-species Calorically Perfect Euler Equations (primitive values)
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase : public InitialConditionFunction<dim, nspecies, nstate, real>
+class InitialConditionFunction_MultiSpecies_EulerBase : public InitialConditionFunction<dim, nspecies, nstate, real>
 {
 protected:
     using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
 
 public:
     /// Constructor for test cases using Euler equations.
-    explicit InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase(
+    explicit InitialConditionFunction_MultiSpecies_EulerBase(
         Parameters::AllParameters const* const param);
 
     /// Value of initial condition expressed in terms of conservative variables
@@ -189,7 +189,33 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
 
     // Real Gas physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::MultiSpecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double > > multispecies_calorically_perfect_euler_physics;
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > multispecies_euler_physics;
+};
+
+/// Initial Condition Function: Multi-species Thermally Perfect Euler Equations (primitive values)
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_MultiSpecies_ThermallyPerfect_EulerBase : public InitialConditionFunction<dim, nspecies, nstate, real>
+{
+protected:
+    using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for test cases using Euler equations.
+    explicit InitialConditionFunction_MultiSpecies_ThermallyPerfect_EulerBase(
+        Parameters::AllParameters const* const param);
+
+    /// Value of initial condition expressed in terms of conservative variables
+    real value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    virtual real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const = 0;
+
+    /// Converts value from: primitive to conservative
+    real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
+
+    // Real Gas physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nstate, double > > multispecies_euler_physics;
 };
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
@@ -682,7 +708,7 @@ public:
  * Computers & Fluids, 181, 364-382.
  */
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Multispecies_VortexAdvection: public InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim,nspecies,nstate,real>
+class InitialConditionFunction_Multispecies_VortexAdvection: public InitialConditionFunction_MultiSpecies_EulerBase<dim,nspecies,nstate,real>
 {
 public:
     InitialConditionFunction_Multispecies_VortexAdvection (
@@ -692,6 +718,9 @@ protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
     bool use_high_temp_ic;
+    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
+    const double mach_inf; ///< Farfield Mach number.
+
 };
 
 /// 1D Initial Condition Function: Multispecies_SodShockTube
@@ -700,7 +729,7 @@ protected:
  * Computers & Fluids, 181, 364-382.
  */
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Multispecies_SodShockTube: public InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim,nspecies,nstate,real>
+class InitialConditionFunction_Multispecies_SodShockTube: public InitialConditionFunction_MultiSpecies_EulerBase<dim,nspecies,nstate,real>
 {
 public:
     InitialConditionFunction_Multispecies_SodShockTube (
@@ -717,7 +746,7 @@ protected:
  *  Computers & Fluids 280 (2024): 106343.
  */
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Multispecies_IsentropicVortex: public InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim,nspecies,nstate,real>
+class InitialConditionFunction_Multispecies_IsentropicVortex: public InitialConditionFunction_MultiSpecies_EulerBase<dim,nspecies,nstate,real>
 {
 public:
     InitialConditionFunction_Multispecies_IsentropicVortex (
@@ -729,7 +758,7 @@ protected:
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Multispecies_TaylorGreenVortex : public InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim,nspecies,nstate,real>
+class InitialConditionFunction_Multispecies_TaylorGreenVortex : public InitialConditionFunction_MultiSpecies_EulerBase<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on

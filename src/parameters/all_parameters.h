@@ -221,7 +221,7 @@ public:
         halton_sampling_run,
         low_density,
         multi_species_vortex_advection,
-        multispecies_calorically_perfect_euler_split_taylor_green
+        multispecies_euler_split_taylor_green
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -242,7 +242,8 @@ public:
         navier_stokes_channel_flow_constant_source_term_wall_model,
         physics_model,
         physics_model_filtered,
-        multispecies_calorically_perfect_euler
+        multispecies_calorically_perfect_euler,
+        multispecies_thermally_perfect_euler
     };
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;

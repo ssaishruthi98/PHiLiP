@@ -730,24 +730,31 @@ inline real InitialConditionFunction_KHI<dim,nspecies,nstate,real>
     return soln_conservative[istate];
 }
 
-// ========================================================
-// Initial Condition - Real Gas Base
-// ========================================================
+// ===============================================================
+// Initial Condition - Multispecies Caloricaly Perfect Euler Base
+// ===============================================================
 template <int dim, int nspecies, int nstate, typename real>
-InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim, nspecies, nstate, real>
-::InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase(
+InitialConditionFunction_MultiSpecies_EulerBase<dim, nspecies, nstate, real>
+::InitialConditionFunction_MultiSpecies_EulerBase(
     Parameters::AllParameters const* const param)
     : InitialConditionFunction<dim, nspecies, nstate, real>()
 {
     // Real Gas object; create using dynamic_pointer_cast and the create_Physics factory
-    PHiLiP::Parameters::AllParameters parameters_multispecies_calorically_perfect_euler = *param;
-    parameters_multispecies_calorically_perfect_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::multispecies_calorically_perfect_euler;
-    this->multispecies_calorically_perfect_euler_physics = std::dynamic_pointer_cast<Physics::MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,dim+nspecies+1,double>>(
-                Physics::PhysicsFactory<dim,nspecies,dim+nspecies+1,double>::create_Physics(&parameters_multispecies_calorically_perfect_euler));
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    PHiLiP::Parameters::AllParameters ms_param = *param;
+  
+    PDE_enum pde_type = ms_param.pde_type;
+    if (pde_type == PDE_enum::multispecies_calorically_perfect_euler || pde_type == PDE_enum::multispecies_thermally_perfect_euler) {
+        this->multispecies_euler_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nspecies,nstate,double>>(
+                                                Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&ms_param));
+    } else {
+        std::cout << "Cannot run multi-species test case for single species PDE type...Aborting." << std::endl;
+        std::abort();
+    }
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim, nspecies, nstate, real>
+real InitialConditionFunction_MultiSpecies_EulerBase<dim, nspecies, nstate, real>
 ::convert_primitive_to_conversative_value(
     const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
@@ -758,14 +765,14 @@ real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim, nsp
         soln_primitive[istate] = primitive_value(point, istate);
     }
     
-    const std::array<real, nstate> soln_conservative = this->multispecies_calorically_perfect_euler_physics->convert_primitive_to_conservative(soln_primitive);
+    const std::array<real, nstate> soln_conservative = this->multispecies_euler_physics->convert_primitive_to_conservative(soln_primitive);
     value = soln_conservative[istate];
 
     return value;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-inline real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim, nspecies, nstate, real>
+inline real InitialConditionFunction_MultiSpecies_EulerBase<dim, nspecies, nstate, real>
 ::value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -1260,8 +1267,10 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,real>
 ::InitialConditionFunction_Multispecies_VortexAdvection(
       Parameters::AllParameters const *const param, bool high_temperature)
-    : InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim,nspecies,nstate,real>(param)
+    : InitialConditionFunction_MultiSpecies_EulerBase<dim,nspecies,nstate,real>(param)
     , use_high_temp_ic(high_temperature)
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
 {}
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1281,6 +1290,12 @@ real InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,r
         z = point[2];
         z_0 = 5.0;
     }
+    const real R_ref = (8.31446261815324)/(28.9651159 * pow(10,-3));
+    const real density_ref = 1.225;
+    const real temperature_ref = 298.15;
+    const real mach_ref = this->mach_inf;
+    const real gam_ref = this->gamma_gas;
+    const real u_ref = mach_ref*sqrt(gam_ref*R_ref*temperature_ref);
     const real r = sqrt(pow(x-x_0,2.0) + pow(y-y_0,2.0) + pow(z-z_0,2.0));
     const real T_0 = 300.0; // [K]
     const real big_gamma = 50.0;
@@ -1301,13 +1316,13 @@ real InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,r
 
     const real y_H2 = (y_H2_0 - a_1*coeff*exp);
 
-    const std::array<real,nspecies> Rs = this->multispecies_calorically_perfect_euler_physics->compute_Rs();
+    const std::array<real,nspecies> Rs = this->multispecies_euler_physics->compute_Rs();
     real y_O2;
     real R_mixture;
     // For a 2 species test
     if constexpr(nspecies==2 && nstate==dim+nspecies+1) {
         y_O2 = 1.0 - y_H2;
-        R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->multispecies_calorically_perfect_euler_physics->R_ref;
+        R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*R_ref;
     }
     // For a 3 species test
     if constexpr(nspecies==3 && nstate==dim+nspecies+1) {
@@ -1315,30 +1330,30 @@ real InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,r
         const real a_2 = 0.03;
         y_O2 = (y_O2_0 - a_2*coeff*exp);
         const real y_N2 = 1.0 - y_H2 - y_O2;
-        R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->multispecies_calorically_perfect_euler_physics->R_ref;
+        R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*R_ref;
     }
     const real density = pressure/(R_mixture*temperature);
 
     // dimensionalized above, non-dimensionalized below
     if(istate==0) {
         // mixture density
-        value = density / this->multispecies_calorically_perfect_euler_physics->density_ref;
+        value = density / density_ref;
     }
     if(istate==1) {
         // x-velocity
-        value = velocity / this->multispecies_calorically_perfect_euler_physics->u_ref;
+        value = velocity / u_ref;
     }
     if(dim==2 && istate==2) {
         // y-velocity
-        value = velocity / this->multispecies_calorically_perfect_euler_physics->u_ref;
+        value = velocity / u_ref;
     }
     if(dim==3 && istate==3) {
         // z-velocity
-        value = velocity / this->multispecies_calorically_perfect_euler_physics->u_ref;
+        value = velocity / u_ref;
     }
     if(istate==dim+1) {
         // pressure
-        value = pressure / (this->multispecies_calorically_perfect_euler_physics->density_ref*this->multispecies_calorically_perfect_euler_physics->u_ref_sqr);
+        value = pressure / (density_ref*(u_ref*u_ref));
     }
     if(istate==dim+2){
         // other species density (N2)
@@ -1361,7 +1376,7 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real>
 ::InitialConditionFunction_Multispecies_SodShockTube (
         Parameters::AllParameters const* const param)
-        : InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim,nspecies,nstate,real>(param)
+        : InitialConditionFunction_MultiSpecies_EulerBase<dim,nspecies,nstate,real>(param)
 {}
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1423,7 +1438,7 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,real>
 ::InitialConditionFunction_Multispecies_IsentropicVortex (
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim,nspecies,nstate,real>(param)
+    : InitialConditionFunction_MultiSpecies_EulerBase<dim,nspecies,nstate,real>(param)
 {}
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1491,7 +1506,7 @@ template <int dim, int nspecies, int nstate, typename real>
 InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate,real>
 ::InitialConditionFunction_Multispecies_TaylorGreenVortex (
         Parameters::AllParameters const *const param, const bool use_smooth_interface)
-    : InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase<dim, nspecies, nstate, real>(param)
+    : InitialConditionFunction_MultiSpecies_EulerBase<dim, nspecies, nstate, real>(param)
     , gamma_gas(param->euler_param.gamma_gas)
     , mach_inf(param->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
@@ -1788,7 +1803,7 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
 #else
     template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
-    template class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_EulerBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1,double>;
+    template class InitialConditionFunction_MultiSpecies_EulerBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1,double>;
     template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     template class InitialConditionFunction_Multispecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #if PHILIP_DIM==1

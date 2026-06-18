@@ -198,8 +198,8 @@ protected:
     real compute_dimensional_temperature ( const real temperature ) const;
 
 public:
-    // Algorithm 10 (f_M10): Compute species gas constants from the species Cp and Cv values
-    std::array<real,nspecies> compute_Rs () const;
+    // Algorithm 10 (f_M10): Compute species gas constants from the R_ref and species weight
+    virtual std::array<real,nspecies> compute_Rs () const;
 
 protected:
     // Compute species specific enthalpy from temperature (use T to calculate internal energy and find enthalpy)

@@ -204,6 +204,19 @@ std::array<real,nstate> PhysicsBase<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> PhysicsBase<dim,nspecies,nstate,real>
+::compute_Rs ( ) const
+{
+    std::cout << "The compute_Rs function has not been implemented for this PDE...Aborting." << std::endl;
+    std::abort();
+
+    std::array<real,nspecies> Rs;
+    std::fill(Rs.begin(), Rs.end(), 0.0);
+
+    return Rs;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
 void PhysicsBase<dim,nspecies,nstate,real>
 ::boundary_face_values (
         const int boundary_type,
