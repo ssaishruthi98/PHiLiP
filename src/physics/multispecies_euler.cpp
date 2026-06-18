@@ -730,10 +730,9 @@ inline real MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_specific_total_energy = compute_mixture_specific_total_energy(conservative_soln);
-    const real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
     const real mixture_pressure = compute_mixture_pressure(conservative_soln);
     const real mixture_density = compute_mixture_density(conservative_soln);
-    const real mixture_specific_total_enthalpy = (mixture_specific_total_energy - vel2 + mixture_pressure/mixture_density)*(this->u_ref_sqr/(this->R_ref*this->temperature_ref));
+    const real mixture_specific_total_enthalpy = (mixture_specific_total_energy + mixture_pressure/mixture_density)*(this->u_ref_sqr/(this->R_ref*this->temperature_ref));
 
     return mixture_specific_total_enthalpy;
 }
@@ -1445,6 +1444,21 @@ std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstat
     return h;
 }
 
+// Algorithm 14 (f_M14): Compute species specific internal energy
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_species_specific_internal_energy( const real temperature ) const
+{
+    const std::array<real,nspecies> h = compute_species_specific_enthalpy(temperature);
+    std::array<real,nspecies> e;
+    for (int s=0; s<nspecies; ++s) 
+    {
+        e[s] = (this->R_ref*this->temperature_ref/this->u_ref_sqr)*(h[s] -  this->Rs[s]*temperature);
+    }
+
+    return e;
+}
+
 // Compute the Cv integral component of species entropy (ie. \int_{T_ref}^T c_v(\tau)/\tau d\tau) using NASA polynomials
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
@@ -1519,6 +1533,74 @@ std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nst
     return species_gibbs;
 }
 
+// Map entropy variables back to conservative solution
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    std::array<real,nstate> conservative_var;
+    const real temperature = -1/entropy_var[dim+1];
+    const int nth_species_idx = nspecies - 1;
+
+    std::array<real,nspecies> species_gibbs;
+
+    real entropy_var_vel_squared = 0.0;
+    for(int idim=0; idim<dim; idim++){
+        entropy_var_vel_squared += pow(entropy_var[idim + 1]*temperature, 2.0);
+    }
+
+    species_gibbs[nth_species_idx] = temperature*entropy_var[0] + entropy_var_vel_squared/2.0;
+    for(int ispecies = 0; ispecies < nth_species_idx; ++ispecies) {
+        species_gibbs[ispecies] = temperature*entropy_var[dim+2+ispecies] + species_gibbs[nth_species_idx];
+    }
+
+    std::array<real,nspecies> species_entropy;
+    std::array<real,nspecies> species_enthalpy = compute_species_specific_enthalpy(temperature);
+    for(int ispecies = 0; ispecies < nth_species_idx; ++ispecies) {
+        species_entropy[ispecies] = (species_enthalpy[ispecies] - species_gibbs[ispecies])/temperature;
+    }
+    species_entropy[nth_species_idx] = (species_enthalpy[nth_species_idx] - species_gibbs[nth_species_idx])/temperature;
+
+    std::array<real,nspecies> species_density;
+    conservative_var[0] = 0.0;
+    for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        std::array<real,nspecies> species_entropy_integral = compute_species_entropy_cv_integral(temperature);
+
+        species_density[ispecies] = (exp((species_entropy_integral[ispecies] - species_entropy[ispecies])/(this->Rs[ispecies])))/(temperature*this->density_ref);
+        conservative_var[0] += species_density[ispecies];
+
+        if (dim + 2 + ispecies < nstate)
+            conservative_var[dim+2+ispecies] = species_density[ispecies];
+    }
+
+    const real mixture_density = conservative_var[0];
+
+    for (int idim = 0; idim < dim; ++idim) {
+        conservative_var[idim+1] = mixture_density*entropy_var[idim+1]*temperature;
+    }
+    
+    // specific kinetic energy
+    const real specific_kinetic_energy = 0.50*entropy_var_vel_squared;
+    // species specific enthalpy
+    const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
+    std::array<real,nspecies> species_specific_internal_energy;
+    std::array<real,nspecies> species_specific_total_energy;
+    // species energy
+    for (int s=0; s<nspecies; ++s) 
+    { 
+      species_specific_internal_energy[s] = (this->R_ref*this->temperature_ref/this->u_ref_sqr)*(species_specific_enthalpy[s] -  this->Rs[s]*temperature);
+      species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
+    }     
+    // mixture energy
+    real mixture_specific_total_energy = 0.0;
+    for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        mixture_specific_total_energy += species_specific_total_energy[ispecies] *(species_density[ispecies]/mixture_density);
+    }
+    conservative_var[dim+1] = mixture_density*mixture_specific_total_energy;
+
+    return conservative_var;
+}
 
 // Algorithm 15 (f_M15): Compute temperature
 template <int dim, int nspecies, int nstate, typename real>
@@ -1597,6 +1679,122 @@ inline real MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
         std::abort();
     }
     return T_n;
+}
+
+// Algorithm 17 (f_M17): Compute mixture pressure
+template <int dim, int nspecies, int nstate, typename real>
+inline real MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real mixture_density = this->compute_mixture_density(conservative_soln);
+    const real mixture_gas_constant = this->compute_mixture_gas_constant(conservative_soln);
+    const real temperature = compute_temperature(conservative_soln);
+    const real mixture_pressure = mixture_density*mixture_gas_constant*temperature/(this->gam_ref*this->mach_ref_sqr);
+
+    return mixture_pressure;
+}
+
+/* Supporting FUNCTIONS */
+// Algorithm 20 (f_S20): Convert primitive to conservative
+template <int dim, int nspecies, int nstate, typename real>
+inline std::array<real,nstate> MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const 
+{
+    /* definitions */
+    std::array<real, nstate> conservative_soln;
+    const real mixture_density = this->compute_mixture_density(primitive_soln);
+    std::array<real, dim> vel;
+
+    real vel2 = 0.0;
+    real sum = 0.0;
+    std::array<real,nspecies> species_densities;
+    std::array<real,nspecies> mass_fractions;
+    const real mixture_pressure = primitive_soln[dim+1];
+
+    /* mixture density */
+    conservative_soln[0] = mixture_density;
+
+    /* mixture momentum */
+    for (int d=0; d<dim; ++d) 
+    {
+        vel[d] = primitive_soln[1+d];
+        vel2 = vel2 + vel[d]*vel[d]; ;
+        conservative_soln[1+d] = mixture_density*vel[d];
+    }
+
+    /* mixture energy */
+    // mass fractions
+    for (int s=0; s<nspecies-1; ++s) 
+    { 
+        mass_fractions[s] = primitive_soln[dim+2+s];
+        sum += mass_fractions[s];
+    }
+    mass_fractions[nspecies-1] = 1.00 - sum;     
+    // species densities
+    for (int s=0; s<nspecies; ++s) 
+    { 
+        species_densities[s] = mixture_density*mass_fractions[s];
+    }
+    // mixturegas constant
+    const real mixture_gas_constant = this->compute_mixture_from_species(mass_fractions,this->Rs);
+    // temperature
+    const real temperature = mixture_pressure/(mixture_density*mixture_gas_constant) * (this->u_ref_sqr/(this->R_ref*this->temperature_ref));
+    // specific kinetic energy
+    const real specific_kinetic_energy = 0.50*vel2;
+    // species specific enthalpy
+    const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
+    // mixture enthalpy
+    const real mixture_specific_enthalpy = this->compute_mixture_from_species(mass_fractions,species_specific_enthalpy);
+    // mixture specific internal energy
+    const real mixture_specific_internal_energy = ((this->R_ref*this->temperature_ref)/this->u_ref_sqr)*mixture_specific_enthalpy - mixture_pressure/mixture_density;
+    // mixture specific total energy
+    const real mixture_specific_total_energy = mixture_specific_internal_energy + specific_kinetic_energy;
+
+    // mixture energy
+    conservative_soln[dim+1] = mixture_density*mixture_specific_total_energy;
+
+    /* species densities */
+    for (int s=0; s<nspecies-1; ++s) 
+    {
+        conservative_soln[dim+2+s] = species_densities[s];
+    }
+
+    return conservative_soln;
+}
+
+// Algorithm 21 (f_S21): Compute species specific heat ratio
+template <int dim, int nspecies, int nstate, typename real>
+inline std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real temperature = compute_temperature(conservative_soln);
+    const std::array<real,nspecies> Cp = compute_species_specific_Cp(temperature);
+    const std::array<real,nspecies> Cv = compute_species_specific_Cv(temperature);
+    std::array<real,nspecies> gamma;
+
+    for (int s=0; s<nspecies; ++s) 
+    {
+        gamma[s] = Cp[s]/Cv[s];
+    }
+
+    return gamma;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_gamma ( const std::array<real,nstate> &conservative_soln ) const
+{
+    // Uses the definition given in Gouasmi thesis
+    const real temperature = compute_temperature(conservative_soln);
+    const std::array<real,nspecies> mass_fractions = this->compute_mass_fractions(conservative_soln);
+    const std::array<real,nspecies> Cp = compute_species_specific_Cp(temperature);
+    const std::array<real,nspecies> Cv = compute_species_specific_Cv(temperature);
+
+    real mixture_Cp = this->compute_mixture_from_species(mass_fractions,Cp);
+    real mixture_Cv = this->compute_mixture_from_species(mass_fractions,Cv);
+
+    real gamma = mixture_Cp/mixture_Cv;
+    return gamma;
 }
 
 // Instantiate explicitly
