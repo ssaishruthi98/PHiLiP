@@ -11,7 +11,8 @@ set dimension = 3
 set number_of_species = 2
 
 # Test set up
-set pde_type = multispecies_thermally_perfect_euler
+#set pde_type = multispecies_thermally_perfect_euler
+set pde_type = multispecies_calorically_perfect_euler
 set test_type = multispecies_euler_split_taylor_green
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 
@@ -19,10 +20,10 @@ set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 set use_weak_form = false
 set flux_nodes_type = GLL
 set do_renumber_dofs = false
-#set use_split_form = true
-#set conv_num_flux = two_point_flux
-#set two_point_num_flux_type = CH
-set conv_num_flux = lax_friedrichs
+set use_split_form = true
+set conv_num_flux = two_point_flux
+set two_point_num_flux_type = Ra
+#set conv_num_flux = lax_friedrichs
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 set use_weight_adjusted_mass = true

@@ -303,8 +303,8 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
             unsteady_data_table->set_scientific("entropy", false);
             this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
             unsteady_data_table->set_scientific("current_numerical_entropy", false);
-            this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
-            unsteady_data_table->set_scientific("U/Uo", false);
+            this->add_value_to_data_table(current_numerical_entropy-initial_entropy,"U-Uo",unsteady_data_table);
+            unsteady_data_table->set_scientific("U-Uo", false);
         }
         // Write to file
         if(do_write_unsteady_data_table_file){
@@ -320,7 +320,7 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
         if(this->all_param.compute_multispecies_entropy) {
         this->pcout << "    Current Numerical Entropy:  " << current_numerical_entropy
                     << "    Entropy: " << entropy
-                    << "    (U-Uo)/Uo: " << entropy/initial_entropy;
+                    << "    U-Uo: " << current_numerical_entropy-initial_entropy;
         }
         this->pcout << std::endl;
     }
