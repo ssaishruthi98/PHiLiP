@@ -130,10 +130,6 @@ std::array<std::array<double,3>,nstate+1> MultispeciesVortexAdvection<dim, nspec
                 lerror_primitive[istate][1] += pow(abs(soln_at_q_primitive[istate] - soln_exact_primitive[istate]), 2.0) * fe_values_extra.JxW(iquad);
                 //L-infinity norm
                 lerror_primitive[istate][2] = std::max(abs(soln_at_q_primitive[istate]-soln_exact_primitive[istate]), lerror_primitive[istate][2]);
-                if (istate == dim + 1) {
-                    std::cout << " Pressure Exact " << soln_exact_primitive[istate] << std::endl;
-                    std::cout << " Pressure Soln " << soln_at_q_primitive[istate] << std::endl << std::endl;
-                }
             }
             lerror_primitive[nstate][0] += pow(abs(temperature_at_q - temperature_exact), 1.0) * fe_values_extra.JxW(iquad);
             lerror_primitive[nstate][1] += pow(abs(temperature_at_q - temperature_exact), 2.0) * fe_values_extra.JxW(iquad);
@@ -173,7 +169,7 @@ int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
     if(expected_order==0.0)
         expected_order = all_parameters_new.flow_solver_param.poly_degree + 1.0;
 
-    for (unsigned int igrid = 1; igrid < n_grids; igrid++) {
+    for (unsigned int igrid = 2; igrid < n_grids; igrid++) {
 
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 

@@ -1382,6 +1382,8 @@ dealii::Vector<double> MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate
         computed_quantities(++current_data_index) = compute_mixture_specific_total_energy(conservative_soln);
         // Mixture pressure
         computed_quantities(++current_data_index) = compute_mixture_pressure(conservative_soln);
+        // Dimensional Mixture Pressure
+        computed_quantities(++current_data_index) = compute_mixture_pressure(conservative_soln)*(density_ref*(u_ref*u_ref));
         // Non-dimensional temperature
         computed_quantities(++current_data_index) = compute_temperature(conservative_soln); 
         // Dimensional temperature
@@ -1425,6 +1427,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Mu
     }
     interpretation.push_back (DCI::component_is_scalar); // Mixture energy
     interpretation.push_back (DCI::component_is_scalar); // Mixture pressure
+    interpretation.push_back (DCI::component_is_scalar); // Dimensional mixture pressure
     interpretation.push_back (DCI::component_is_scalar); // Non-dimensional temperature
     interpretation.push_back (DCI::component_is_scalar); // Dimensional temperature
     interpretation.push_back (DCI::component_is_scalar); // Mixture specific total enthalpy
@@ -1456,6 +1459,7 @@ std::vector<std::string> MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nsta
     }
     names.push_back ("mixture_energy");
     names.push_back ("mixture_pressure");
+    names.push_back ("dimensional_mixture_pressure");
     names.push_back ("temperature");
     names.push_back ("dimensional_temperature");
     names.push_back ("mixture_specific_total_enthalpy");

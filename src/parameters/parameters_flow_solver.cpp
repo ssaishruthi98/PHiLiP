@@ -52,7 +52,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " multi_species_sod_shock_tube |"
                           " multi_species_isentropic_vortex |"
                           " multi_species_taylor_green_vortex_smooth |"
-                          " multi_species_taylor_green_vortex_sharp |"),
+                          " multi_species_taylor_green_vortex_sharp |"
+                          " multi_species_contact_discontinuity |"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -87,7 +88,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " multi_species_sod_shock_tube | " 
                           " multi_species_isentropic_vortex | "
                           " multi_species_taylor_green_vortex_smooth | "
-                          " multi_species_taylor_green_vortex_sharp>. ");
+                          " multi_species_taylor_green_vortex_sharp | "
+                          " multi_species_contact_discontinuity>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -560,6 +562,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "multi_species_isentropic_vortex")           {flow_case_type = multi_species_isentropic_vortex;}
         else if (flow_case_type_string == "multi_species_taylor_green_vortex_smooth")  {flow_case_type = multi_species_taylor_green_vortex_smooth;}
         else if (flow_case_type_string == "multi_species_taylor_green_vortex_sharp")   {flow_case_type = multi_species_taylor_green_vortex_sharp;}
+        else if (flow_case_type_string == "multi_species_contact_discontinuity")            {flow_case_type = multi_species_contact_discontinuity;}
         
         poly_degree = prm.get_integer("poly_degree");
         

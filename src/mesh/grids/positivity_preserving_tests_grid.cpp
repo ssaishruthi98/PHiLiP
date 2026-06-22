@@ -20,13 +20,11 @@ void shock_tube_1D_grid(
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = flow_solver_param->flow_case_type;
 
-    if (flow_case_type == flow_case_enum::sod_shock_tube
-        || flow_case_type == flow_case_enum::leblanc_shock_tube
-        || flow_case_type == flow_case_enum::multi_species_sod_shock_tube) {
-        left_boundary_id = 1001; // x_left, wall bc
-    } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
+    if (flow_case_type == flow_case_enum::shu_osher_problem) {
         left_boundary_id = 1008; // x_left, custom inflow (set in prm file)
-    } 
+    } else {
+        left_boundary_id = 1001; // x_left, wall bc
+    }
 
     if (left_boundary_id != 9999 && dim == 1) {
         for (auto cell = grid.begin_active(); cell != grid.end(); ++cell) {

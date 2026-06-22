@@ -41,7 +41,8 @@ std::shared_ptr<Triangulation> MultispeciesTests<dim,nspecies,nstate>::generate_
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
 
-    if(dim==1 && flow_case_type == flow_case_enum::multi_species_sod_shock_tube) {
+    if(dim==1 && (flow_case_type == flow_case_enum::multi_species_sod_shock_tube
+                    || flow_case_type == flow_case_enum::multi_species_contact_discontinuity)) {
         Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param.flow_solver_param);
     } else {
         Grids::straight_periodic_cube<dim, Triangulation>(grid, domain_left, domain_right,
@@ -58,7 +59,8 @@ void MultispeciesTests<dim,nspecies,nstate>::display_grid_parameters() const
     flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
 
     std::string grid_type_string = "";
-    if(flow_case_type == flow_case_enum::multi_species_sod_shock_tube) {
+    if(flow_case_type == flow_case_enum::multi_species_sod_shock_tube
+        || flow_case_type == flow_case_enum::multi_species_contact_discontinuity) {
         grid_type_string = "1d_shock_tube";
     } else {
         grid_type_string = "straight_periodic_cube";

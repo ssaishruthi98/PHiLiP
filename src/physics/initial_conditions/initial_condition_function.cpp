@@ -799,7 +799,7 @@ real InitialConditionFunction_SodShockTube<dim, nspecies, nstate, real>
     real value = 0.0;
     if constexpr (dim == 1 && nstate == (dim+2)) {
         const real x = point[0];
-        if (x < 0) {
+        if (x < 0.0) {
             if (istate == 0) {
                 // density
                 value = 1.0;
@@ -1431,6 +1431,77 @@ real InitialConditionFunction_Multispecies_SodShockTube<dim, nspecies, nstate, r
     return value;
 }
 
+// ========================================================
+// 1D Multispecies Moving Interface Test -- Initial Condition
+// See "A low-dissipation and time-accurate method for compressible..""
+// Houim et al 2019
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Multispecies_ContactDiscontinuity<dim,nspecies,nstate,real>
+::InitialConditionFunction_Multispecies_ContactDiscontinuity (
+        Parameters::AllParameters const* const param)
+        : InitialConditionFunction_MultiSpecies_EulerBase<dim,nspecies,nstate,real>(param)
+        , gamma_gas(param->euler_param.gamma_gas)
+        , mach_inf(param->euler_param.mach_inf)
+{}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Multispecies_ContactDiscontinuity<dim, nspecies, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    const real x = point[0];
+    if constexpr(dim==1 && nspecies==2) {
+        const real R_ref = (8.31446261815324)/(28.9651159 * pow(10,-3));
+        const real density_ref = 1.225;
+        const real temperature_ref = 298.15;
+        const real mach_ref = this->mach_inf;
+        const real gam_ref = this->gamma_gas;
+        const real u_ref = mach_ref*sqrt(gam_ref*R_ref*temperature_ref);
+
+        const real temperature = 300.0;
+        const real pressure = 101325.0; // [N/m^2]
+        const real velocity = 0.0; // [m/s]
+        const std::array<real,nspecies> Rs = this->multispecies_euler_physics->compute_Rs();
+
+        if (x < 0.5) {
+            if(istate == 0) {
+                //density
+                const real R_mixture = Rs[0]*R_ref;
+                value = (pressure/(R_mixture*temperature))/density_ref;
+            }
+            if (istate == 3) {
+                //Y_O2
+                value = 1.0;
+                //Y_O2 from Ayoub Gouasmi's Ph.D. thesis
+                // value = 1.0;
+            }
+        } else {
+            if(istate == 0) {
+                //density
+                const real R_mixture = Rs[1]*R_ref;
+                value = (pressure/(R_mixture*temperature))/density_ref;
+            }
+            if (istate == 3) {
+                //Y_O2
+                value = 0.0;
+                //Y_O2 from Ayoub Gouasmi's Ph.D. thesis
+                // value = 0.;
+            }
+        }
+
+        if (istate == 1) {
+            //velocity
+            value = velocity / u_ref;
+        }
+        if (istate == 2) {
+            //pressure
+            value = pressure / (density_ref*(u_ref*u_ref));
+        }
+    }
+    return value;
+}
+
 // =============================================================
 // Multispecies Isentropic Vortex -- Initial Condition 
 // =============================================================
@@ -1729,6 +1800,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr (dim==3 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate,real> >(param, true);
     } else if (flow_type == FlowCaseEnum::multi_species_taylor_green_vortex_sharp) {
         if constexpr (dim==3 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate,real> >(param, false);
+    } else if (flow_type == FlowCaseEnum::multi_species_contact_discontinuity) {
+        if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_ContactDiscontinuity<dim,nspecies,nstate,real> >(param);
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -1808,6 +1881,7 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction_Multispecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #if PHILIP_DIM==1
     template class InitialConditionFunction_Multispecies_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    template class InitialConditionFunction_Multispecies_ContactDiscontinuity <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #elif PHILIP_DIM==2
     template class InitialConditionFunction_Multispecies_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #elif PHILIP_DIM==3
