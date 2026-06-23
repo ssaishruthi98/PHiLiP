@@ -1001,7 +1001,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_CaloricallyPerfect_Eu
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
             energy_sum_of_species_CvT += (vel_avg[flux_dim]/(2.0*avg_inv_sqrt_T))*conv_num_split_flux[1+velocity_dim][flux_dim];
         }
-
         // Energy equation
         conv_num_split_flux[dim+1][flux_dim] = energy_sum_of_species_CvT;
     }
@@ -1678,6 +1677,35 @@ std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nst
     return species_gibbs;
 }
 
+// Compute the entropy variables from conservative solution
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<real,nstate> entropy_var;
+    const real temperature = compute_temperature(conservative_soln);
+    std::array<real,nspecies> species_gibbs = compute_species_gibbs_energy(conservative_soln);
+    real vel2 = this->compute_velocity_squared_from_conservative_solution(conservative_soln);
+
+    entropy_var[0] = species_gibbs[nspecies-1] - (0.5*vel2);
+    entropy_var[dim+1] = -1.0;
+
+    const dealii::Tensor<1,dim,real> vel = this->compute_velocities(conservative_soln);
+    for (int idim = 0; idim < dim; ++idim) {
+        entropy_var[idim+1] = vel[idim];
+    }
+
+    for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
+        entropy_var[dim+2+ispecies] = species_gibbs[ispecies] - species_gibbs[nspecies-1];
+    }
+
+    for (int istate = 0; istate < nstate; ++istate) {
+        entropy_var[istate] /= temperature;
+    }
+    return entropy_var;
+}
+
 // Map entropy variables back to conservative solution
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nstate> MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
@@ -1955,12 +1983,256 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Eule
         std::cout << "The Ismail Roe two-point flux has not been implemented for multispecies thermally perfect gas...Aborting." << std::endl;
         std::abort();
     } else if(this->two_point_num_flux_type == two_point_num_flux_enum::CH) {
-        std::cout << "The Chandrashekar two-point flux has not been implemented for multispecies thermally perfect gas...Aborting." << std::endl;
-        std::abort();
+        conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
     } else if(this->two_point_num_flux_type == two_point_num_flux_enum::Ra) {
-        std::cout << "The Ranocha pressure fix for the Chandrashekar two-point flux has not been implemented for multispecies thermally perfect gas...Aborting." << std::endl;
-        std::abort();
+        conv_num_split_flux = convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
     }
+
+    return conv_num_split_flux;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
+::convective_numerical_split_flux_chandrashekar(const std::array<real,nstate> &conservative_soln1,
+                                                 const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+
+    const real temp1 = compute_temperature(conservative_soln1);
+    const real temp2 = compute_temperature(conservative_soln2);
+
+    // PULL EVERYTHING FROM HERE UNTIL ASTERISKS INTO A SEPARATE FUNCTION 
+    const real temp_avg = this->compute_average(temp1, temp2);
+    const real temp_sqr_avg = this->compute_average(pow(temp1,2.0),pow(temp2,2.0));
+    const real temp_cubed_avg = this->compute_average(pow(temp1,3.0),pow(temp2,3.0));
+    const real inv_temp_avg = 0.5*(pow(temp1,-1.0) + pow(temp2,-1.0));
+    const real inv_temp_log_mean = this->compute_ismail_roe_logarithmic_mean(pow(temp1,-1.0), pow(temp2,-1.0));
+    const real temp_product_operator = temp1*temp2;
+
+    std::array<real,6> energy_flux_sum_term_coeffs = {{(2.0*temp_cubed_avg*temp_avg + temp_sqr_avg*temp_sqr_avg + 2.0*temp_sqr_avg*temp_avg*temp_avg)*(temp_product_operator/30.0),
+                                                        (4.0*temp_sqr_avg*temp_avg)*(temp_product_operator/20.0),
+                                                        (temp_sqr_avg + 2.0*temp_avg*temp_avg)*(temp_product_operator/12.0),
+                                                        (2.0*temp_avg)*(temp_product_operator/6.0),
+                                                        temp_product_operator/2.0,
+                                                        1.0/inv_temp_log_mean
+                                                        }};
+    // ******************************************************************//
+    const dealii::Tensor<1,dim,real> vel1 = this->compute_velocities(conservative_soln1);
+    const dealii::Tensor<1,dim,real> vel2 = this->compute_velocities(conservative_soln2);
+    dealii::Tensor<1,dim,real> vel_avg;
+    dealii::Tensor<1,dim,real> vel_sqr_avg;
+
+    for (int d=0; d<dim; ++d) {
+        vel_avg[d] = 0.5*(vel1[d]+vel2[d]);
+        vel_sqr_avg[d] = 0.5*(vel1[d]*vel1[d] + vel2[d]*vel2[d]);
+    }
+
+    const std::array<real,nspecies> rho_species1 = this->compute_species_densities(conservative_soln1);
+    const std::array<real,nspecies> rho_species2 = this->compute_species_densities(conservative_soln2);
+
+    // compute logarithmic mean for all components of flux except velocity component
+    // and sum of mean densities for the velocity component
+    // and sum of temperature monstrosity for energy component
+    std::array<real, nspecies> log_mean_species_densities;
+    real sum_of_log_mean_densities = 0.0;
+    real pressure_diagonal = 0.0;
+    std::array<real, nspecies> energy_flux_species_sum;
+    // const std::array<real,nspecies> Cv = compute_species_specific_Cv(0.5*(temp1+temp2));
+    for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        energy_flux_species_sum[ispecies] = 0.0;
+        real h_ref = 0.0;
+        // std::cout << std::endl << "species " << ispecies << " energy flux sum terms: ";
+        for(int icoeff = 0; icoeff < 6; ++icoeff) {
+            // Sum them terms
+            energy_flux_species_sum[ispecies] += this->Cp_poly_coeffs[ispecies][icoeff]*energy_flux_sum_term_coeffs[icoeff];
+            // std::cout << this->Cp_poly_coeffs[ispecies][icoeff]*energy_flux_sum_term_coeffs[icoeff] << " ";
+            h_ref += this->Cp_poly_coeffs[ispecies][icoeff]*pow(1.0, 6.0-icoeff)*pow(6.0-icoeff, -1.0);
+        }
+        // std::cout << std::endl;
+        // std::cout << "The enthalpy offset is : " << this->species_enthalpy_offset[ispecies] << " and the enthalpy at ref temp is : " << h_ref << std::endl;
+        energy_flux_species_sum[ispecies] += (this->species_enthalpy_offset[ispecies] - h_ref);
+        energy_flux_species_sum[ispecies] -= this->Rs[ispecies]/inv_temp_log_mean; // overleaf hasnt been updated but this is for Cp -> Cv
+        // std::cout << "Total species term: " << energy_flux_species_sum[ispecies] << std::endl << std::endl;
+
+        log_mean_species_densities[ispecies] = this->compute_ismail_roe_logarithmic_mean(rho_species1[ispecies],rho_species2[ispecies]);
+        sum_of_log_mean_densities += log_mean_species_densities[ispecies];
+
+        pressure_diagonal += this->Rs[ispecies] * (this->compute_average(rho_species1[ispecies],rho_species2[ispecies]));
+    }
+    // std::cout << std::endl;
+    pressure_diagonal /= inv_temp_avg;
+    pressure_diagonal /= (this->gam_ref*this->mach_ref_sqr);
+
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    {
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = sum_of_log_mean_densities * vel_avg[flux_dim];
+
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = sum_of_log_mean_densities*vel_avg[flux_dim]*vel_avg[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_diagonal; // Add diagonal of pressure
+        
+        // Species density equation
+        for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
+            const int index = dim+2+ispecies;
+            conv_num_split_flux[index][flux_dim] = log_mean_species_densities[ispecies] * vel_avg[flux_dim];
+
+            // Energy equation
+            conv_num_split_flux[dim+1][flux_dim] += (energy_flux_species_sum[ispecies]*((this->R_ref*this->temperature_ref)/this->u_ref_sqr)
+                                                        -0.5*vel_sqr_avg[flux_dim]) * conv_num_split_flux[index][flux_dim];
+        }
+        // Add last species contribution to energy flux
+        conv_num_split_flux[dim+1][flux_dim] += (energy_flux_species_sum[nspecies-1]*((this->R_ref*this->temperature_ref)/this->u_ref_sqr)
+                                                        -0.5*vel_sqr_avg[flux_dim])* (log_mean_species_densities[nspecies-1] * vel_avg[flux_dim]);
+
+        // Energy equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[flux_dim];
+        }
+    }
+    // std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux_kg = this->convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
+    // for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    // {
+    //     std::cout << " kg flux ";
+    //     for (int istate = 0; istate < nstate; ++istate) {
+    //         std::cout << " state " << istate << " " << conv_num_split_flux_kg[istate][flux_dim];
+    //     }
+    //     std::cout << std::endl;
+    //     std::cout << " ch flux ";
+    //     for (int istate = 0; istate < nstate; ++istate) {
+    //         std::cout << " state " << istate << " " << conv_num_split_flux[istate][flux_dim];
+    //     }
+    //     std::cout << std::endl;
+    // }
+    // std::cout << std::endl;
+    // sleep(1);
+
+    return conv_num_split_flux;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
+::convective_numerical_split_flux_ranocha(const std::array<real,nstate> &conservative_soln1,
+                                                 const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+
+    const real temp1 = compute_temperature(conservative_soln1);
+    const real temp2 = compute_temperature(conservative_soln2);
+
+    // PULL EVERYTHING FROM HERE UNTIL ASTERISKS INTO A SEPARATE FUNCTION 
+    const real temp_avg = this->compute_average(temp1, temp2);
+    const real temp_sqr_avg = this->compute_average(pow(temp1,2.0),pow(temp2,2.0));
+    const real temp_cubed_avg = this->compute_average(pow(temp1,3.0),pow(temp2,3.0));
+    const real inv_temp_log_mean = this->compute_ismail_roe_logarithmic_mean(pow(temp1,-1.0), pow(temp2,-1.0));
+    const real temp_product_operator = temp1*temp2;
+
+    std::array<real,6> energy_flux_sum_term_coeffs = {{(2.0*temp_cubed_avg*temp_avg + temp_sqr_avg*temp_sqr_avg + 2.0*temp_sqr_avg*temp_avg*temp_avg)*(temp_product_operator/30.0),
+                                                        (4.0*temp_sqr_avg*temp_avg)*(temp_product_operator/20.0),
+                                                        (temp_sqr_avg + 2.0*temp_avg*temp_avg)*(temp_product_operator/12.0),
+                                                        (2.0*temp_avg)*(temp_product_operator/6.0),
+                                                        temp_product_operator/2.0,
+                                                        1.0/inv_temp_log_mean
+                                                        }};
+    // ******************************************************************//
+    const dealii::Tensor<1,dim,real> vel1 = this->compute_velocities(conservative_soln1);
+    const dealii::Tensor<1,dim,real> vel2 = this->compute_velocities(conservative_soln2);
+    dealii::Tensor<1,dim,real> vel_avg;
+    dealii::Tensor<1,dim,real> vel_sqr_avg;
+
+    for (int d=0; d<dim; ++d) {
+        vel_avg[d] = 0.5*(vel1[d]+vel2[d]);
+        vel_sqr_avg[d] = 0.5*(vel1[d]*vel1[d] + vel2[d]*vel2[d]);
+    }
+
+    const std::array<real,nspecies> rho_species1 = this->compute_species_densities(conservative_soln1);
+    const std::array<real,nspecies> rho_species2 = this->compute_species_densities(conservative_soln2);
+
+    // compute logarithmic mean for all components of flux except velocity component
+    // and sum of mean densities for the velocity component
+    // and sum of temperature monstrosity for energy component
+    std::array<real, nspecies> log_mean_species_densities;
+    real sum_of_log_mean_densities = 0.0;
+    std::array<real, nspecies> energy_flux_species_sum;
+    // const std::array<real,nspecies> Cv = compute_species_specific_Cv(0.5*(temp1+temp2));
+    for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        energy_flux_species_sum[ispecies] = 0.0;
+        real h_ref = 0.0;
+        // std::cout << std::endl << "species " << ispecies << " energy flux sum terms: ";
+        for(int icoeff = 0; icoeff < 6; ++icoeff) {
+            // Sum them terms
+            energy_flux_species_sum[ispecies] += this->Cp_poly_coeffs[ispecies][icoeff]*energy_flux_sum_term_coeffs[icoeff];
+            // std::cout << this->Cp_poly_coeffs[ispecies][icoeff]*energy_flux_sum_term_coeffs[icoeff] << " ";
+            h_ref += this->Cp_poly_coeffs[ispecies][icoeff]*pow(1.0, 6.0-icoeff)*pow(6.0-icoeff, -1.0);
+        }
+        // std::cout << std::endl;
+        // std::cout << "The enthalpy offset is : " << this->species_enthalpy_offset[ispecies] << " and the enthalpy at ref temp is : " << h_ref << std::endl;
+        energy_flux_species_sum[ispecies] += (this->species_enthalpy_offset[ispecies] - h_ref);
+        energy_flux_species_sum[ispecies] -= this->Rs[ispecies]/inv_temp_log_mean; // overleaf hasnt been updated but this is for Cp -> Cv
+        // std::cout << "Total species term: " << energy_flux_species_sum[ispecies] << std::endl << std::endl;
+
+        log_mean_species_densities[ispecies] = this->compute_ismail_roe_logarithmic_mean(rho_species1[ispecies],rho_species2[ispecies]);
+        sum_of_log_mean_densities += log_mean_species_densities[ispecies];
+
+    }
+
+    const real pressure1 = compute_mixture_pressure(conservative_soln1);
+    const real pressure2 = compute_mixture_pressure(conservative_soln2);
+    const real avg_pressure = this->compute_average(pressure1, pressure2);
+
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    {
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = sum_of_log_mean_densities * vel_avg[flux_dim];
+
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = sum_of_log_mean_densities*vel_avg[flux_dim]*vel_avg[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += avg_pressure; // Add diagonal of pressure
+        
+        // Species density equation
+        for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
+            const int index = dim+2+ispecies;
+            conv_num_split_flux[index][flux_dim] = log_mean_species_densities[ispecies] * vel_avg[flux_dim];
+
+            // Energy equation
+            conv_num_split_flux[dim+1][flux_dim] += (energy_flux_species_sum[ispecies]*((this->R_ref*this->temperature_ref)/this->u_ref_sqr)
+                                                        -0.5*vel_sqr_avg[flux_dim]) * conv_num_split_flux[index][flux_dim];
+        }
+        // Add last species contribution to energy flux
+        conv_num_split_flux[dim+1][flux_dim] += (energy_flux_species_sum[nspecies-1]*((this->R_ref*this->temperature_ref)/this->u_ref_sqr)
+                                                        -0.5*vel_sqr_avg[flux_dim])* (log_mean_species_densities[nspecies-1] * vel_avg[flux_dim]);
+
+        // Energy equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[flux_dim];
+        }
+
+        // compute additional terms from pressure fix
+        real pressure_fix = 0.25*(pressure1-pressure2)*(vel1[flux_dim]-vel2[flux_dim]);
+
+        // Energy equation
+        conv_num_split_flux[dim+1][flux_dim] -= pressure_fix;
+    }
+    // std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux_kg = this->convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
+    // for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    // {
+    //     std::cout << " kg flux ";
+    //     for (int istate = 0; istate < nstate; ++istate) {
+    //         std::cout << " state " << istate << " " << conv_num_split_flux_kg[istate][flux_dim];
+    //     }
+    //     std::cout << std::endl;
+    //     std::cout << " ch flux ";
+    //     for (int istate = 0; istate < nstate; ++istate) {
+    //         std::cout << " state " << istate << " " << conv_num_split_flux[istate][flux_dim];
+    //     }
+    //     std::cout << std::endl;
+    // }
+    // std::cout << std::endl;
+    // sleep(1);
 
     return conv_num_split_flux;
 }

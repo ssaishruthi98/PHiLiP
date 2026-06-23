@@ -12,8 +12,8 @@ set dimension = 1
 set number_of_species = 2
 set test_type = multi_species_vortex_advection
 set flux_nodes_type = GLL
-#set pde_type = multispecies_thermally_perfect_euler
-set pde_type = multispecies_calorically_perfect_euler
+set pde_type = multispecies_thermally_perfect_euler
+#set pde_type = multispecies_calorically_perfect_euler
 set chemistry_input_file = ../../chemistry_files/H2_O2.kinetics
 
 # DG formulation
@@ -64,10 +64,10 @@ subsection flow_solver
   # 34.614724700315755 is 1 second in physical time for m_inf = 0.1
   # Final time is set to 34.614724700315755 * m_inf for one full cycle 
   # ie. final solution = initial condition
-  set final_time =  287.60076701316 # 1 full cycle
+  set final_time =  28.760076701316 # 1 full cycle
   #set constant_time_step = 0.1
   set adaptive_time_step = true
-  set courant_friedrichs_lewy_number = 0.025
+  set courant_friedrichs_lewy_number = 0.25
   set unsteady_data_table_filename = ms_vortex_advection
   subsection grid
     set grid_left_bound = 0.0
@@ -90,5 +90,5 @@ subsection manufactured solution convergence study
   set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 3
+  set number_of_grids   = 7
 end

@@ -64,7 +64,7 @@ public:
      /// Determine the  
     std::array<int,nspecies>GetNASACAP_TemperatureIndex ( const real temperature ) const;
 
-     /// Computes the entropy variables.
+    /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (
                 const std::array<real,nstate> &conservative_soln) const;
 
@@ -373,7 +373,7 @@ protected:
     // Compute Cv integral component of the species entropy equation
     // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
     std::array<real,nspecies> compute_species_entropy_cv_integral ( const real temperature ) const; 
-
+public:
     // Compute species entropy from temperature and species density
     std::array<real,nspecies> compute_species_entropy ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -381,6 +381,10 @@ protected:
     std::array<real,nspecies> compute_species_gibbs_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
 public:
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
     /// Computes the conservative variables from the entropy variables.
     std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
                 const std::array<real,nstate> &entropy_var) const;
@@ -404,6 +408,18 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const override;
+
+    /** Entropy conserving split form flux of Kennedy and Gruber.
+     *  Refer to Gassner's paper (2016) Eq. 3.10  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /** Entropy conserving split form flux of Kennedy and Gruber.
+     *  Refer to Gassner's paper (2016) Eq. 3.10  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
 
 };
 } // Physics namespace
