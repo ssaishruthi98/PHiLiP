@@ -1522,6 +1522,7 @@ MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>::MultiSpecies_Ther
     const bool                                                has_nonzero_physical_source) 
     : MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>(parameters_input, gam_ref, mach_ref, manufactured_solution_function, two_point_num_flux_type_input, has_nonzero_diffusion, has_nonzero_physical_source)
     , tol(1.0e-14) /// []
+    , display_warning(parameters_input->display_multispecies_temperature_warnings)
 {
     static_assert(nstate==dim+nspecies+1, "Physics::MultispeciesThermallyPerfect() should be created with nstate=PHILIP_DIM+PHILIP_SPECIES+1"); // Note: update this with nspecies in the future
     if(parameters_input->chemistry_input_file=="") {
@@ -1549,7 +1550,7 @@ std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstat
     for (int ispecies=0; ispecies<nspecies; ++ispecies) 
     { 
         // main computation
-        if (dimensional_temperature < 0.8*this->NASACAPTemperatureLimits[ispecies][0] || dimensional_temperature > 1.2*this->NASACAPTemperatureLimits[ispecies][1]) {
+        if (display_warning && (dimensional_temperature < 0.8*this->NASACAPTemperatureLimits[ispecies][0] || dimensional_temperature > 1.2*this->NASACAPTemperatureLimits[ispecies][1])) {
             std::cout << "Species Cp Calculation WARNING: Temperature exceeds the " << this->species_name[ispecies] << " polynomial limits by more than 20%..." << std::endl;
         }
         Cp[ispecies] = 0;
@@ -1596,7 +1597,7 @@ std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstat
     for (int ispecies=0; ispecies<nspecies; ++ispecies) 
     { 
         // main computation
-        if (dimensional_temperature < 0.8*this->NASACAPTemperatureLimits[ispecies][0] || dimensional_temperature > 1.2*this->NASACAPTemperatureLimits[ispecies][1]) {
+        if (display_warning && (dimensional_temperature < 0.8*this->NASACAPTemperatureLimits[ispecies][0] || dimensional_temperature > 1.2*this->NASACAPTemperatureLimits[ispecies][1])) {
             std::cout << "Species Enthalpy Calculation WARNING: Temperature exceeds the " << this->species_name[ispecies] << " polynomial limits by more than 20%..." << std::endl;
         }
         real h_ref = 0;
@@ -1644,7 +1645,7 @@ std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nst
     for (int ispecies=0; ispecies<nspecies; ++ispecies) 
     { 
         // main computation
-        if (dimensional_temperature < 0.8*this->NASACAPTemperatureLimits[ispecies][0] || dimensional_temperature > 1.2*this->NASACAPTemperatureLimits[ispecies][1]) {
+        if (display_warning && (dimensional_temperature < 0.8*this->NASACAPTemperatureLimits[ispecies][0] || dimensional_temperature > 1.2*this->NASACAPTemperatureLimits[ispecies][1])) {
             std::cout << "Species Entropy Calculation WARNING: Temperature exceeds the " << this->species_name[ispecies] << " polynomial limits by more than 20%..." << std::endl;
         }
 

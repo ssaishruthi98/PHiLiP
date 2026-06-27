@@ -358,6 +358,7 @@ public:
     ~MultiSpecies_ThermallyPerfect_Euler() {};
 
     const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
+    const bool display_warning;
 
 protected:
     // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature

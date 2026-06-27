@@ -5,7 +5,8 @@
 set dimension = 1
 # Chemical species
 set number_of_species = 2
-set pde_type = multispecies_calorically_perfect_euler
+#set pde_type = multispecies_calorically_perfect_euler
+set pde_type = multispecies_thermally_perfect_euler
 set chemistry_input_file = ../../chemistry_files/He_N2.kinetics
 set run_type = flow_simulation
 
@@ -21,6 +22,7 @@ set flux_nodes_type = GLL
 #set conv_num_flux = lax_friedrichs
 set use_split_form = true
 set compute_multispecies_entropy = false
+set display_multispecies_temperature_warnings = false
 set two_point_num_flux_type = KG
 set conv_num_flux = two_point_flux
 set flux_reconstruction = cDG

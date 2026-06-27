@@ -336,6 +336,9 @@ public:
     /// Flag for computing multi-species entropy
     bool compute_multispecies_entropy = false;
 
+    /// Flag for displaying warnings for multi-species temperature calculations
+    bool display_multispecies_temperature_warnings = true;
+
     /// Flag for using wall model (initialized as false)
     bool using_wall_model = false;
 

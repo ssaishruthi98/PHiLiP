@@ -401,6 +401,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("compute_multispecies_entropy", "false",
                       dealii::Patterns::Bool(),
                       "Flag for whether multi-species entropy should be computed. Default is false to prevent tests from failing when species density goes to zero.");
+    
+    prm.declare_entry("display_multispecies_temperature_warnings", "true",
+                      dealii::Patterns::Bool(),
+                      "Flag for whether a warning should be displayed for multi-species flow when the temperature is more than 20% outside the range of the NASA9 polynomial model.");
 
     prm.declare_entry("wall_model_input_from_second_element", "true",
                       dealii::Patterns::Bool(),
@@ -676,6 +680,7 @@ const std::string test_string = prm.get("test_type");
 
     chemistry_input_file = prm.get("chemistry_input_file");
     compute_multispecies_entropy = prm.get_bool("compute_multispecies_entropy");
+    display_multispecies_temperature_warnings = prm.get_bool("display_multispecies_temperature_warnings");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

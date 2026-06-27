@@ -55,6 +55,9 @@ protected:
     /// Computes integrated entropy at the time step
     double compute_integrated_entropy(DGBase<dim, nspecies, double>& dg) const;
 
+    ///Computes the volume term kinetic energy production.
+    double compute_volume_term(std::shared_ptr < DGBase<dim, nspecies, double> > dg) const;
+
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;
 
@@ -68,8 +71,8 @@ private:
     /// Storing entropy at first step
     double initial_entropy;
 
-    /// Store previous entropy
-    double previous_numerical_entropy;
+    /// Storing volume work at first step
+    double initial_volume_work;
 
     // ms euler physics pointer for computing physical quantities.
     std::shared_ptr < Physics::MultiSpecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double > > ms_physics;
