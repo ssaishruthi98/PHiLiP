@@ -297,6 +297,9 @@ public:
     /// Given conservative variables, returns kinetic energy
     real compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Given conservative variables, returns internal energy
+    real compute_internal_energy ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// Given conservative variables, returns incompressible kinetic energy
     real compute_incompressible_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
 

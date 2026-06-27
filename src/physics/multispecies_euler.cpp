@@ -488,6 +488,26 @@ std::array<real,nspecies> MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nst
     return e;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+inline real MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_mixture_internal_energy( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real E = this->compute_mixture_specific_total_energy(conservative_soln);
+    const real k = this->compute_specific_kinetic_energy(conservative_soln);
+
+    const real e = E-k;
+
+    return e;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_internal_energy( const std::array<real,nstate> &conservative_soln ) const
+{
+    return compute_mixture_internal_energy(conservative_soln);
+}
+
+
 // Compute species entropy by calculating integral and adding in density contribution (ie. R_k ln \rho_k)
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> MultiSpecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
@@ -1377,8 +1397,10 @@ dealii::Vector<double> MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nstate
         for (unsigned int d=0; d<dim; ++d) {
             computed_quantities(++current_data_index) = conservative_soln[1+d];
         }
-        // Mixture energy
+        // Mixture total energy
         computed_quantities(++current_data_index) = compute_mixture_specific_total_energy(conservative_soln);
+        // Mixture internal energy
+        computed_quantities(++current_data_index) = compute_mixture_internal_energy(conservative_soln);
         // Mixture pressure
         computed_quantities(++current_data_index) = compute_mixture_pressure(conservative_soln);
         // Dimensional Mixture Pressure
@@ -1424,7 +1446,8 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Mu
     for (unsigned int d=0; d<dim; ++d) {
         interpretation.push_back (DCI::component_is_part_of_vector); // Mixture momentum
     }
-    interpretation.push_back (DCI::component_is_scalar); // Mixture energy
+    interpretation.push_back (DCI::component_is_scalar); // Mixture total energy
+    interpretation.push_back (DCI::component_is_scalar); // Mixture internal energy
     interpretation.push_back (DCI::component_is_scalar); // Mixture pressure
     interpretation.push_back (DCI::component_is_scalar); // Dimensional mixture pressure
     interpretation.push_back (DCI::component_is_scalar); // Non-dimensional temperature
@@ -1456,7 +1479,8 @@ std::vector<std::string> MultiSpecies_CaloricallyPerfect_Euler<dim,nspecies,nsta
     for (unsigned int d=0; d<dim; ++d) {
       names.push_back ("mixture_momentum");
     }
-    names.push_back ("mixture_energy");
+    names.push_back ("mixture_total_energy");
+    names.push_back ("mixture_internal_energy");
     names.push_back ("mixture_pressure");
     names.push_back ("dimensional_mixture_pressure");
     names.push_back ("temperature");

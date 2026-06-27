@@ -401,6 +401,17 @@ inline real Euler<dim,nspecies,nstate,real>
 
 template <int dim, int nspecies, int nstate, typename real>
 inline real Euler<dim,nspecies,nstate,real>
+::compute_internal_energy ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real kinetic_energy = compute_kinetic_energy_from_conservative_solution(conservative_soln);
+    const real total_energy = conservative_soln[nstate-1]/conservative_soln[0];
+
+    const real internal_energy = total_energy - kinetic_energy;
+    return internal_energy;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real Euler<dim,nspecies,nstate,real>
 ::compute_incompressible_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
 {
     const std::array<real,nstate> primitive_soln = convert_conservative_to_primitive_templated<real>(conservative_soln);

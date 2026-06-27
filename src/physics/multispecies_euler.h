@@ -208,6 +208,12 @@ protected:
     // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
     std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
 
+    // Compute mixture internal energy
+    real compute_mixture_internal_energy ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Calls compute_mixture_internal_energy
+    virtual real compute_internal_energy ( const std::array<real,nstate> &conservative_soln ) const;
+
     // Compute species entropy from temperature and species density
     std::array<real,nspecies> compute_species_entropy ( const std::array<real,nstate> &conservative_soln ) const;
 

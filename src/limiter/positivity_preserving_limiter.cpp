@@ -26,6 +26,8 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
     if (nstate == dim + nspecies + 1) {
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = parameters_input->limiter_param.bound_preserving_limiter;
+        if(pde_type == PDE_enum::multispecies_thermally_perfect_euler)
+            use_internal_energy_limiter = true;
 
         if((pde_type == PDE_enum::multispecies_calorically_perfect_euler || pde_type == PDE_enum::multispecies_thermally_perfect_euler) && limiter_type == limiter_enum::positivity_preservingZhang2010) {
             std::cout << "Error: Zhang 2010 limiting has not been implemented for multispecies flow" << std::endl;
@@ -600,25 +602,70 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
         if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + nspecies + 1) {
-            std::array<real, dim> theta2_quad;
-            for(unsigned int idim = 0; idim < dim; ++idim) {
-                theta2_quad[idim] = get_theta2_Wang2012(soln_at_q[idim], n_quad_pts, p_avg);
-            }
+            if (!use_internal_energy_limiter) {
+                std::array<real, dim> theta2_quad;
+                for(unsigned int idim = 0; idim < dim; ++idim) {
+                    theta2_quad[idim] = get_theta2_Wang2012(soln_at_q[idim], n_quad_pts, p_avg);
+                }
 
-            for(unsigned int idim = 0; idim < dim; ++idim) {
-                if(theta2_quad[idim] < theta2)
-                    theta2 = theta2_quad[idim];
-            }
+                for(unsigned int idim = 0; idim < dim; ++idim) {
+                    if(theta2_quad[idim] < theta2)
+                        theta2 = theta2_quad[idim];
+                }
 
-            real theta2_soln = get_theta2_Wang2012(soln_coeff, n_quad_pts, p_avg);
-            if(theta2_soln < theta2)
-                    theta2 = theta2_soln;
+                real theta2_soln = get_theta2_Wang2012(soln_coeff, n_quad_pts, p_avg);
+                if(theta2_soln < theta2)
+                        theta2 = theta2_soln;
 
-            // Limit values at quadrature points
-            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                // Limit values at quadrature points
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                        soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
+                                + soln_cell_avg[istate];
+                    }
+                }
+            } else {
+                real local_min_internal_energy = 1e6;
+                real corresponding_density = 1e6;
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                    soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
-                            + soln_cell_avg[istate];
+                    std::array<real, nstate> soln_at_iquad;
+                    for (unsigned int istate = 0; istate < nstate; ++istate) {
+                        soln_at_iquad[istate] = soln_coeff[istate][iquad];
+                    }
+                    real internal_energy_at_iquad = pde_physics->compute_internal_energy(soln_at_iquad);
+                    if (internal_energy_at_iquad < local_min_density) {
+                        local_min_internal_energy = internal_energy_at_iquad;
+                        corresponding_density = soln_at_iquad[0];
+                    }
+
+                    for (unsigned int idim = 0; idim < dim; ++idim) {
+                        for (unsigned int istate = 0; istate < nstate; ++istate) {
+                            soln_at_iquad[istate] = soln_at_q[idim][istate][iquad];
+                        }
+                        real internal_energy_at_iquad = pde_physics->compute_internal_energy(soln_at_iquad);
+                        if (internal_energy_at_iquad < local_min_density) {
+                            local_min_internal_energy = internal_energy_at_iquad;
+                            corresponding_density = soln_at_iquad[0];
+                        }
+                    }                        
+                }
+
+                if (local_min_internal_energy < 0.0) {
+                    const real avg_internal_energy = pde_physics->compute_internal_energy(soln_cell_avg);
+                    const real avg_density = soln_cell_avg[0];
+                    theta2 = (avg_density*avg_internal_energy - lower_bound)/(avg_density*avg_internal_energy - corresponding_density*local_min_internal_energy);
+                    if (theta2 < 0) {
+                        std::cout << "avg_density " << avg_density << " avg_internal_energy " << avg_internal_energy
+                                  << " corresponding_density " << corresponding_density << " local_min_internal_energy " << local_min_internal_energy << std::endl;
+                    }
+                }
+
+                // Limit values at quadrature points
+                for (unsigned int istate = 0; istate < nstate; ++istate) {
+                    for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                        soln_coeff[istate][iquad] = theta2 * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
+                                + soln_cell_avg[istate];
+                    }
                 }
             }
         }
@@ -676,6 +723,11 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         if (isnan(theta2)) {
             std::cout << "Error: Theta2 is NaN - Aborting... " << std::endl << theta2 << std::endl << std::flush;
             std::abort();
+        }
+
+        if (theta2 < 1.0) {
+            std::cout << "The solution is limited based on internal energy!!" << std::endl;
+            std::cout << "theta2 is " << theta2 << std::endl;
         }
 
         // Write limited solution back and verify that positivity of density is satisfied

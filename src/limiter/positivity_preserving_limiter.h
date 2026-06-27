@@ -111,6 +111,7 @@ protected:
     real dx; ///< Value required to compute solution cell average in 2D/3D, calculated using xmax and xmin parameters
     real dy; ///< Value required to compute solution cell average in 2D/3D, calculated using ymax and ymin parameters
     real dz; ///< Value required to compute solution cell average in 2D/3D, calculated using zmax and zmin parameters
+    bool use_internal_energy_limiter = false; ///< Flag used to switch from pressure limiting to internal energy limiting
 }; // End of PositivityPreservingLimiter Class
 } // PHiLiP namespace
 

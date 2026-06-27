@@ -1461,10 +1461,10 @@ real InitialConditionFunction_Multispecies_ContactDiscontinuity<dim, nspecies, n
 
         const real temperature = 300.0;
         const real pressure = 101325.0; // [N/m^2]
-        const real velocity = 0.0; // [m/s]
+        const real velocity = 100.0; // [m/s]
         const std::array<real,nspecies> Rs = this->multispecies_euler_physics->compute_Rs();
 
-        if (x < 0.5) {
+        if (x > 0.0 && x < 0.06) {
             if(istate == 0) {
                 //density
                 const real R_mixture = Rs[0]*R_ref;
