@@ -633,8 +633,9 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                         soln_at_iquad[istate] = soln_coeff[istate][iquad];
                     }
                     real internal_energy_at_iquad = pde_physics->compute_internal_energy(soln_at_iquad);
-                    if (internal_energy_at_iquad < local_min_density) {
+                    if (internal_energy_at_iquad < local_min_internal_energy) {
                         local_min_internal_energy = internal_energy_at_iquad;
+                        std::cout << " local_min_internal_energy at soln coeff = " << local_min_internal_energy << std::endl;
                         corresponding_density = soln_at_iquad[0];
                     }
 
@@ -643,8 +644,9 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                             soln_at_iquad[istate] = soln_at_q[idim][istate][iquad];
                         }
                         real internal_energy_at_iquad = pde_physics->compute_internal_energy(soln_at_iquad);
-                        if (internal_energy_at_iquad < local_min_density) {
+                        if (internal_energy_at_iquad < local_min_internal_energy) {
                             local_min_internal_energy = internal_energy_at_iquad;
+                            std::cout << " local_min_internal_energy at quad = " << local_min_internal_energy << std::endl;
                             corresponding_density = soln_at_iquad[0];
                         }
                     }                        
@@ -657,6 +659,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                     if (theta2 < 0) {
                         std::cout << "avg_density " << avg_density << " avg_internal_energy " << avg_internal_energy
                                   << " corresponding_density " << corresponding_density << " local_min_internal_energy " << local_min_internal_energy << std::endl;
+                        theta2 = abs(theta2);
                     }
                 }
 

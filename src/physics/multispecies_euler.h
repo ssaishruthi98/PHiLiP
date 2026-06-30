@@ -411,6 +411,9 @@ public:
     // Compute gamma from conservative_soln
     virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
 
+    // Calculates shifted internal energy, need to move to a separate function/rename before merging
+    virtual real compute_internal_energy ( const std::array<real,nstate> &conservative_soln ) const;
+
     ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,

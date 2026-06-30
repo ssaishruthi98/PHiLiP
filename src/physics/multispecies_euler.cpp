@@ -1879,6 +1879,31 @@ inline real MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
     return T_n;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+inline real MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_internal_energy( const std::array<real,nstate> &conservative_soln ) const
+{
+    // computes SHIFTED internal energy required for limiter,
+    // will have to rename this function later to ensure there is no confusion
+    const real mixture_internal_energy = this->compute_mixture_internal_energy(conservative_soln);
+    const std::array<real,nspecies> mass_fractions = this->compute_mass_fractions(conservative_soln);
+
+    real integration_constant = 0.0;
+    /// species loop
+    for (int ispecies=0; ispecies<nspecies; ++ispecies) 
+    { 
+        real e_ref = 0;
+        for (int icoeffs = 0; icoeffs < 6; ++icoeffs)
+            e_ref += this->Cp_poly_coeffs[ispecies][icoeffs]*pow(1.0, 6.0-icoeffs)*pow(6.0-icoeffs, -1.0);
+
+        e_ref -= this->Rs[ispecies]*1.0;
+        integration_constant += mass_fractions[ispecies]*(e_ref);
+    }
+    std::cout << " mixture_internal_energy  " << mixture_internal_energy << "  integration_constant  " << integration_constant << std::endl;
+
+    return (mixture_internal_energy - integration_constant);
+}
+
 // Algorithm 17 (f_M17): Compute mixture pressure
 template <int dim, int nspecies, int nstate, typename real>
 inline real MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
