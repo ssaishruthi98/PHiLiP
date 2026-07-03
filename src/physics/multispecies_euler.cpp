@@ -1098,9 +1098,35 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_CaloricallyPerfect_Eu
         // Energy equation
         conv_num_split_flux[dim+1][flux_dim] = energy_sum_of_species_CvT;
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[dim+1][flux_dim] += vel_avg[flux_dim]*conv_num_split_flux[1+velocity_dim][flux_dim];
+            conv_num_split_flux[dim+1][flux_dim] += vel_avg[velocity_dim]*conv_num_split_flux[1+velocity_dim][flux_dim];
         }
     }
+
+    // if (conservative_soln1[1] > 1.0) {
+    //     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux_kg = convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
+    //     std::cout << " cons soln ";
+    //     for (int istate = 0; istate < nstate; ++istate) {
+    //         std::cout << " state " << istate << " " << conservative_soln1[istate];
+    //     }
+        
+    //     std::cout << std::endl;
+    //     for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    //     {
+    //         std::cout << " flux dim " << flux_dim << std::endl;
+    //         std::cout << " kg flux ";
+    //         for (int istate = 0; istate < nstate; ++istate) {
+    //             std::cout << " state " << istate << " " << conv_num_split_flux_kg[istate][flux_dim];
+    //         }
+    //         std::cout << std::endl;
+    //         std::cout << " ch flux ";
+    //         for (int istate = 0; istate < nstate; ++istate) {
+    //             std::cout << " state " << istate << " " << conv_num_split_flux[istate][flux_dim];
+    //         }
+    //         std::cout << std::endl;
+    //     }
+    //     std::cout << std::endl;
+    //     // sleep(1);
+    // }
 
     return conv_num_split_flux;
 }
@@ -1171,7 +1197,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_CaloricallyPerfect_Eu
 
         conv_num_split_flux[dim+1][flux_dim] = energy_sum_of_species_CvT;
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[dim+1][flux_dim] += vel_avg[flux_dim]*conv_num_split_flux[1+velocity_dim][flux_dim];
+            conv_num_split_flux[dim+1][flux_dim] += vel_avg[velocity_dim]*conv_num_split_flux[1+velocity_dim][flux_dim];
         }
 
         // compute additional terms from pressure fix
@@ -1827,6 +1853,14 @@ inline real MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
     real T_n = 2.0*this->temperature_ref; // the initial guess
     do
     {
+        if (T_n < 0.0) {
+            std::cout << "Iteration " << itr << std::endl;
+            std::cout << "Temp " << T_n << std::endl;
+            for (int istate = 0; istate < nstate; ++istate){
+                std::cout << "state " << istate << " " << conservative_soln[istate] << " " << std::endl;
+            }
+            std::cout << std::endl;
+        }
         /// 1) f(T_n)
         // mixture specific internal energy: e = E - k
         mixture_specific_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy)*this->u_ref_sqr; // dimensional value
@@ -2070,11 +2104,11 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Eule
     const dealii::Tensor<1,dim,real> vel1 = this->compute_velocities(conservative_soln1);
     const dealii::Tensor<1,dim,real> vel2 = this->compute_velocities(conservative_soln2);
     dealii::Tensor<1,dim,real> vel_avg;
-    dealii::Tensor<1,dim,real> vel_sqr_avg;
+    real vel_sqr_avg = 0.0;
 
     for (int d=0; d<dim; ++d) {
         vel_avg[d] = 0.5*(vel1[d]+vel2[d]);
-        vel_sqr_avg[d] = 0.5*(vel1[d]*vel1[d] + vel2[d]*vel2[d]);
+        vel_sqr_avg += 0.5*(vel1[d]*vel1[d] + vel2[d]*vel2[d]);
     }
 
     const std::array<real,nspecies> rho_species1 = this->compute_species_densities(conservative_soln1);
@@ -2131,15 +2165,15 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Eule
 
             // Energy equation
             conv_num_split_flux[dim+1][flux_dim] += (energy_flux_species_sum[ispecies]*((this->R_ref*this->temperature_ref)/this->u_ref_sqr)
-                                                        -0.5*vel_sqr_avg[flux_dim]) * conv_num_split_flux[index][flux_dim];
+                                                        -0.5*vel_sqr_avg) * conv_num_split_flux[index][flux_dim];
         }
         // Add last species contribution to energy flux
         conv_num_split_flux[dim+1][flux_dim] += (energy_flux_species_sum[nspecies-1]*((this->R_ref*this->temperature_ref)/this->u_ref_sqr)
-                                                        -0.5*vel_sqr_avg[flux_dim])* (log_mean_species_densities[nspecies-1] * vel_avg[flux_dim]);
+                                                        -0.5*vel_sqr_avg)* (log_mean_species_densities[nspecies-1] * vel_avg[flux_dim]);
 
         // Energy equation
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[flux_dim];
+            conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[velocity_dim];
         }
     }
     // std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux_kg = this->convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
@@ -2190,11 +2224,11 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Eule
     const dealii::Tensor<1,dim,real> vel1 = this->compute_velocities(conservative_soln1);
     const dealii::Tensor<1,dim,real> vel2 = this->compute_velocities(conservative_soln2);
     dealii::Tensor<1,dim,real> vel_avg;
-    dealii::Tensor<1,dim,real> vel_sqr_avg;
+    real vel_sqr_avg = 0.0;
 
     for (int d=0; d<dim; ++d) {
         vel_avg[d] = 0.5*(vel1[d]+vel2[d]);
-        vel_sqr_avg[d] = 0.5*(vel1[d]*vel1[d] + vel2[d]*vel2[d]);
+        vel_sqr_avg += 0.5*(vel1[d]*vel1[d] + vel2[d]*vel2[d]);
     }
 
     const std::array<real,nspecies> rho_species1 = this->compute_species_densities(conservative_soln1);
@@ -2250,15 +2284,15 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Eule
 
             // Energy equation
             conv_num_split_flux[dim+1][flux_dim] += (energy_flux_species_sum[ispecies]*((this->R_ref*this->temperature_ref)/this->u_ref_sqr)
-                                                        -0.5*vel_sqr_avg[flux_dim]) * conv_num_split_flux[index][flux_dim];
+                                                        -0.5*vel_sqr_avg) * conv_num_split_flux[index][flux_dim];
         }
         // Add last species contribution to energy flux
         conv_num_split_flux[dim+1][flux_dim] += (energy_flux_species_sum[nspecies-1]*((this->R_ref*this->temperature_ref)/this->u_ref_sqr)
-                                                        -0.5*vel_sqr_avg[flux_dim])* (log_mean_species_densities[nspecies-1] * vel_avg[flux_dim]);
+                                                        -0.5*vel_sqr_avg)* (log_mean_species_densities[nspecies-1] * vel_avg[flux_dim]);
 
         // Energy equation
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[flux_dim];
+            conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[velocity_dim];
         }
 
         // compute additional terms from pressure fix
@@ -2268,8 +2302,11 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Eule
         conv_num_split_flux[dim+1][flux_dim] -= pressure_fix;
     }
     // std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux_kg = this->convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
+
+    // std::cout << std::endl;
     // for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
     // {
+    //     std::cout << " flux dim " << flux_dim << std::endl;
     //     std::cout << " kg flux ";
     //     for (int istate = 0; istate < nstate; ++istate) {
     //         std::cout << " state " << istate << " " << conv_num_split_flux_kg[istate][flux_dim];

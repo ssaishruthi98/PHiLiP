@@ -430,19 +430,26 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         }
 
         const unsigned int n_quad_pts = n_shape_fns;
+        // for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        //     std::cout << " iquad " << iquad;
+        //     for (int istate = 0; istate < nstate; istate++) {
+        //         std::cout << " istate " << istate << " " << soln_coeff[istate][iquad];
+        //     }
+        //     std::cout << std::endl;
+        // }
+        // std::cout << std::endl;
 
         if (nan_check) {
+            std::cout << "Error: Value passed to limiter is NaN - Aborting... " << std::endl;
             for (unsigned int istate = 0; istate < nstate; ++istate) {
-                std::cout << "Error: Density passed to limiter is NaN - Aborting... " << std::endl;
-
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
                     std::cout << soln_coeff[istate][iquad] << "    ";
                 }
-
                 std::cout << std::endl;
-
-                std::abort();
+                std::cout << std::endl;
             }  
+            sleep(1);
+            std::abort();
         }
 
         std::array<std::array<std::vector<real>, nstate>, dim> soln_at_q;
@@ -512,7 +519,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
 
         if(nspecies > 1) {
             std::array<real, nstate> soln_at_iquad;
-            real theta_species = 1.0;
+            real theta_species = 0.0;
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     soln_at_iquad[istate] = soln_coeff[istate][iquad];
@@ -548,8 +555,8 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                         theta_species = theta_species_quad;
             }
 
-            if(theta_species < 1)
-                std::cout << "The species density is limited." << std::endl;
+            if(theta_species > 0.0)
+                std::cout << "The species density is limited with theta " << theta_species << std::endl;
 
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies) {
@@ -601,7 +608,8 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
-        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + nspecies + 1) {
+        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + nspecies + 1 && nspecies == 1) {
+            std::cout << "enters pressure limiting for some reason..." << std::endl;
             if (!use_internal_energy_limiter) {
                 std::array<real, dim> theta2_quad;
                 for(unsigned int idim = 0; idim < dim; ++idim) {
@@ -624,7 +632,8 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                                 + soln_cell_avg[istate];
                     }
                 }
-            } else {
+            } 
+            else {
                 real local_min_internal_energy = 1e6;
                 real corresponding_density = 1e6;
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
@@ -736,6 +745,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
     }
+    // std::cout << " ========================================================================================================================================================= " << std::endl;
 }
 
 template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + PHILIP_SPECIES + 1, double>;
