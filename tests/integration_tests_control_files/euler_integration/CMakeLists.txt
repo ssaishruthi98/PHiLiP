@@ -77,7 +77,8 @@ set_tests_labels(2D_EULER_LAXFRIEDRICHS_COLLOCATED_MANUFACTURED_SOLUTION    EULE
                                                                             EXPECTED_FAILURE
                                                                             CONVERGENCE
                                                                             MODERATE
-                                                                            INTEGRATION_TEST)
+                                                                            INTEGRATION_TEST
+                                                                            KNOWN_ISSUE)
 
 configure_file(2d_euler_laxfriedrichs_manufactured.prm 2d_euler_laxfriedrichs_manufactured.prm COPYONLY)
 add_test(
@@ -291,7 +292,8 @@ set_tests_labels(MPI_3D_EULER_INTEGRATION_GAUSSIAN_BUMP_STRONG_ENTROPY_STABLE   
                                                                                   STRONG
                                                                                   UNCOLLOCATED
                                                                                   QUICK
-                                                                                  INTEGRATION_TEST)
+                                                                                  INTEGRATION_TEST
+                                                                                  KNOWN_ISSUE)
 
 ##Artificial dissipation tests
 configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_residual_convergence_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_residual_convergence_test.prm COPYONLY)
