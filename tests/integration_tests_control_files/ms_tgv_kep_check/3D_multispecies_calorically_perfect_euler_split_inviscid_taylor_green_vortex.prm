@@ -11,8 +11,8 @@ set dimension = 3
 set number_of_species = 2
 
 # Test set up
-#set pde_type = multispecies_thermally_perfect_euler
-set pde_type = multispecies_calorically_perfect_euler
+set pde_type = multispecies_thermally_perfect_euler
+#set pde_type = multispecies_calorically_perfect_euler
 set test_type = multispecies_euler_split_taylor_green
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 
@@ -27,9 +27,10 @@ set two_point_num_flux_type = Ra
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 set use_weight_adjusted_mass = true
+set compute_multispecies_entropy = true
 
 set use_energy = true
-set energy_file = ms-tgv-ch
+set energy_file = ms-tgv-ra
 
 set all_boundaries_are_periodic = true
 set check_same_coords_in_weak_dg = false

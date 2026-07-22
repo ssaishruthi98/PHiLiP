@@ -977,7 +977,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_CaloricallyPerfect_Eu
     real sum_of_Rk_rhok = 0.0;
     real mean_density = 0.0;
     for (int ispecies = 0; ispecies < nspecies; ispecies++){
-        log_mean_species_densities_sqrt_temp[ispecies] = compute_ismail_roe_logarithmic_mean(species_densities1[ispecies]*sqrt_T1, species_densities2[ispecies]*sqrt_T1);
+        log_mean_species_densities_sqrt_temp[ispecies] = compute_ismail_roe_logarithmic_mean(species_densities1[ispecies]*sqrt_T1, species_densities2[ispecies]*sqrt_T2);
         sum_of_Rk_rhok += this->Rs[ispecies]*compute_average(species_densities1[ispecies]*sqrt_T1, species_densities2[ispecies]*sqrt_T2);
         mean_density += log_mean_species_densities_sqrt_temp[ispecies];
     }
@@ -1017,12 +1017,13 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_CaloricallyPerfect_Eu
             energy_sum_of_species_CvT += (1.0/(avg_inv_sqrt_T*log_mean_inv_sqrt_T))*(this->species_Cv[ispecies]+0.5*this->Rs[ispecies])
                                             *((this->R_ref*this->temperature_ref)/u_ref_sqr)*log_mean_species_densities_sqrt_temp[ispecies]*vel_avg[flux_dim];
         }
-        // compute pressure component of energy flux
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            energy_sum_of_species_CvT += (vel_avg[flux_dim]/(2.0*avg_inv_sqrt_T))*conv_num_split_flux[1+velocity_dim][flux_dim];
-        }
+
         // Energy equation
         conv_num_split_flux[dim+1][flux_dim] = energy_sum_of_species_CvT;
+
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[dim+1][flux_dim] += (vel_avg[velocity_dim]/(2.0*avg_inv_sqrt_T))*conv_num_split_flux[1+velocity_dim][flux_dim];
+        }
     }
     // std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux_kg = convective_numerical_split_flux_kennedy_gruber(conservative_soln1,conservative_soln2);
     // for (int flux_dim = 0; flux_dim < dim; ++flux_dim){
