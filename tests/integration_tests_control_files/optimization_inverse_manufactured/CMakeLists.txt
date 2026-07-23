@@ -18,4 +18,4 @@ set_tests_labels(2D_OPTIMIZATION_INVERSE_MANUFACTURED   OPTIMIZATION_INVERSE_MAN
                                                         MODERATE
                                                         OPTIMIZATION
                                                         INTEGRATION_TEST
-                                                        KNOWN_ISSUE)
+                                                        KNOWN_FAILURE)

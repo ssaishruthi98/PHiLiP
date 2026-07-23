@@ -21,5 +21,5 @@ set_tests_labels(MPI_2D_KELVIN_HELMHOLTZ_INSTABILITY    KELVIN_HELMHOLTZ_INSTABI
                                                         UNCOLLOCATED
                                                         MODERATE
                                                         INTEGRATION_TEST
-                                                        KNOWN_ISSUE)
+                                                        KNOWN_FAILURE)
 # ----------------------------------------

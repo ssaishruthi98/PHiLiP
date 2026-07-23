@@ -63,7 +63,7 @@ set_tests_labels(1D_NAVIER_STOKES_L2ROE_SIPG_MANUFACTURED_SOLUTION  NAVIER_STOKE
                                                                     CONVERGENCE
                                                                     MODERATE
                                                                     INTEGRATION_TEST
-                                                                    KNOWN_ISSUE)
+                                                                    KNOWN_FAILURE)
 # ----------------------------------------
 # - dim = 1; conv_num_flux = Roe; diss_num_flux = BR2
 # ----------------------------------------
@@ -313,7 +313,7 @@ set_tests_labels(MPI_2D_RANS_SA_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_NAVAH_4 NAVI
                                                                             RANS
                                                                             MODERATE
                                                                             INTEGRATION_TEST
-                                                                            KNOWN_ISSUE)
+                                                                            KNOWN_FAILURE)
 # ----------------------------------------
 
 # =======================================
@@ -340,4 +340,4 @@ set_tests_labels(MPI_2D_RANS_SA_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_NAVAH_5 NAVI
                                                                             RANS
                                                                             MODERATE
                                                                             INTEGRATION_TEST
-                                                                            KNOWN_ISSUE)
+                                                                            KNOWN_FAILURE)

@@ -76,7 +76,7 @@ set_tests_labels(MPI_3D_EULER_NUMERICAL_ENTROPY_CONSERVATION_RRK_CDG    RELAXATI
                                                                         RELAXATION
                                                                         MODERATE
                                                                         INTEGRATION_TEST
-                                                                        KNOWN_ISSUE)
+                                                                        KNOWN_FAILURE)
 
 # =======================================
 # Energy conservation test for inviscid Burgers 
