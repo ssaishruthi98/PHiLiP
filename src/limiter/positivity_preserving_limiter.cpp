@@ -555,8 +555,8 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                         theta_species = theta_species_quad;
             }
 
-            if(theta_species > 0.0)
-                std::cout << "The species density is limited with theta " << theta_species << std::endl;
+            // if(theta_species > 0.0)
+            //     std::cout << "The species density is limited with theta " << theta_species << std::endl;
 
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies) {
@@ -608,8 +608,8 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
 
-        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + nspecies + 1 && nspecies == 1) {
-            std::cout << "enters pressure limiting for some reason..." << std::endl;
+        if (limiter_type == limiter_enum::positivity_preservingWang2012 && nstate == dim + nspecies + 1) {
+            // std::cout << "enters pressure limiting for some reason..." << std::endl;
             if (!use_internal_energy_limiter) {
                 std::array<real, dim> theta2_quad;
                 for(unsigned int idim = 0; idim < dim; ++idim) {

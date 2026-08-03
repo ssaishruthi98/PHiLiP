@@ -187,6 +187,9 @@ public:
     // Algorithm 6 (f_M6): Compute species densities from conservative_soln 
     std::array<real,nspecies> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 
+    // Algorithm 6b (f_M6): Compute density of the Nth species since cons soln only stores N-1 species
+    real compute_nth_species_density ( const std::array<real,nstate> &conservative_soln ) const;
+
     // Algorithm 7 (f_M7): Compute mass fractions from conservative_soln 
     std::array<real,nspecies> compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -287,6 +290,11 @@ public:
     /** Entropy conserving split form flux of Kennedy and Gruber.
      *  Refer to Gassner's paper (2016) Eq. 3.10  */
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /** ADD REFERENC**/
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_renac (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 
@@ -419,18 +427,16 @@ public:
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const override;
 
-    /** Entropy conserving split form flux of Kennedy and Gruber.
+    /** Entropy conserving split form flux of Chandrashekar.
      *  Refer to Gassner's paper (2016) Eq. 3.10  */
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 
-    /** Entropy conserving split form flux of Kennedy and Gruber.
-     *  Refer to Gassner's paper (2016) Eq. 3.10  */
+    /** ADD REFERENCE**/
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
-
 };
 } // Physics namespace
 } // PHiLiP namespace
