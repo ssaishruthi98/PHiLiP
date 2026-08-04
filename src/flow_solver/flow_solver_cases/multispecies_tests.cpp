@@ -496,6 +496,104 @@ double MultispeciesTests<dim, nspecies, nstate>::compute_integrated_entropy(DGBa
     return integrated_quantity;
 }
 
+template<int dim, int nspecies, int nstate>
+void MultispeciesTests<dim, nspecies, nstate>::check_positivity_density(DGBase<dim, nspecies, double>& dg)
+{
+    //create 1D solution polynomial basis functions and corresponding projection operator
+    //to interpolate the solution to the quadrature nodes, and to project it back to the
+    //modal coefficients.
+    const unsigned int init_grid_degree = dg.max_grid_degree;
+    const unsigned int poly_degree = this->all_param.flow_solver_param.poly_degree;
+    //Constructor for the operators
+    OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, poly_degree, init_grid_degree);
+    OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, dg.max_degree, init_grid_degree);
+
+
+    // Build the oneD operator to perform interpolation/projection
+    soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], dg.oneD_quadrature_collection[poly_degree]);
+    soln_basis_projection_oper.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], dg.oneD_quadrature_collection[poly_degree]);
+
+    for (auto soln_cell = dg.dof_handler.begin_active(); soln_cell != dg.dof_handler.end(); ++soln_cell) {
+        if (!soln_cell->is_locally_owned()) continue;
+
+
+        std::vector<dealii::types::global_dof_index> current_dofs_indices;
+        // Current reference element related to this physical cell
+        const int i_fele = soln_cell->active_fe_index();
+        const dealii::FESystem<dim, dim>& current_fe_ref = dg.fe_collection[i_fele];
+        const int poly_degree = current_fe_ref.tensor_degree();
+
+        const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
+
+        // Obtain the mapping from local dof indices to global dof indices
+        current_dofs_indices.resize(n_dofs_curr_cell);
+        soln_cell->get_dof_indices(current_dofs_indices);
+
+        // Extract the local solution dofs in the cell from the global solution dofs
+        std::array<std::vector<double>, nstate> soln_coeff;
+        const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
+
+        for (unsigned int istate = 0; istate < nstate; ++istate) {
+            soln_coeff[istate].resize(n_shape_fns);
+        }
+
+        // Allocate solution dofs and set local max and min
+        for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
+            const unsigned int istate = dg.fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg.fe_collection[poly_degree].system_to_component_index(idof).second;
+            soln_coeff[istate][ishape] = dg.solution[current_dofs_indices[idof]];
+        }
+
+        const unsigned int n_quad_pts = dg.volume_quadrature_collection[poly_degree].size();
+
+        std::array<std::vector<double>, nstate> soln_at_q;
+
+        // Interpolate solution dofs to quadrature pts.
+        for (int istate = 0; istate < nstate; istate++) {
+            soln_at_q[istate].resize(n_quad_pts);
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate], soln_basis.oneD_vol_operator);
+        }
+
+        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            double nth_species_density = soln_at_q[0][iquad];
+            // Verify that positivity of density is preserved
+            if (soln_at_q[0][iquad] < 0) {
+                std::cout << "Flow Solver Error: Total density is negative - Aborting... " << std::endl << std::flush;
+                std::abort();
+            }
+            if (soln_at_q[0][iquad] != soln_at_q[0][iquad]) {
+                std::cout << "Flow Solver Error: Total density is NaN - Aborting... " << std::endl << std::flush;
+                std::abort();
+            }
+            if (soln_at_q[dim+1][iquad] < 0) {
+                std::cout << "Flow Solver Error: Total energy is negative - Aborting... " << std::endl << std::flush;
+                std::abort();
+            }
+            for (int ispecies = 0; ispecies < nspecies-1; ++ispecies){
+                int index = dim+2+ispecies;
+                if (soln_at_q[index][iquad] < 0) {
+                    std::cout << "Flow Solver Error: Density of species #" << ispecies <<" is negative - Aborting... " << std::endl << std::flush;
+                    std::abort();
+                }
+                if (soln_at_q[index][iquad] != soln_at_q[index][iquad]) {
+                    std::cout << "Flow Solver Error: Density of species #" << ispecies <<" is NaN - Aborting... " << std::endl << std::flush;
+                    std::abort();
+                }
+                nth_species_density -= soln_at_q[index][iquad];
+            }
+            if (nth_species_density < -1e-8) {
+                std::cout << "Flow Solver Error: Density of species #" << nspecies-1 <<" is negative - Aborting... " << std::endl << std::flush;
+                std::cout << "nth_species_density = " << nth_species_density << " total density=" << soln_at_q[0][iquad] << std::endl;
+                std::abort();
+            }
+            if (nth_species_density != nth_species_density) {
+                std::cout << "Flow Solver Error: Density of species #" << nspecies-1 <<" is NaN - Aborting... " << std::endl << std::flush;
+                std::abort();
+            }
+        }
+    }
+}
+
 template <int dim, int nspecies, int nstate>
 void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
     const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
@@ -518,6 +616,9 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
         }
         if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
     }
+
+    if(nstate == dim + nspecies + 1)
+        this->check_positivity_density(*dg);
 
     double current_volume_work = 0.0;
     current_volume_work = this->compute_volume_term(dg); // no overintegration

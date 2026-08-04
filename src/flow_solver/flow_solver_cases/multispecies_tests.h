@@ -33,6 +33,9 @@ protected:
     /// Updates the maximum local wave speed
     using CubeFlow_UniformGrid<dim, nspecies, nstate>::update_maximum_local_wave_speed;
 
+    /// Check positivity of density and total energy + verify that density is not NaN
+    void check_positivity_density(DGBase<dim, nspecies, double>& dg);
+    
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 

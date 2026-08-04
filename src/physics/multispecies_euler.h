@@ -263,6 +263,9 @@ public:
 
     /// Helper function to compute Ismail-Roe logarithmic mean for split fluxes
     real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
+
+    /// Helper function to compute geometric mean for split fluxes
+    real compute_geometric_mean(const real val1, const real val2) const;
     
     ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (

@@ -883,12 +883,13 @@ real MultiSpecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 {
     // See Appendix B [Ismail and Roe, 2009, Entropy-Consistent Euler Flux Functions II]
     // -- Numerically stable algorithm for computing the logarithmic mean
-    if(val1 < 1e-16 && val2 < 1e-16)
+    if(val1 < 1e-16 || val2 < 1e-16)
         return 0;
-    if(val1 < 1e-16)
-        return compute_ismail_roe_logarithmic_mean(1e-16, val2);
-    if(val2 < 1e-16)
-        return compute_ismail_roe_logarithmic_mean(val1, 1e-16);
+    // regularization
+    // if(val1 < 1e-16)
+    //     return compute_ismail_roe_logarithmic_mean(1e-16, val2);
+    // if(val2 < 1e-16)
+    //     return compute_ismail_roe_logarithmic_mean(val1, 1e-16);
     
     const real zeta = val1/val2;
     const real f = (zeta-1.0)/(zeta+1.0);
@@ -903,6 +904,14 @@ real MultiSpecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
     const real log_mean_val = (val1+val2)/(2.0*F);
 
     return log_mean_val;
+}
+
+// Helper function to compute geometric mean for split fluxes
+template <int dim, int nspecies, int nstate, typename real>
+real MultiSpecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
+::compute_geometric_mean(const real val1, const real val2) const
+{
+    return sqrt(val1*val2);
 }
 
 ///  Evaluates convective flux based on the chosen split form.
@@ -1173,7 +1182,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_CaloricallyPerfect_Eu
     real sum_of_Rk_rhok = 0.0;
     real mean_density = 0.0;
     for (int ispecies = 0; ispecies < nspecies; ispecies++){
-        log_mean_species_densities[ispecies] = compute_ismail_roe_logarithmic_mean(species_densities1[ispecies], species_densities2[ispecies]);
+        log_mean_species_densities[ispecies] = compute_average(species_densities1[ispecies], species_densities2[ispecies]);
         sum_of_Rk_rhok += this->Rs[ispecies]*compute_average(species_densities1[ispecies], species_densities2[ispecies]);
         mean_density += log_mean_species_densities[ispecies];
     }

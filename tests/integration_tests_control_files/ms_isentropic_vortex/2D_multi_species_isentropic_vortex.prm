@@ -63,7 +63,7 @@ subsection flow_solver
   set output_restart_files = true
   set restart_files_directory_name = restart_files
   set output_restart_files_every_dt_time_intervals = 1.0
-  set unsteady_data_table_filename = isentropic_vortex_tpg_Ra
+  set unsteady_data_table_filename = isentropic_vortex_cpg_Ra_average
   subsection grid
     set grid_left_bound = -10.0
     set grid_right_bound = 10.0
