@@ -1182,7 +1182,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_CaloricallyPerfect_Eu
     real sum_of_Rk_rhok = 0.0;
     real mean_density = 0.0;
     for (int ispecies = 0; ispecies < nspecies; ispecies++){
-        log_mean_species_densities[ispecies] = compute_average(species_densities1[ispecies], species_densities2[ispecies]);
+        log_mean_species_densities[ispecies] = compute_ismail_roe_logarithmic_mean(species_densities1[ispecies], species_densities2[ispecies]);
         sum_of_Rk_rhok += this->Rs[ispecies]*compute_average(species_densities1[ispecies], species_densities2[ispecies]);
         mean_density += log_mean_species_densities[ispecies];
     }
