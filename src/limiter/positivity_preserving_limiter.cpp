@@ -178,7 +178,7 @@ real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_density_scali
     real theta = 1.0; // Value used to linearly scale density 
     real denominator = (species_avg*mixture_quad)-(species_quad*mixture_avg);
 
-    if (denominator > 1e-13)
+    if (denominator > 0)
         theta = (-1.0*species_quad*mixture_avg) / denominator;
 
     return theta;

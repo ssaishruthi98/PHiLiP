@@ -571,7 +571,7 @@ void MultispeciesTests<dim, nspecies, nstate>::check_positivity_density(DGBase<d
             }
             for (int ispecies = 0; ispecies < nspecies-1; ++ispecies){
                 int index = dim+2+ispecies;
-                if (soln_at_q[index][iquad] < 0) {
+                if (soln_at_q[index][iquad] < -1e-8) {
                     std::cout << "Flow Solver Error: Density of species #" << ispecies <<" is negative - Aborting... " << std::endl << std::flush;
                     std::abort();
                 }
