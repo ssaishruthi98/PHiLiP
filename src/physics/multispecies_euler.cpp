@@ -430,9 +430,15 @@ inline std::array<real,nspecies> MultiSpecies_CaloricallyPerfect_Euler<dim,nspec
     const real mixture_density = compute_mixture_density(conservative_soln);
     const std::array<real,nspecies> species_densities = compute_species_densities(conservative_soln);
     std::array<real,nspecies> mass_fractions;
+    real nth_species_mass_fraction = 1.0;
     for (int s=0; s<nspecies; ++s) 
     { 
-        mass_fractions[s] = species_densities[s]/mixture_density; 
+        if (s < nspecies - 1) {
+            mass_fractions[s] = species_densities[s]/mixture_density;
+            nth_species_mass_fraction -= mass_fractions[s];
+        } else {
+            mass_fractions[s] = nth_species_mass_fraction;
+        }
     }
 
     return mass_fractions;

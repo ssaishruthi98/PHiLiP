@@ -334,7 +334,7 @@ protected:
     /// For post processing purposes (update comment later)
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
 
-protected:
+public:
     /// Variables to store chemical data of species
     std::array<std::array<double, 6>, nspecies> Cp_poly_coeffs; // Coefficients of Cp polynomial (refitted function using NASA CAP data)
     std::array<std::array<double, 2>, nspecies> NASACAPTemperatureLimits; // Upper and lower temperature bound for the NASA CAP data
@@ -342,7 +342,6 @@ protected:
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
     std::array<real,nspecies> species_Cp; // Species specific heat ratio at constant pressure - CPG only
     std::array<real,nspecies> species_Cv; // Species specific heat ratio at constant volume - CPG only
-public:
     std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset - reads in nondimensional value (nondims using R_ref*T_ref)
     std::array<double,nspecies> species_entropy_offset; // Species enthalpy offset - reads in nondimensional value (nondims using R_ref)
     std::array<real,nspecies> Rs; // Species gas constant

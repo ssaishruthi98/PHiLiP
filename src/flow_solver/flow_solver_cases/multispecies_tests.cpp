@@ -555,7 +555,7 @@ void MultispeciesTests<dim, nspecies, nstate>::check_positivity_density(DGBase<d
         }
 
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-            double nth_species_density = soln_at_q[0][iquad];
+            double sum_of_n_minus_1_species_densities = 0.0;
             // Verify that positivity of density is preserved
             if (soln_at_q[0][iquad] < 0) {
                 std::cout << "Flow Solver Error: Total density is negative - Aborting... " << std::endl << std::flush;
@@ -572,18 +572,20 @@ void MultispeciesTests<dim, nspecies, nstate>::check_positivity_density(DGBase<d
             for (int ispecies = 0; ispecies < nspecies-1; ++ispecies){
                 int index = dim+2+ispecies;
                 if (soln_at_q[index][iquad] < -1e-8) {
-                    std::cout << "Flow Solver Error: Density of species #" << ispecies <<" is negative - Aborting... " << std::endl << std::flush;
+                    std::cout << "Flow Solver Error: Density of species " << this->ms_physics->species_name[ispecies] <<" is negative - Aborting... " << std::endl << std::flush;
+                    std::cout << this->ms_physics->species_name[ispecies] << " species density = " << soln_at_q[index][iquad] << " total density = " << soln_at_q[0][iquad] << std::endl;
                     std::abort();
                 }
                 if (soln_at_q[index][iquad] != soln_at_q[index][iquad]) {
-                    std::cout << "Flow Solver Error: Density of species #" << ispecies <<" is NaN - Aborting... " << std::endl << std::flush;
+                    std::cout << "Flow Solver Error: Density of species " << this->ms_physics->species_name[ispecies] <<" is NaN - Aborting... " << std::endl << std::flush;
                     std::abort();
                 }
-                nth_species_density -= soln_at_q[index][iquad];
+                sum_of_n_minus_1_species_densities += soln_at_q[index][iquad];
             }
+            double nth_species_density = soln_at_q[0][iquad] - sum_of_n_minus_1_species_densities;
             if (nth_species_density < -1e-8) {
-                std::cout << "Flow Solver Error: Density of species #" << nspecies-1 <<" is negative - Aborting... " << std::endl << std::flush;
-                std::cout << "nth_species_density = " << nth_species_density << " total density=" << soln_at_q[0][iquad] << std::endl;
+                std::cout << "Flow Solver Error: Density of species " << this->ms_physics->species_name[nspecies-1] <<" is negative - Aborting... " << std::endl << std::flush;
+                std::cout << this->ms_physics->species_name[nspecies-1] << " species density = " << nth_species_density << " total density = " << soln_at_q[0][iquad] << std::endl;
                 std::abort();
             }
             if (nth_species_density != nth_species_density) {
