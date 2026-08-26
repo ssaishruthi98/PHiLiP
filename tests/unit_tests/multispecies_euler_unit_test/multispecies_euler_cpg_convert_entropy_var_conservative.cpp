@@ -3,7 +3,7 @@
 
 #include "assert_compare_array.h"
 #include "parameters/parameters.h"
-#include "physics/real_gas.h"
+#include "physics/multispecies_euler.h"
 
 const double TOLERANCE = 1E-12;
 
@@ -29,7 +29,7 @@ int main (int argc, char * argv[])
 
     using ManufacturedSolutionEnum = PHiLiP::Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.manufactured_solution_type = ManufacturedSolutionEnum::atan_solution;
-    PHiLiP::Physics::RealGas<dim, nspecies, nstate, double> real_gas_physics = PHiLiP::Physics::RealGas<dim, nspecies, nstate, double>(&all_parameters);
+    PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double> multispecies_calorically_perfect_euler_physics = PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double>(&all_parameters);
 
     const double min = 0.0;
     const double max = 1.0;
@@ -46,15 +46,15 @@ int main (int argc, char * argv[])
 
     std::array<double, dim+nspecies+1> conservative_soln;
     std::array<double, dim+nspecies+1> conservative_soln2;
-    std::array<double, dim+nspecies+1> primitive_soln;
+    std::array<double, dim+nspecies+1> entropy_variables;
     for (auto cell : grid.active_cell_iterators()) {
         for (unsigned int v=0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {
             const dealii::Point<dim,double> vertex = cell->vertex(v);
             for (int s=0; s<nstate; s++) {
-                conservative_soln[s] = real_gas_physics.manufactured_solution_function->value(vertex, s);
+                conservative_soln[s] = multispecies_calorically_perfect_euler_physics.manufactured_solution_function->value(vertex, s);
             }
-            primitive_soln = real_gas_physics.convert_conservative_to_primitive(conservative_soln);
-            conservative_soln2 = real_gas_physics.convert_primitive_to_conservative(primitive_soln);
+            entropy_variables = multispecies_calorically_perfect_euler_physics.compute_entropy_variables(conservative_soln);
+            conservative_soln2 = multispecies_calorically_perfect_euler_physics.compute_conservative_variables_from_entropy_variables(entropy_variables);
 
             // Flipping back and forth between conservative and primitive solution result
             // in the same solution
@@ -63,14 +63,13 @@ int main (int argc, char * argv[])
             if(conservative_soln[0] < TOLERANCE) std::abort();
             // Manufactured solution gives positive energy
             if(conservative_soln[dim+1] < TOLERANCE) std::abort();
-            // Manufactured solution gives positive pressure
-            if(primitive_soln[dim+1] < TOLERANCE) std::abort();
+            
             // Manufactured solution gives positive species densities
             for(int ispecies = 0; ispecies < nspecies - 1; ++ispecies)
                 if(conservative_soln[dim+2+ispecies] < TOLERANCE) std::abort();
 
-            if(real_gas_physics.compute_mixture_pressure(conservative_soln) < TOLERANCE) std::abort();
-            if(real_gas_physics.compute_sound(conservative_soln) < TOLERANCE) std::abort();
+            if(multispecies_calorically_perfect_euler_physics.compute_mixture_pressure(conservative_soln) < TOLERANCE) std::abort();
+            if(multispecies_calorically_perfect_euler_physics.compute_sound(conservative_soln) < TOLERANCE) std::abort();
 
         }
     }

@@ -5,7 +5,7 @@
 set dimension = 1
 # Chemical species
 set number_of_species = 2
-set pde_type = real_gas
+set pde_type = multispecies_calorically_perfect_euler
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 set run_type = flow_simulation
 

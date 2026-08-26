@@ -1,5 +1,5 @@
-#ifndef __REALGAS__
-#define __REALGAS__
+#ifndef __MULTISPECIES_EULER__
+#define __MULTISPECIES_EULER__
 
 #include <deal.II/base/tensor.h>
 #include "physics.h"
@@ -10,12 +10,13 @@
 namespace PHiLiP {
 namespace Physics {
 
-/// RealGas equations. Derived from PhysicsBase
+/// Multispecies_CaloricallyPerfect_Euler equations. Derived from PhysicsBase
 /* Functions designated with "// Algorithm # (f_M#)" are detailed in Matsuyama's M.Sc. thesis (2025)
-   Algorithms that have "Modified by Shruthi" appended to it do not strictly follow the implementation in the thesis*/
+   Algorithms that have "Modified by Shruthi" appended to it do not strictly follow the implementation in the thesis
+   The algorithms modified by Shruthi will eventually have corresponding algorithm numbers in her thesis*/
 
 template <int dim, int nspecies, int nstate, typename real>
-class RealGas : public PhysicsBase <dim, nspecies, nstate, real>
+class Multispecies_CaloricallyPerfect_Euler : public PhysicsBase <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -30,14 +31,14 @@ protected:
 public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
-    RealGas ( 
+    Multispecies_CaloricallyPerfect_Euler ( 
         const Parameters::AllParameters *const                    parameters_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
     /// Destructor
-    ~RealGas() {};
+    ~Multispecies_CaloricallyPerfect_Euler() {};
 
     const double gam_ref; ///< reference gamma
     const double mach_ref; ///< reference mach number (Farfield Mach number)
@@ -58,19 +59,16 @@ public:
     
      /// Reads in data from chemistry file
     void readspeciesdata(std::string reactionFilename);
-    
-     /// Determine the  
-    std::array<int,nspecies>GetNASACAP_TemperatureIndex ( const real temperature ) const;
 
-     /// Computes the entropy variables.
+     /// Computes the entropy variables
     std::array<real,nstate> compute_entropy_variables (
                 const std::array<real,nstate> &conservative_soln) const;
 
-    /// Computes the conservative variables from the entropy variables.
+    /// Computes the conservative variables from the entropy variables
     std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
                 const std::array<real,nstate> &entropy_var) const;
     
-    /// Computes the kinetic energy variables.
+    /// Computes the kinetic energy variables
     virtual std::array<real,nstate> compute_kinetic_energy_variables (
                 const std::array<real,nstate> &conservative_soln) const;
 
@@ -111,6 +109,7 @@ protected:
      *  * * Krivodonova, L., and Berger, M.,
      *      “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
      *      Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
+     * The multi-species implementation is the same as the Euler implementation but the indices are different
      */
     void boundary_slip_wall (
         const dealii::Tensor<1,dim,real> &normal_int,
@@ -137,18 +136,11 @@ protected:
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
-protected:
-    /// returns the solution vector without the species conservation states (only mixture)
-    std::array<real,dim+2> get_mixture_solution_vector ( const std::array<real,nstate> &full_soln ) const;
-    /// returns the solution gradient vector without the species conservation states (only mixture)
-    std::array<dealii::Tensor<1,dim,real>,dim+2> get_mixture_solution_gradient (
-            const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
-
 public:
     // Algorithm 20 (f_S20): Convert primitive to conservative 
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const; 
 
-    // Algorithm 20b : Convert conservative to primitive
+    // Convert conservative to primitive
     // Added by Shruthi
     virtual std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const; 
 
@@ -203,29 +195,22 @@ protected:
     real compute_dimensional_temperature ( const real temperature ) const;
 
 public:
-    // Algorithm 10 (f_M10): Compute species gas constants from Ru (universal gas constant)
-    std::array<real,nspecies> compute_Rs ( const real Ru ) const;
+    // Algorithm 10 (f_M10): Compute species gas constants from Ru (universal gas constant) and species weight
+    std::array<real,nspecies> compute_Rs ( ) const;
 
 protected:
-    // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
-    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
-    // Modified by Shruthi
-    std::array<real,nspecies> compute_species_specific_Cp ( const real temperature ) const;
-
-    // Algorithm 12 (f_M12): Compute species specific heat at constant volume from temperature
-    std::array<real,nspecies>compute_species_specific_Cv ( const real temperature ) const;
-
-    // Algorithm 13 (f_M13): Compute species specific enthalpy from temperature
-    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
-    // Modified by Shruthi
+    // Compute species specific enthalpy from temperature
+    // Modified by Shruthi - For calorically perfect gas temperature is used to calculate 
+    // internal energy which in turn is used to determine enthalpy
     std::array<real,nspecies> compute_species_specific_enthalpy ( const real temperature ) const;   
 
-    // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
+    // Compute species specific internal energy from temperature
+    // Modified by Shruthi - For calorically perfect gas this is given by e = c_v T
     std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
 
-    // Compute Cv integral component of the species entropy equation
-    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
-    std::array<real,nspecies> compute_species_entropy_cv_integral ( const real temperature ) const; 
+    // Compute mixture internal energy
+    // Calculate total energy and kinetic energy from conservative_soln and use e = E-k to get internal energy
+    real compute_mixture_internal_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Compute species entropy from temperature and species density
     std::array<real,nspecies> compute_species_entropy ( const std::array<real,nstate> &conservative_soln ) const;
@@ -278,7 +263,7 @@ public:
 
 protected:
     // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
-    virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;
+    virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( ) const;
 
     // Compute gamma from conservative_soln
     virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
@@ -309,16 +294,19 @@ protected:
     /// For post processing purposes (update comment later)
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
 
-protected:
-    /// Variables to store NASA Coefficients
-    std::array<std::array<std::array<double,3>,9>,nspecies> NASACAPCoeffs;
-    std::array<std::array<double,4>,nspecies> NASACAPTemperatureLimits;
+public:
+    /// Variables to store chemical data of species
     std::array<std::string,nspecies> species_name; // Species name
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
-    std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset - reads in [J/mol], stores nondimesnional
+    std::array<real,nspecies> species_Cp; // Species specific heat ratio at constant pressure - CPG only
+    std::array<real,nspecies> species_Cv; // Species specific heat ratio at constant volume - CPG only
+    std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset - reads in nondimensional value (nondims using R_ref*T_ref)
+    std::array<double,nspecies> species_entropy_offset; // Species enthalpy offset - reads in nondimensional value (nondims using R_ref)
     std::array<real,nspecies> Rs; // Species gas constant
+    /// Variables to store chemical data of species only needed for thermally perfect gas
+    std::array<std::array<double, 6>, nspecies> Cp_poly_coeffs; // Coefficients of Cp polynomial (refitted function using NASA CAP data)
+    std::array<std::array<double, 2>, nspecies> NASACAPTemperatureLimits; // Upper and lower temperature bound for the NASA CAP data
 };
-
 } // Physics namespace
 } // PHiLiP namespace
 

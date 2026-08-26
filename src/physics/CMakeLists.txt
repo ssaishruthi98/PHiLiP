@@ -18,7 +18,7 @@ SET(SOURCE
     negative_spalart_allmaras_rans_model.cpp
     model_factory.cpp
     navier_stokes_model.cpp
-    real_gas.cpp
+    multispecies_euler.cpp
     )
 
 foreach(dim RANGE 1 3)

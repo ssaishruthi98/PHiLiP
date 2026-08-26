@@ -20,7 +20,7 @@ MultispeciesVortexAdvection<dim, nspecies, nstate>::MultispeciesVortexAdvection(
     , parameter_handler(parameter_handler_input)
 {
     //create the Physics object
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+nspecies+1,double>>(
+    this->multispecies_calorically_perfect_euler_physics = std::dynamic_pointer_cast<PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,dim+nspecies+1,double>>(
             PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));
 
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
@@ -65,7 +65,7 @@ double MultispeciesVortexAdvection<dim, nspecies, nstate>::get_time_step(std::sh
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                 soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
             }
-            double local_wave_speed = this->real_gas_physics->max_convective_eigenvalue(soln_at_q);
+            double local_wave_speed = this->multispecies_calorically_perfect_euler_physics->max_convective_eigenvalue(soln_at_q);
             if(local_wave_speed > maximum_local_wave_speed) maximum_local_wave_speed = local_wave_speed;
         }
     }
@@ -114,18 +114,18 @@ std::array<std::array<double,3>,nstate+1> MultispeciesVortexAdvection<dim, nspec
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                 soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
             }
-            double temperature_at_q = this->real_gas_physics->compute_temperature(soln_at_q);
+            double temperature_at_q = this->multispecies_calorically_perfect_euler_physics->compute_temperature(soln_at_q);
 
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
             std::array<double, nstate> soln_exact;
             for(int istate = 0; istate < nstate; istate++)
                 soln_exact[istate] = flow_solver->flow_solver_case->initial_condition_function->value(qpoint,istate);
-            soln_exact_primitive = this->real_gas_physics->convert_conservative_to_primitive(soln_exact);
-            double temperature_exact = this->real_gas_physics->compute_temperature(soln_exact);
+            soln_exact_primitive = this->multispecies_calorically_perfect_euler_physics->convert_conservative_to_primitive(soln_exact);
+            double temperature_exact = this->multispecies_calorically_perfect_euler_physics->compute_temperature(soln_exact);
             
             for(int istate = 0; istate < nstate; ++istate) {
-                std::array<double, nstate> soln_at_q_primitive = this->real_gas_physics->convert_conservative_to_primitive(soln_at_q);
+                std::array<double, nstate> soln_at_q_primitive = this->multispecies_calorically_perfect_euler_physics->convert_conservative_to_primitive(soln_at_q);
                 lerror_primitive[istate][0] += pow(abs(soln_at_q_primitive[istate] - soln_exact_primitive[istate]), 1.0) * fe_values_extra.JxW(iquad);
                 lerror_primitive[istate][1] += pow(abs(soln_at_q_primitive[istate] - soln_exact_primitive[istate]), 2.0) * fe_values_extra.JxW(iquad);
                 //L-infinity norm

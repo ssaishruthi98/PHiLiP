@@ -6,13 +6,13 @@
 
 #include "physics.h"
 #include "euler.h"
-#include "real_gas.h" 
+#include "multispecies_euler.h" 
 
 namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nspecies, int nstate, typename real>
-RealGas<dim,nspecies,nstate,real>::RealGas ( 
+PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>::Multispecies_CaloricallyPerfect_Euler ( 
     const Parameters::AllParameters *const                    parameters_input,
     std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const bool                                                has_nonzero_diffusion,
@@ -31,7 +31,7 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     , tol(1.0e-14) /// []
     , density_ref(1.225) /// [kg/m^3]
 {
-    static_assert(nstate==dim+nspecies+1, "Physics::RealGas() should be created with nstate=PHILIP_DIM+PHILIP_SPECIES+1"); // Note: update this with nspecies in the future
+    static_assert(nstate==dim+nspecies+1, "Physics::Multispecies_CaloricallyPerfect_Euler() should be created with nstate=PHILIP_DIM+PHILIP_SPECIES+1"); // Note: update this with nspecies in the future
     if(parameters_input->chemistry_input_file=="") {
         this->pcout << "Name of chemistry file containing NASA CAP data for species has not been passed in. Aborting..." << std::endl;
         std::abort(); 
@@ -41,7 +41,7 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
 
 // Read chemistry file
 template <int dim, int nspecies, int nstate, typename real>
-void RealGas<dim, nspecies, nstate, real>
+void Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::readspeciesdata(std::string NASADataFilename)
 {
     std::string line, dum_char;
@@ -85,13 +85,24 @@ void RealGas<dim, nspecies, nstate, real>
         std::getline(chemfile, line);
         std::getline(chemfile, line);
         std::getline(chemfile, line);
-        species_enthalpy_offset[i] = std::stof(line); // Species enthalpy from T = 0 to T= 298.15K [J/mol]
-        species_enthalpy_offset[i] /= (this->species_weight[i]*this->u_ref_sqr); // nondimensionalized mass value
+        species_Cp[i] = std::stof(line); // Species molecular weight [kJ/(kg·K)]
+        species_Cp[i] *= 1000.0; // Species molecular weight [J/(kg·K)]
+        species_Cp[i] /= this->R_ref; // nondimensionalized mass value
 
         std::getline(chemfile, line);
         std::getline(chemfile, line);
         std::getline(chemfile, line);
-        for(int j=0; j<4; j++)
+        species_enthalpy_offset[i] = std::stof(line); // Species enthalpy from T = 0 to T= 1 (nondimensional)
+
+        std::getline(chemfile, line);
+        std::getline(chemfile, line);
+        std::getline(chemfile, line);
+        species_entropy_offset[i] = std::stof(line); // Species entropy from T = 0 to T= 1 (nondimensional)
+
+        std::getline(chemfile, line);
+        std::getline(chemfile, line);
+        std::getline(chemfile, line);
+        for(int j=0; j<2; j++)
         {
             line = line.substr(sz1);
             sz1 = 0;
@@ -101,68 +112,24 @@ void RealGas<dim, nspecies, nstate, real>
         std::getline(chemfile, line);
         std::getline(chemfile, line);
         // Init
-        for(int k=0; k<3; k++) {
+        sz1 = 0;
+        std::getline(chemfile, line);
+        for(int j=0; j<6; j++) 
+        {
+            line = line.substr(sz1);
             sz1 = 0;
-            std::getline(chemfile, line);
-            for(int j=0; j<9; j++)
-            {
-                line = line.substr(sz1);
-                sz1 = 0;
-                NASACAPCoeffs[i][j][k] = std::stod(line,&sz1);
-            }
+            Cp_poly_coeffs[i][j] = std::stod(line,&sz1);
         }
     }
 
-    this->Rs = compute_Rs(this->Ru);
-}
-
-// Get the temperature index of the species
-template <int dim, int nspecies, int nstate, typename real>
-std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
-::GetNASACAP_TemperatureIndex( const real temperature) const
-{
-    if (temperature != temperature) {
-        std::cout<<"Temperature passed in is NaN...Aborting." << std::endl;
-        std::abort();
+    this->Rs = compute_Rs();
+    for(int i=0; i<nspecies; i++) {
+        this->species_Cv[i] = this->species_Cp[i] - this->Rs[i];
     }
-    if (temperature < 0) {
-        std::cout<<"Temperature passed in is negative... Temperature = " << temperature << "...Aborting." << std::endl;
-        std::abort();
-    }
-    std::array<int,nspecies> species_tempindex;
-	for(int ispecies=0; ispecies<nspecies; ispecies++)
-	{
-		species_tempindex[ispecies] = -2; // initialize to value with no meaning
-        if(temperature < NASACAPTemperatureLimits[ispecies][0]) {
-			species_tempindex[ispecies] = -1; // clip to lower bound
-        }
-		else if((temperature >= NASACAPTemperatureLimits[ispecies][0]) && (temperature < NASACAPTemperatureLimits[ispecies][1]))
-		{
-			species_tempindex[ispecies] = 0; // low temp
-		}
-		else if((temperature >= NASACAPTemperatureLimits[ispecies][1]) && (temperature < NASACAPTemperatureLimits[ispecies][2]))
-		{
-			species_tempindex[ispecies] = 1; // mid temp
-		}
-		else if((temperature >= NASACAPTemperatureLimits[ispecies][2]) && (temperature <= NASACAPTemperatureLimits[ispecies][3]))
-		{
-			species_tempindex[ispecies] = 2; // high temp
-		}
-        else if(temperature > NASACAPTemperatureLimits[ispecies][2]) {
-			species_tempindex[ispecies] = 3; // clip to higher bound
-        }
-		else
-		{
-			std::cout<<"Invalid temperature of " << temperature << " was passed in...Aborting." << std::endl;
-            std::abort();
-		}
-	}
-
-    return species_tempindex;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
+std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -179,7 +146,7 @@ std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-real RealGas<dim,nspecies,nstate,real>
+real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
     const real sound = compute_sound(conservative_soln);
@@ -191,7 +158,7 @@ real RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-real RealGas<dim,nspecies,nstate,real>
+real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::max_convective_normal_eigenvalue (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -208,7 +175,7 @@ real RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-real RealGas<dim,nspecies,nstate,real>
+real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
     // zero because inviscid
@@ -217,7 +184,7 @@ real RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
@@ -232,14 +199,14 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
+std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*conservative_soln*/,
     const real /*current_time*/,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
-    this->pcout<<"Source Terms not implemented for RealGas."<<std::endl;
+    this->pcout<<"Source Terms not implemented for Multispecies_CaloricallyPerfect_Euler."<<std::endl;
     std::abort();
     std::array<real,nstate> source_term;
     source_term.fill(0.0);
@@ -247,7 +214,7 @@ std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-void RealGas<dim,nspecies,nstate,real>
+void PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::boundary_wall (
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
@@ -260,7 +227,7 @@ void RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-void RealGas<dim,nspecies,nstate,real>
+void PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::boundary_slip_wall (
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
@@ -312,7 +279,7 @@ void RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-void RealGas<dim,nspecies,nstate,real>
+void PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &/*pos*/,
@@ -329,17 +296,15 @@ void RealGas<dim,nspecies,nstate,real>
         // Slip wall boundary condition
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } else {
-        this->pcout<<"Boundary condition #" << boundary_type << " not implemented for RealGas."<<std::endl;
+        this->pcout<<"Boundary condition #" << boundary_type << " not implemented for Multispecies_CaloricallyPerfect_Euler."<<std::endl;
         std::abort();
     }
 }
 
-// Details of the following algorithms are presented in Liki's Master's thesis.
-/* MAIN FUNCTIONS */
 // Algorithm 1 (f_M1): Compute mixture density
 template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-inline real2 RealGas<dim,nspecies,nstate,real>
+inline real2 PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 :: compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const
 {
     const real2 mixture_density = conservative_soln[0];
@@ -349,7 +314,7 @@ inline real2 RealGas<dim,nspecies,nstate,real>
 
 // Algorithm 2 (f_M2): Compute velocities
 template <int dim, int nspecies, int nstate, typename real>
-inline dealii::Tensor<1,dim,real> RealGas<dim,nspecies,nstate,real>
+inline dealii::Tensor<1,dim,real> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_velocities ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
@@ -361,7 +326,7 @@ inline dealii::Tensor<1,dim,real> RealGas<dim,nspecies,nstate,real>
 
 // Algorithm 3 (f_M3): Compute squared velocities
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_velocity_squared_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
 {
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
@@ -373,8 +338,9 @@ inline real RealGas<dim,nspecies,nstate,real>
     return vel2;
 }
 
+// Compute squared velocities when provided with velocities
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_velocity_squared ( const dealii::Tensor<1,dim,real> &velocities ) const
 {
     real vel2 = 0.0;
@@ -385,8 +351,9 @@ inline real RealGas<dim,nspecies,nstate,real>
     return vel2;
 }
 
+// Given primitive variables, returns velocities.
 template <int dim, int nspecies, int nstate, typename real>
-inline dealii::Tensor<1,dim,real> RealGas<dim,nspecies,nstate,real>
+inline dealii::Tensor<1,dim,real> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const
 {
     dealii::Tensor<1,dim,real> velocities;
@@ -396,7 +363,7 @@ inline dealii::Tensor<1,dim,real> RealGas<dim,nspecies,nstate,real>
 
 // Algorithm 4 (f_M4): Compute specific kinetic energy
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
@@ -407,7 +374,7 @@ inline real RealGas<dim,nspecies,nstate,real>
 
 // Algorithm 5 (f_M5): Compute mixture specific total energy
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
@@ -418,7 +385,7 @@ inline real RealGas<dim,nspecies,nstate,real>
 
 // Algorithm 6 (f_M6): Compute species densities
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
+inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
@@ -436,23 +403,29 @@ inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 
 // Algorithm 7 (f_M7): Compute mass fractions
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
+inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
     const std::array<real,nspecies> species_densities = compute_species_densities(conservative_soln);
     std::array<real,nspecies> mass_fractions;
+    real nth_species_mass_fraction = 1.0;
     for (int s=0; s<nspecies; ++s) 
-        { 
-            mass_fractions[s] = species_densities[s]/mixture_density; 
+    { 
+        if (s < nspecies - 1) {
+            mass_fractions[s] = species_densities[s]/mixture_density;
+            nth_species_mass_fraction -= mass_fractions[s];
+        } else {
+            mass_fractions[s] = nth_species_mass_fraction;
         }
+    }
 
     return mass_fractions;
 }
 
 // Algorithm 8 (f_M8): Compute mixture from species
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_from_species ( const std::array<real,nspecies> &mass_fractions, const std::array<real,nspecies> &species) const
 {
     real mixture = 0.0; 
@@ -466,7 +439,7 @@ inline real RealGas<dim,nspecies,nstate,real>
 
 // Algorithm 9 (f_M9): Compute dimensional temperature
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_dimensional_temperature ( const real temperature ) const
 {
     const real dimensional_temperature = temperature*this->temperature_ref;
@@ -476,8 +449,8 @@ inline real RealGas<dim,nspecies,nstate,real>
 
 // Algorithm 10 (f_M10): Compute species gas constants
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
-::compute_Rs ( const real Ru ) const
+std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_Rs ( ) const
 {
     std::array<real,nspecies> Rs;
     for (int s=0; s<nspecies; ++s) 
@@ -488,222 +461,74 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     return Rs;
 }
 
-// Algorithm 11 (f_M11): Compute species specific heat at constant pressure
-// This function has been modified by Shruthi
-// Modification: separates the temperature index into its own separate function since two different functions use it
+// Compute species specific enthalpy from temperature
+// Modified by Shruthi - For calorically perfect gas temperature is used to calculate 
+// internal energy which in turn is used to determine enthalpy
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
-::compute_species_specific_Cp ( const real temperature ) const
+std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_species_specific_enthalpy ( const real temperature ) const
 {
-    real dimensional_temperature = compute_dimensional_temperature(temperature);
-    std::array<real,nspecies> Cp;
-    // const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
-
-    if (dimensional_temperature < 0) {
-        std::cout<<"Cp Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
-        std::abort();
-    }
-    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
-    // species loop
-    for (int s=0; s<nspecies; ++s) 
-    { 
-        // main computation
-        Cp[s] = 0.0;
-        if(species_tempindex[s] == -1) { // clip to lower temperature bound's Cp (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 0;
-            dimensional_temperature = NASACAPTemperatureLimits[s][0];
-        }
-        if(species_tempindex[s] == 3) { // clip to higher temperature bound's Cp (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 2;
-            dimensional_temperature = NASACAPTemperatureLimits[s][2];
-        }
-        for (int i=0; i<7; i++)
-        {
-            Cp[s] += this->NASACAPCoeffs[s][i][species_tempindex[s]]*pow(dimensional_temperature,i-2);
-        }
-        Cp[s] *= this->Rs[s];
-    }
-
-    return Cp; // nondimensional mass value
-}
-
-// Algorithm 12 (f_M12): Compute species specific heat at constant volume
-template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
-::compute_species_specific_Cv ( const real temperature ) const
-{
-    const std::array<real,nspecies> Cp = compute_species_specific_Cp(temperature);
-    std::array<real,nspecies> Cv;
+    std::array<real,nspecies> e = compute_species_specific_internal_energy(temperature);
+    std::array<real,nspecies> h;
 
     for (int s=0; s<nspecies; ++s) 
     {
-        Cv[s] = Cp[s] - this->Rs[s];
-    }
-
-    return Cv; // nondimensional mass value
-}
-
-// Algorithm 13 (f_M13): Compute species specific enthalpy
-// This function has been modified by Shruthi
-// Modification: separates the temperature index into its own separate function since two different functions use it
-// Modification #2: includes a clipping process to ensure we can still calculate for temps outside range
-template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
-::compute_species_specific_enthalpy ( const real temperature ) const
-{
-    real dimensional_temperature = compute_dimensional_temperature(temperature);
-    std::array<real,nspecies> h;
-    
-    if (dimensional_temperature < 0) {
-        std::cout<<"Species Enthalpy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
-        std::abort();
-    }
-    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
-    /// species loop
-    for (int s=0; s<nspecies; ++s) 
-    { 
-        // main computation
-        real Cp = 0.0;
-        real out_of_bounds_temp = -1.0;
-        if(species_tempindex[s] == -1) { // Calculate enthalpy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 0;
-            std::array<real,nspecies> Cp_species = compute_species_specific_Cp(NASACAPTemperatureLimits[s][0]);
-            Cp = Cp_species[s]; // obtain Cp so the enthalpy can be calculated with CPG model
-            Cp /= this->Rs[s]; // nondimensional molar value of Cp;
-            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate enthalpy using CPG model
-            dimensional_temperature = NASACAPTemperatureLimits[s][0];
-        }
-        if(species_tempindex[s] == 3) { // Calculate enthalpy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 2;
-            std::array<real,nspecies> Cp_species = compute_species_specific_Cp(NASACAPTemperatureLimits[s][2]);
-            Cp = Cp_species[s]; // obtain Cp so the enthalpy can be calculated with CPG model
-            Cp /= this->Rs[s]; // nondimensional molar value of Cp;
-            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate enthalpy using CPG model
-            dimensional_temperature = NASACAPTemperatureLimits[s][2];
-        }
-        h[s] = -this->NASACAPCoeffs[s][0][species_tempindex[s]]*pow(dimensional_temperature,-2)
-                +this->NASACAPCoeffs[s][1][species_tempindex[s]]*pow(dimensional_temperature,-1)*log(dimensional_temperature) 
-                +this->NASACAPCoeffs[s][7][species_tempindex[s]]*pow(dimensional_temperature,-1); // The first 2 terms and the last term are added
-        for (int i=2; i<7; i++)
-        {
-            h[s] += this->NASACAPCoeffs[s][i][species_tempindex[s]]*pow(dimensional_temperature,i-2)/((double)(i-1)); // The other terms are added
-        }
-
-        if(out_of_bounds_temp != -1.0) {
-            h[s] = h[s]*(dimensional_temperature/out_of_bounds_temp) + ((out_of_bounds_temp - dimensional_temperature)/out_of_bounds_temp) * Cp;
-        }
-
-        if(out_of_bounds_temp != -1.0)
-            h[s] *= ((this->Ru*out_of_bounds_temp)/(this->species_weight[s]*this->u_ref_sqr)); //nondimensional mass value
-        else
-            h[s] *= ((this->Ru*dimensional_temperature)/(this->species_weight[s]*this->u_ref_sqr)); //nondimensional mass value
-        
-        h[s] += species_enthalpy_offset[s]; // add the species_enthalpy_offset to account for enthalpy of formation for T=0 -> T=298.15K
-
-        // set dimensional temp back to the out of bounds temp for the next species in the loop
-        if (out_of_bounds_temp != -1.0)
-            dimensional_temperature = out_of_bounds_temp;
+        h[s] = e[s]*(this->u_ref_sqr/(this->R_ref*this->temperature_ref)) + this->Rs[s]*temperature;
     }
     return h;
 }
 
-// Algorithm 14 (f_M14): Compute species specific internal energy
+// Compute species specific internal energy from temperature
+// Modified by Shruthi - For calorically perfect gas this is given by e = c_v T
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
+std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_species_specific_internal_energy( const real temperature ) const
 {
-    const std::array<real,nspecies> h = compute_species_specific_enthalpy(temperature);
-    const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
     std::array<real,nspecies> e;
     for (int s=0; s<nspecies; ++s) 
     {
-        e[s] = h[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
+        e[s] = (this->species_Cv[s]*temperature)*((this->R_ref*this->temperature_ref)/u_ref_sqr);
     }
+    return e;
+}
+
+// Compute mixture internal energy
+// Calculate total energy and kinetic energy from conservative_soln and use e = E-k to get internal energy
+template <int dim, int nspecies, int nstate, typename real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_mixture_internal_energy( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real E = this->compute_mixture_specific_total_energy(conservative_soln);
+    const real k = this->compute_specific_kinetic_energy(conservative_soln);
+
+    const real e = E-k;
 
     return e;
 }
 
-// Compute the Cv integral component of species entropy (ie. \int_{T_ref}^T c_v(\tau)/\tau d\tau) using NASA polynomials
+// Compute species entropy from temperature and species density
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
-::compute_species_entropy_cv_integral ( 
-    const real temperature) const
-{
-    real dimensional_temperature = compute_dimensional_temperature(temperature);
-    std::array<real,nspecies> species_entropy;
-
-    if (dimensional_temperature < 0) {
-        std::cout<<" Species Entropy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
-        std::abort();
-    }    
-    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
-    
-    /// species loop
-    for (int s=0; s<nspecies; ++s) 
-    { 
-        // main computation
-        real Cp = 0.0;
-        real out_of_bounds_temp = -1.0;
-        if(species_tempindex[s] == -1) { // Calculate entropy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 0;
-            std::array<real,nspecies> Cp_species = compute_species_specific_Cp(NASACAPTemperatureLimits[s][0]);
-            Cp = Cp_species[s]; // obtain Cp so the entropy can be calculated with CPG model
-            Cp /= this->Rs[s]; // nondimensional molar value of Cp;
-            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate entropy using CPG model
-            dimensional_temperature = NASACAPTemperatureLimits[s][0];
-        }
-        if(species_tempindex[s] == 3) { // Calculate entropy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
-            species_tempindex[s] = 2;
-            std::array<real,nspecies> Cp_species = compute_species_specific_Cp(NASACAPTemperatureLimits[s][2]);
-            Cp = Cp_species[s]; // obtain Cp so the entropy can be calculated with CPG model
-            Cp /= this->Rs[s]; // nondimensional molar value of Cp;
-            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate entropy using CPG model
-            dimensional_temperature = NASACAPTemperatureLimits[s][2];
-        }
-        species_entropy[s] = -this->NASACAPCoeffs[s][0][species_tempindex[s]]*pow(dimensional_temperature,-2)*0.5
-                -this->NASACAPCoeffs[s][1][species_tempindex[s]]*pow(dimensional_temperature,-1) 
-                +this->NASACAPCoeffs[s][2][species_tempindex[s]]*log(dimensional_temperature)
-                +this->NASACAPCoeffs[s][8][species_tempindex[s]];
-        for (int i=3; i<7; i++)
-        {
-            species_entropy[s] += this->NASACAPCoeffs[s][i][species_tempindex[s]]*pow(dimensional_temperature,double(i-2))/((double)(i-2)); // The other terms are added
-        }
-
-        if(out_of_bounds_temp != -1.0) {
-            species_entropy[s] = species_entropy[s] + log(dimensional_temperature/out_of_bounds_temp) * Cp;
-        }
-
-        // set dimensional temp back to the out of bounds temp for the next species in the loop
-        if (out_of_bounds_temp != -1.0)
-            dimensional_temperature = out_of_bounds_temp;
-        species_entropy[s] *= this->Rs[s];
-        species_entropy[s] -= this->Rs[s]*log(temperature);
-    }
-
-    return species_entropy;
-}
-
-// Compute species entropy by calculating integral and adding in density contribution (ie. R_k ln \rho_k)
-template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
+std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::compute_species_entropy (
     const std::array<real,nstate> &conservative_soln) const
 {
     const real temperature = compute_temperature(conservative_soln);
     const std::array<real,nspecies> species_densities = compute_species_densities(conservative_soln);
+    std::array<real,nspecies> species_entropy;
 
-    std::array<real,nspecies> species_entropy = compute_species_entropy_cv_integral(temperature);
     for(int ispecies = 0; ispecies < nspecies; ispecies++) {
-        species_entropy[ispecies] -= this->Rs[ispecies]*log(temperature*species_densities[ispecies]*this->density_ref);
+        if (species_densities[ispecies] < 1e-16)
+            species_entropy[ispecies] = 0;
+        else
+            species_entropy[ispecies] = this->species_Cv[ispecies]*log(temperature*this->temperature_ref) - this->Rs[ispecies]*log(species_densities[ispecies]*this->density_ref);
     }
-
     return species_entropy;
 }
 
 
 // Compute mixture entropy
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim, nspecies, nstate, real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::compute_entropy (
     const std::array<real,nstate> &conservative_soln) const
 {
@@ -721,18 +546,17 @@ inline real RealGas<dim, nspecies, nstate, real>
 
 // Compute Gibbs' energy of species using species entropy and species Cp
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
+std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::compute_species_gibbs_energy (
     const std::array<real,nstate> &conservative_soln) const
 {
     const real temperature = compute_temperature(conservative_soln);
 
     std::array<real,nspecies> species_entropy = compute_species_entropy(conservative_soln);
-    std::array<real,nspecies> species_Cp = compute_species_specific_Cp(temperature);
 
     std::array<real, nspecies> species_gibbs;
     for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
-        species_gibbs[ispecies] = temperature*(species_Cp[ispecies] - species_entropy[ispecies]);
+        species_gibbs[ispecies] = temperature*(this->species_Cp[ispecies] - species_entropy[ispecies]);
     }
 
     return species_gibbs;
@@ -740,7 +564,7 @@ std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
 
 // Compute the entropy variables from conservative solution
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
+std::array<real,nstate> Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const
 {
@@ -764,13 +588,12 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     for (int istate = 0; istate < nstate; ++istate) {
         entropy_var[istate] /= temperature;
     }
-
     return entropy_var;
 }
 
 // Map entropy variables back to conservative solution
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
+std::array<real,nstate> Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::compute_conservative_variables_from_entropy_variables (
     const std::array<real,nstate> &entropy_var) const
 {
@@ -791,19 +614,15 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     }
 
     std::array<real,nspecies> species_entropy;
-    std::array<real,nspecies> species_Cp = compute_species_specific_Cp(temperature);
     for(int ispecies = 0; ispecies < nth_species_idx; ++ispecies) {
-        species_entropy[ispecies] = species_Cp[ispecies] - (species_gibbs[ispecies]/temperature);
+        species_entropy[ispecies] = this->species_Cp[ispecies] - (species_gibbs[ispecies]/temperature);
     }
     species_entropy[nth_species_idx] = species_Cp[nth_species_idx] - (species_gibbs[nth_species_idx]/temperature);
 
     std::array<real,nspecies> species_density;
-    const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
     conservative_var[0] = 0.0;
     for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
-        std::array<real,nspecies> species_entropy_integral = compute_species_entropy_cv_integral(temperature);
-
-        species_density[ispecies] = (exp((species_entropy_integral[ispecies] - species_entropy[ispecies])/(Rs[ispecies])))/(temperature*this->density_ref);
+        species_density[ispecies] = (exp((1/this->Rs[ispecies])*(this->species_Cv[ispecies]*log(temperature*this->temperature_ref) - species_entropy[ispecies])))*(1.0/this->density_ref);
         conservative_var[0] += species_density[ispecies];
 
         if (dim + 2 + ispecies < nstate)
@@ -815,24 +634,23 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     for (int idim = 0; idim < dim; ++idim) {
         conservative_var[idim+1] = mixture_density*entropy_var[idim+1]*temperature;
     }
-    
+
     // specific kinetic energy
     const real specific_kinetic_energy = 0.50*entropy_var_vel_squared;
     // species specific enthalpy
-    const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
     std::array<real,nspecies> species_specific_internal_energy;
-    std::array<real,nspecies> species_specific_total_energy;
     // species energy
     for (int s=0; s<nspecies; ++s) 
     { 
-      species_specific_internal_energy[s] = species_specific_enthalpy[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
-      species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
-    }     
-    // mixture energy
-    real mixture_specific_total_energy = 0.0;
-    for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
-        mixture_specific_total_energy += species_specific_total_energy[ispecies] *(species_density[ispecies]/mixture_density);
+      species_specific_internal_energy[s] = (this->species_Cv[s]*temperature)*((this->R_ref*this->temperature_ref)/u_ref_sqr);
     }
+    std::array<real,nspecies> mass_fractions;
+    for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        mass_fractions[ispecies] = species_density[ispecies]/mixture_density;
+    }
+    const real mixture_internal_energy = compute_mixture_from_species(mass_fractions,species_specific_internal_energy);
+    const real mixture_specific_total_energy = specific_kinetic_energy + mixture_internal_energy;
+
     conservative_var[dim+1] = mixture_density*mixture_specific_total_energy;
 
     return conservative_var;
@@ -840,7 +658,7 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
 
 // Computes the kinetic energy variables (Based off Cicchino 2025, Eq. 59)
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
+std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::compute_kinetic_energy_variables (
     const std::array<real,nstate> &conservative_soln) const
 {
@@ -861,88 +679,22 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     return kin_energy_var;
 }
 
-// Algorithm 15 (f_M15): Compute temperature
+// Compute temperature using the conservtive_soln
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
 {
-    /* definitions */
-    const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
-    const real specific_kinetic_energy= compute_specific_kinetic_energy(conservative_soln);
+    const real mixture_density = compute_mixture_density(conservative_soln);
     const real mixture_gas_constant = compute_mixture_gas_constant(conservative_soln);
-    const real mixture_specific_total_energy = compute_mixture_specific_total_energy(conservative_soln);
+    const real mixture_pressure = compute_mixture_pressure(conservative_soln);
+    const real temperature = (mixture_pressure/(mixture_density*mixture_gas_constant))*(this->u_ref_sqr/(this->R_ref*this->temperature_ref));
 
-    std::array<real,nspecies> species_specific_enthalpy;
-    real mixture_specific_internal_energy;
-    real mixture_specific_enthalpy;
-
-    real f;
-    std::array<real,nspecies> Cv;
-    real mixture_Cv;
-    real f_d; // f'
-    real T_npo; // T_(n+1)
-    real err = 999.9;
-    int itr = 0;
-
-    /* compute temperature using the Newton-Raphson method */
-    real T_n = 2.0*this->temperature_ref; // the initial guess
-    do
-    {
-        /// 1) f(T_n)
-        // mixture specific internal energy: e = E - k
-        mixture_specific_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy)*this->u_ref_sqr; // dimensional value
-        // species specific enthalpy at T_n
-        species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // nondimensional mass value
-        // mixture specific enthalpy at T_n
-        mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dimensional value
-        // Newton-Raphson function
-        f = (mixture_specific_enthalpy - mixture_gas_constant*this->R_ref* T_n) - mixture_specific_internal_energy; // dimensional value
-
-        /// 2) f'(T_n)
-        // Cv at T_n
-        Cv = compute_species_specific_Cv(T_n/this->temperature_ref); // nondimensional mass value
-
-        // mixture Cv
-        mixture_Cv = compute_mixture_from_species(mass_fractions,Cv)*this->R_ref; // dimensional value
-
-        // Newton-Raphson derivative function
-        f_d = mixture_Cv;
-
-        /// 3) main part
-        T_npo = T_n - f/f_d; // dimensional value
-        err = abs((T_npo-T_n)/this->temperature_ref);
-        itr += 1;
-
-        // update T
-        if(itr > 9.99999e6) {
-                // output temperature values for the last 10 iterations
-                // included this output so user can determine if the tolerance is the issue
-                std::cout << "Nearing the max iterations...iteration #" << itr << " old temperature:  " << T_n 
-                            << " new temperature:  " << T_npo << std::endl;
-                std::cout << " Mixture Cv:  " << mixture_Cv << std::endl << std::endl;
-        }
-        T_n = T_npo;
-    }
-    while (err>this->tol && itr < 1e7);
-    if(itr == 1e7) {
-        std::cout << "Maximum iterations for temperature reached without converging...Aborting..." << std::endl;
-        std::abort();
-    }
-    T_n /= temperature_ref; // non-dimensional value
-    if(T_n < 0) {
-        std::cout << "Computed temperature is a negative value...Aborting..." << std::endl;
-        std::abort();
-    }
-    if(T_n != T_n) {
-        std::cout << "Computed temperature is NaN...Aborting..." << std::endl;
-        std::abort();
-    }
-    return T_n;
+    return temperature;
 }
 
 // Algorithm 16 (f_M16): Compute mixture gas constant
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_gas_constant ( const std::array<real,nstate> &conservative_soln ) const
 {
     const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
@@ -950,28 +702,31 @@ inline real RealGas<dim,nspecies,nstate,real>
     return mixture_gas_constant;
 }
 
-// Algorithm 17 (f_M17): Compute mixture pressure
+// Compute mixture pressure using the polytropic ideal gas EOS
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
-    const real mixture_gas_constant = compute_mixture_gas_constant(conservative_soln);
-    const real temperature = compute_temperature(conservative_soln);
-    const real mixture_pressure = mixture_density*mixture_gas_constant*temperature/(this->gam_ref*this->mach_ref_sqr);
+    const real mixture_gamma = compute_gamma(conservative_soln);
+    const real E = this->compute_mixture_specific_total_energy(conservative_soln);
+    const real k = this->compute_specific_kinetic_energy(conservative_soln);
+    const real mixture_pressure = mixture_density*(mixture_gamma-1.0)*(E-k);
 
     return mixture_pressure;
 }
 
-// Algorithm 17 (f_M17): Compute pressure -> calls compute_pressure (allows other classes to use PhysicsBase ptr)
+// Compute pressure -> calls compute_pressure (allows other classes to use PhysicsBase ptr)
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     return compute_mixture_pressure(conservative_soln);
 }
+
+/// Given density and temperature, returns NON-DIMENSIONALIZED pressure using free-stream non-dimensionalization
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_pressure_from_density_temperature ( const real density, const real temperature, const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_gas_constant = compute_mixture_gas_constant(conservative_soln);
@@ -981,20 +736,20 @@ inline real RealGas<dim,nspecies,nstate,real>
 
 // Algorithm 18 (f_M18): Compute mixture specific total enthalpy
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_specific_total_energy = compute_mixture_specific_total_energy(conservative_soln);
     const real mixture_pressure = compute_mixture_pressure(conservative_soln);
     const real mixture_density = compute_mixture_density(conservative_soln);
-    const real mixture_specific_total_enthalpy = mixture_specific_total_energy + mixture_pressure/mixture_density;
+    const real mixture_specific_total_enthalpy = (mixture_specific_total_energy + mixture_pressure/mixture_density)*(this->u_ref_sqr/(this->R_ref*this->temperature_ref));
 
     return mixture_specific_total_enthalpy;
 }
 
 // Algorithm 19 (f_M19): Compute convective flux
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const  
 {
     /* definitions */
@@ -1002,8 +757,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
     const real mixture_density = compute_mixture_density(conservative_soln);
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     const real mixture_pressure = compute_mixture_pressure(conservative_soln);
-    const real mixture_specific_total_enthalpy = compute_mixture_specific_total_enthalpy(conservative_soln);
     const std::array<real,nspecies> species_densities = compute_species_densities(conservative_soln);
+    const real mixture_specific_total_energy = compute_mixture_specific_total_energy(conservative_soln);
 
     // flux dimension loop; E -> F -> G
     for (int flux_dim=0; flux_dim<dim; ++flux_dim) 
@@ -1019,7 +774,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
         conv_flux[1+flux_dim][flux_dim] += mixture_pressure; // Add diagonal of pressure
 
         /* C) mixture energy equations */
-        conv_flux[dim+1][flux_dim] = mixture_density*vel[flux_dim]*mixture_specific_total_enthalpy;
+        conv_flux[dim+1][flux_dim] = mixture_density*vel[flux_dim]*(mixture_specific_total_energy + mixture_pressure/mixture_density);
 
         /* D) species density equations */
         for (int s=0; s<nspecies-1; ++s)
@@ -1032,7 +787,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-dealii::Tensor<2,nstate,real> RealGas<dim,nspecies,nstate,real>
+dealii::Tensor<2,nstate,real> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convective_flux_directional_jacobian (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -1080,7 +835,7 @@ dealii::Tensor<2,nstate,real> RealGas<dim,nspecies,nstate,real>
 
 ///  Evaluates convective flux based on the chosen split form.
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::convective_numerical_split_flux(const std::array<real,nstate> &conservative_soln1,
                                   const std::array<real,nstate> &conservative_soln2) const
 {
@@ -1101,8 +856,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     return conv_num_split_flux;
 }
 
+/** Entropy conserving split form flux of Kennedy and Gruber.
+     *  Refer to Gassner's paper (2016) Eq. 3.10  */
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::convective_numerical_split_flux_kennedy_gruber(const std::array<real,nstate> &conservative_soln1,
                                                  const std::array<real,nstate> &conservative_soln2) const
 {
@@ -1130,7 +887,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     real pressure1 = compute_mixture_pressure(conservative_soln1);
     real pressure2 = compute_mixture_pressure(conservative_soln2);
     real mean_pressure = (pressure1 + pressure2)/2.0;
-    // this->pcout << "the calculated mean pressure is:  " << mean_pressure << std::endl;
 
     // compute mean total energy
     real total_energy1 = compute_mixture_specific_total_energy(conservative_soln1);
@@ -1157,13 +913,11 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, rea
     return conv_num_split_flux;
 }
 
-/* Supporting FUNCTIONS */
-// Algorithm 20 (f_S20): Convert primitive to conservative
+// Convert primitive to conservative
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
+inline std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const 
 {
-    /* definitions */
     std::array<real, nstate> conservative_soln;
     const real mixture_density = compute_mixture_density(primitive_soln);
     std::array<real, dim> vel;
@@ -1198,22 +952,17 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     { 
         species_densities[s] = mixture_density*mass_fractions[s];
     }
-    // mixturegas constant
-    const real mixture_gas_constant = compute_mixture_from_species(mass_fractions,this->Rs);
-    // temperature
-    const real temperature = mixture_pressure/(mixture_density*mixture_gas_constant) * (this->u_ref_sqr/(this->R_ref*this->temperature_ref));
-    // specific kinetic energy
-    const real specific_kinetic_energy = 0.50*vel2;
-    // species specific enthalpy
-    const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
-    // mixture enthalpy
-    const real mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy);
-    // mixture specific internal energy
-    const real mixture_specific_internal_energy = mixture_specific_enthalpy - mixture_pressure/mixture_density;
-    // mixture specific total energy
-    const real mixture_specific_total_energy = mixture_specific_internal_energy + specific_kinetic_energy;
 
+    // mixture gas constant
+    const real mixture_R = compute_mixture_from_species(mass_fractions,this->Rs);
+    const real temperature = (mixture_pressure/(mixture_density*mixture_R))*(this->u_ref_sqr/(this->R_ref*this->temperature_ref));
+    // mixture internal energy
+    std::array<real,nspecies> species_internal_energy = compute_species_specific_internal_energy(temperature);
+    const real mixture_internal_energy = compute_mixture_from_species(mass_fractions, species_internal_energy);
+    // specific kinetic energy
+    const real specific_kinetic_energy = 0.50*vel2;  
     // mixture energy
+    const real mixture_specific_total_energy = specific_kinetic_energy + mixture_internal_energy;
     conservative_soln[dim+1] = mixture_density*mixture_specific_total_energy;
 
     /* species densities */
@@ -1225,10 +974,9 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     return conservative_soln;
 }
 
-// Algorithm 20b : Convert conservative to primitive
-// This function has been added by Shruthi
+// Convert conservative to primitive
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
+inline std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const 
 {
     /* definitions */
@@ -1251,7 +999,7 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convert_primitive_gradient_to_conservative_gradient (
     const std::array<real,nstate> &/*primitive_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
@@ -1263,7 +1011,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convert_conservative_gradient_to_primitive_gradient (
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
@@ -1276,58 +1024,52 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
 
 // Algorithm 21 (f_S21): Compute species specific heat ratio
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
-::compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const
+inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_species_specific_heat_ratio () const
 {
-    const real temperature = compute_temperature(conservative_soln);
-    const std::array<real,nspecies> Cp = compute_species_specific_Cp(temperature);
-    const std::array<real,nspecies> Cv = compute_species_specific_Cv(temperature);
     std::array<real,nspecies> gamma;
 
     for (int s=0; s<nspecies; ++s) 
     {
-        gamma[s] = Cp[s]/Cv[s];
+        gamma[s] = (this->species_Cp[s]/this->species_Cv[s]);
     }
 
     return gamma;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_gamma ( const std::array<real,nstate> &conservative_soln ) const
 {
     // Uses the definition given in Gouasmi thesis
-    const real temperature = compute_temperature(conservative_soln);
     const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
-    const std::array<real,nspecies> Cp = compute_species_specific_Cp(temperature);
-    const std::array<real,nspecies> Cv = compute_species_specific_Cv(temperature);
 
-    real mixture_Cp = compute_mixture_from_species(mass_fractions,Cp);
-    real mixture_Cv = compute_mixture_from_species(mass_fractions,Cv);
+    real mixture_Cp = compute_mixture_from_species(mass_fractions,this->species_Cp);
+    real mixture_Cv = compute_mixture_from_species(mass_fractions,this->species_Cv);
 
-    real gamma = mixture_Cp/mixture_Cv;
+    real gamma = (mixture_Cp/mixture_Cv);
     return gamma;
 }
 
 // Algorithm 22 (f_S22): Compute species speed of sound
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
+inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_species_speed_of_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real temperature = compute_temperature(conservative_soln);
-    const std::array<real,nspecies> gamma = compute_species_specific_heat_ratio(conservative_soln);
-    const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
+    const std::array<real,nspecies> gamma = compute_species_specific_heat_ratio();
     std::array<real,nspecies> speed_of_sound;
     for (int s=0; s<nspecies; ++s) 
-        { 
-            speed_of_sound[s] = sqrt(gamma[s]*Rs[s]*temperature/(this->mach_ref_sqr)); 
-        }
+    { 
+        speed_of_sound[s] = sqrt((gamma[s]*this->Rs[s]*temperature)/(this->mach_ref_sqr)); 
+    }
 
     return speed_of_sound;
 }
 
+// Compute sound of the mixture
 template <int dim, int nspecies, int nstate, typename real>
-inline real RealGas<dim,nspecies,nstate,real>
+inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     // This is the appropriate method for deriving mixture
@@ -1344,39 +1086,8 @@ inline real RealGas<dim,nspecies,nstate,real>
     return sound;
 }
 
-// Compute mixture solution vector (without species solution)
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,dim+2> RealGas<dim,nspecies,nstate,real>
-::get_mixture_solution_vector ( const std::array<real,nstate> &full_soln ) const 
-{
-    /* definitions */
-    std::array<real, dim+2> mixture_soln;
-    for (int s=0; s<(dim+2); ++s) 
-    { 
-        mixture_soln[s] = full_soln[s];
-    }
-    return mixture_soln;
-}
-
-// Compute mixture gradient
-template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,dim+2> RealGas<dim,nspecies,nstate,real>
-::get_mixture_solution_gradient (
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
-{
-    std::array<dealii::Tensor<1,dim,real>,dim+2> mixture_soln_gradient;
-    for (int d1=0; d1<dim; d1++) {
-        mixture_soln_gradient[0][d1] = conservative_soln_gradient[0][d1];
-        for (int d2=0; d2<dim; d2++) {
-            mixture_soln_gradient[1+d1][d2] = conservative_soln_gradient[1+d2][d1];
-        }
-        mixture_soln_gradient[dim+1][d1] = conservative_soln_gradient[dim+1][d1];
-    }
-    return mixture_soln_gradient;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_quantities_vector (
+dealii::Vector<double> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>::post_compute_derived_quantities_vector (
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &duh,
     const std::vector<dealii::Tensor<2,dim> > &dduh,
@@ -1393,7 +1104,7 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         for (unsigned int s=0; s<nstate; ++s) {
             conservative_soln[s] = uh(s);
         }
-        
+
         // get the solution gradient
         std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
         for (unsigned int s=0; s<nstate; ++s) {
@@ -1413,10 +1124,14 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         for (unsigned int d=0; d<dim; ++d) {
             computed_quantities(++current_data_index) = conservative_soln[1+d];
         }
-        // Mixture energy
+        // Mixture total energy
         computed_quantities(++current_data_index) = compute_mixture_specific_total_energy(conservative_soln);
+        // Mixture internal energy
+        computed_quantities(++current_data_index) = compute_mixture_internal_energy(conservative_soln);
         // Mixture pressure
         computed_quantities(++current_data_index) = compute_mixture_pressure(conservative_soln);
+        // Dimensional Mixture Pressure
+        computed_quantities(++current_data_index) = compute_mixture_pressure(conservative_soln)*(density_ref*(u_ref*u_ref));
         // Non-dimensional temperature
         computed_quantities(++current_data_index) = compute_temperature(conservative_soln); 
         // Dimensional temperature
@@ -1446,7 +1161,7 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> RealGas<dim,nspecies,nstate,real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::post_get_data_component_interpretation () const
 {
     namespace DCI = dealii::DataComponentInterpretation;
@@ -1458,8 +1173,10 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     for (unsigned int d=0; d<dim; ++d) {
         interpretation.push_back (DCI::component_is_part_of_vector); // Mixture momentum
     }
-    interpretation.push_back (DCI::component_is_scalar); // Mixture energy
+    interpretation.push_back (DCI::component_is_scalar); // Mixture total energy
+    interpretation.push_back (DCI::component_is_scalar); // Mixture internal energy
     interpretation.push_back (DCI::component_is_scalar); // Mixture pressure
+    interpretation.push_back (DCI::component_is_scalar); // Dimensional mixture pressure
     interpretation.push_back (DCI::component_is_scalar); // Non-dimensional temperature
     interpretation.push_back (DCI::component_is_scalar); // Dimensional temperature
     interpretation.push_back (DCI::component_is_scalar); // Mixture specific total enthalpy
@@ -1478,7 +1195,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::vector<std::string> RealGas<dim,nspecies,nstate,real>
+std::vector<std::string> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::post_get_names () const
 {
     std::vector<std::string> names = PhysicsBase<dim,nspecies,nstate,real>::post_get_names ();
@@ -1489,8 +1206,10 @@ std::vector<std::string> RealGas<dim,nspecies,nstate,real>
     for (unsigned int d=0; d<dim; ++d) {
       names.push_back ("mixture_momentum");
     }
-    names.push_back ("mixture_energy");
+    names.push_back ("mixture_total_energy");
+    names.push_back ("mixture_internal_energy");
     names.push_back ("mixture_pressure");
+    names.push_back ("dimensional_mixture_pressure");
     names.push_back ("temperature");
     names.push_back ("dimensional_temperature");
     names.push_back ("mixture_specific_total_enthalpy");
@@ -1511,7 +1230,7 @@ std::vector<std::string> RealGas<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-dealii::UpdateFlags RealGas<dim,nspecies,nstate,real>
+dealii::UpdateFlags Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::post_get_needed_update_flags () const
 {
     return dealii::update_values 
@@ -1520,10 +1239,10 @@ dealii::UpdateFlags RealGas<dim,nspecies,nstate,real>
 }
 
 // Instantiate explicitly
-template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double     >;
-template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadType    >;
-template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadType    >;
-template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadFadType >;
-template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadFadType >;
+template class Multispecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double     >;
+template class Multispecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadType    >;
+template class Multispecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadType    >;
+template class Multispecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadFadType >;
+template class Multispecies_CaloricallyPerfect_Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadFadType >;
 } // Physics namespace
 } // PHiLiP namespace

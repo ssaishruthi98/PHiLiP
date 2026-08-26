@@ -11,8 +11,8 @@ set dimension = 3
 set number_of_species = 2
 
 # Test set up
-set pde_type = real_gas
-set test_type = real_gas_split_taylor_green
+set pde_type = multispecies_calorically_perfect_euler
+set test_type = multispecies_calorically_perfect_euler_split_taylor_green
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 
 # DG formulation
