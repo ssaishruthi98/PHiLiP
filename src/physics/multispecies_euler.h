@@ -250,6 +250,12 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const dealii::Tensor<1,dim,real> &normal) const;
 
+    /// Helper function to compute mean for split fluxes
+    real compute_average(const real val1, const real val2) const;
+
+    /// Helper function to compute Ismail-Roe logarithmic mean for split fluxes
+    real compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const;
+
     ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
@@ -258,6 +264,27 @@ public:
     /** Entropy conserving split form flux of Kennedy and Gruber.
      *  Refer to Gassner's paper (2016) Eq. 3.10  */
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_kennedy_gruber (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /** Entropy conserving split form flux of Ismail & Roe.
+     *  Refer to Gassner's paper (2016) Eq. 3.17  
+     *  Derivation details will be included in Shruthi's future paper/thesis*/
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ismail_roe (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /** Entropy conserving split form flux of Chandrashekar.
+     *  Refer to Gouasmi's thesis, Eq. 4.14  
+     *  Derivation details will be included in Shruthi's future paper/thesis*/
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /** Entropy conserving split form flux of Chandrashekar with Ranocha's fix for KEP.
+     *  Refer to Gouasmi's thesis, Eq. 4.14 for Chandrashekar flux 
+     *  Derivation details for the KEP fix will be included in Shruthi's future paper/thesis*/
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 

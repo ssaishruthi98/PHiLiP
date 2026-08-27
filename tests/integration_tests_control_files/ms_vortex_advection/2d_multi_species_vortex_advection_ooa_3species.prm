@@ -15,19 +15,22 @@ set pde_type = multispecies_calorically_perfect_euler
 set chemistry_input_file = ../../chemistry_files/H2_O2_N2.kinetics
 
 # DG formulation
-set use_weak_form = true
+set use_weak_form = false
 set non_physical_behavior = abort_run
 set all_boundaries_are_periodic = true
 set check_same_coords_in_weak_dg = false
 
-# set directry to write output data
-#set solution_vtk_files_directory_name = multi_species
-
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
+set flux_nodes_type = GLL
 
 # numerical fluxes
-set conv_num_flux = lax_friedrichs
+#set conv_num_flux = lax_friedrichs
+set use_split_form = true
+set two_point_num_flux_type = IR
+set conv_num_flux = two_point_flux
+set flux_reconstruction = cDG
+set use_inverse_mass_on_the_fly = true
 
 # ODE solver
 subsection ODE solver
@@ -75,8 +78,8 @@ subsection manufactured solution convergence study
   set grid_progression_add  = 0
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 2
+  set initial_grid_size = 3
 
   # Number of grids in grid study
-  set number_of_grids   = 4
+  set number_of_grids   = 5
 end

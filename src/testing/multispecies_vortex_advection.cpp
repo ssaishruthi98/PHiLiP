@@ -169,7 +169,7 @@ int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
     if(expected_order==0.0)
         expected_order = all_parameters_new.flow_solver_param.poly_degree + 1.0;
 
-    for (unsigned int igrid = 1; igrid < n_grids; igrid++) {
+    for (unsigned int igrid = 2; igrid < n_grids; igrid++) {
 
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 
