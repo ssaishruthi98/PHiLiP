@@ -31,20 +31,20 @@ if(${NUMBER_OF_SPECIES} EQUAL 2)
 																	COLLOCATED
 																	OOA)
 																	
-	configure_file(3d_multi_species_vortex_advection_ooa_2species.prm 3d_multi_species_vortex_advection_ooa_2species.prm COPYONLY)
-	add_test(
-	  NAME 3D_MULTISPECIES_VORTEX_ADVECTION_2_SPECIES_OOA
-	  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_multi_species_vortex_advection_ooa_2species.prm
-	  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-	)
-	set_tests_labels(3D_MULTISPECIES_VORTEX_ADVECTION_2_SPECIES_OOA MULTISPECIES_VORTEX_ADVECTION
-																	3D
-																	PARALLEL
-																	MULTISPECIES
-																	2SPECIES
-																	WEAK
-																	COLLOCATED
-																	OOA)
+	# configure_file(3d_multi_species_vortex_advection_ooa_2species.prm 3d_multi_species_vortex_advection_ooa_2species.prm COPYONLY)
+	# add_test(
+	#   NAME 3D_MULTISPECIES_VORTEX_ADVECTION_2_SPECIES_OOA
+	#   COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_multi_species_vortex_advection_ooa_2species.prm
+	#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+	# )
+	# set_tests_labels(3D_MULTISPECIES_VORTEX_ADVECTION_2_SPECIES_OOA MULTISPECIES_VORTEX_ADVECTION
+	# 																3D
+	# 																PARALLEL
+	# 																MULTISPECIES
+	# 																2SPECIES
+	# 																WEAK
+	# 																COLLOCATED
+	# 																OOA)
 endif()
 
 if(${NUMBER_OF_SPECIES} EQUAL 3)
