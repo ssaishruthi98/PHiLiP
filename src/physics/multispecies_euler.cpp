@@ -12,7 +12,7 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nspecies, int nstate, typename real>
-PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>::Multispecies_CaloricallyPerfect_Euler ( 
+Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>::Multispecies_CaloricallyPerfect_Euler ( 
     const Parameters::AllParameters *const                    parameters_input,
     std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const bool                                                has_nonzero_diffusion,
@@ -129,7 +129,7 @@ void Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+std::array<real,nstate> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -146,7 +146,7 @@ std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<d
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
     const real sound = compute_sound(conservative_soln);
@@ -158,7 +158,7 @@ real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::max_convective_normal_eigenvalue (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -175,7 +175,7 @@ real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
     // zero because inviscid
@@ -184,7 +184,7 @@ real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
@@ -199,7 +199,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_Calo
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+std::array<real,nstate> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*conservative_soln*/,
@@ -214,7 +214,7 @@ std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<d
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-void PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+void Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::boundary_wall (
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
@@ -227,7 +227,7 @@ void PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-void PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+void Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::boundary_slip_wall (
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
@@ -279,7 +279,7 @@ void PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-void PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+void Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &/*pos*/,
@@ -304,7 +304,7 @@ void PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,
 // Algorithm 1 (f_M1): Compute mixture density
 template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-inline real2 PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real2 Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 :: compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const
 {
     const real2 mixture_density = conservative_soln[0];
@@ -314,7 +314,7 @@ inline real2 PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies
 
 // Algorithm 2 (f_M2): Compute velocities
 template <int dim, int nspecies, int nstate, typename real>
-inline dealii::Tensor<1,dim,real> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline dealii::Tensor<1,dim,real> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_velocities ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
@@ -326,7 +326,7 @@ inline dealii::Tensor<1,dim,real> PHiLiP::Physics::Multispecies_CaloricallyPerfe
 
 // Algorithm 3 (f_M3): Compute squared velocities
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_velocity_squared_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
 {
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
@@ -340,7 +340,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Compute squared velocities when provided with velocities
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_velocity_squared ( const dealii::Tensor<1,dim,real> &velocities ) const
 {
     real vel2 = 0.0;
@@ -353,7 +353,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Given primitive variables, returns velocities.
 template <int dim, int nspecies, int nstate, typename real>
-inline dealii::Tensor<1,dim,real> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline dealii::Tensor<1,dim,real> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const
 {
     dealii::Tensor<1,dim,real> velocities;
@@ -363,7 +363,7 @@ inline dealii::Tensor<1,dim,real> PHiLiP::Physics::Multispecies_CaloricallyPerfe
 
 // Algorithm 4 (f_M4): Compute specific kinetic energy
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
@@ -374,7 +374,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Algorithm 5 (f_M5): Compute mixture specific total energy
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
@@ -385,7 +385,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Algorithm 6 (f_M6): Compute species densities
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline std::array<real,nspecies> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
@@ -403,7 +403,7 @@ inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfec
 
 // Algorithm 7 (f_M7): Compute mass fractions
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline std::array<real,nspecies> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
@@ -425,7 +425,7 @@ inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfec
 
 // Algorithm 8 (f_M8): Compute mixture from species
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_from_species ( const std::array<real,nspecies> &mass_fractions, const std::array<real,nspecies> &species) const
 {
     real mixture = 0.0; 
@@ -439,7 +439,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Algorithm 9 (f_M9): Compute dimensional temperature
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_dimensional_temperature ( const real temperature ) const
 {
     const real dimensional_temperature = temperature*this->temperature_ref;
@@ -449,7 +449,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Algorithm 10 (f_M10): Compute species gas constants
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+std::array<real,nspecies> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_Rs ( ) const
 {
     std::array<real,nspecies> Rs;
@@ -465,7 +465,7 @@ std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler
 // Modified by Shruthi - For calorically perfect gas temperature is used to calculate 
 // internal energy which in turn is used to determine enthalpy
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+std::array<real,nspecies> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_species_specific_enthalpy ( const real temperature ) const
 {
     std::array<real,nspecies> e = compute_species_specific_internal_energy(temperature);
@@ -481,7 +481,7 @@ std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler
 // Compute species specific internal energy from temperature
 // Modified by Shruthi - For calorically perfect gas this is given by e = c_v T
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+std::array<real,nspecies> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_species_specific_internal_energy( const real temperature ) const
 {
     std::array<real,nspecies> e;
@@ -508,7 +508,7 @@ inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 
 // Compute species entropy from temperature and species density
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
+std::array<real,nspecies> Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::compute_species_entropy (
     const std::array<real,nstate> &conservative_soln) const
 {
@@ -528,7 +528,7 @@ std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler
 
 // Compute mixture entropy
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::compute_entropy (
     const std::array<real,nstate> &conservative_soln) const
 {
@@ -546,7 +546,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies
 
 // Compute Gibbs' energy of species using species entropy and species Cp
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
+std::array<real,nspecies> Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::compute_species_gibbs_energy (
     const std::array<real,nstate> &conservative_soln) const
 {
@@ -658,7 +658,7 @@ std::array<real,nstate> Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nst
 
 // Computes the kinetic energy variables (Based off Cicchino 2025, Eq. 59)
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
+std::array<real,nstate> Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::compute_kinetic_energy_variables (
     const std::array<real,nstate> &conservative_soln) const
 {
@@ -681,7 +681,7 @@ std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<d
 
 // Compute temperature using the conservtive_soln
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
@@ -694,7 +694,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Algorithm 16 (f_M16): Compute mixture gas constant
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_gas_constant ( const std::array<real,nstate> &conservative_soln ) const
 {
     const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
@@ -704,7 +704,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Compute mixture pressure using the polytropic ideal gas EOS
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
@@ -718,7 +718,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Compute pressure -> calls compute_pressure (allows other classes to use PhysicsBase ptr)
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     return compute_mixture_pressure(conservative_soln);
@@ -726,7 +726,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 /// Given density and temperature, returns NON-DIMENSIONALIZED pressure using free-stream non-dimensionalization
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_pressure_from_density_temperature ( const real density, const real temperature, const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_gas_constant = compute_mixture_gas_constant(conservative_soln);
@@ -736,7 +736,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Algorithm 18 (f_M18): Compute mixture specific total enthalpy
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_specific_total_energy = compute_mixture_specific_total_energy(conservative_soln);
@@ -749,7 +749,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Algorithm 19 (f_M19): Compute convective flux
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const  
 {
     /* definitions */
@@ -787,7 +787,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_Calo
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-dealii::Tensor<2,nstate,real> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+dealii::Tensor<2,nstate,real> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convective_flux_directional_jacobian (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -835,7 +835,7 @@ dealii::Tensor<2,nstate,real> PHiLiP::Physics::Multispecies_CaloricallyPerfect_E
 
 ///  Evaluates convective flux based on the chosen split form.
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::convective_numerical_split_flux(const std::array<real,nstate> &conservative_soln1,
                                   const std::array<real,nstate> &conservative_soln2) const
 {
@@ -859,7 +859,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_Calo
 /** Entropy conserving split form flux of Kennedy and Gruber.
      *  Refer to Gassner's paper (2016) Eq. 3.10  */
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
 ::convective_numerical_split_flux_kennedy_gruber(const std::array<real,nstate> &conservative_soln1,
                                                  const std::array<real,nstate> &conservative_soln2) const
 {
@@ -915,7 +915,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_Calo
 
 // Convert primitive to conservative
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline std::array<real,nstate> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const 
 {
     std::array<real, nstate> conservative_soln;
@@ -976,7 +976,7 @@ inline std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_
 
 // Convert conservative to primitive
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline std::array<real,nstate> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const 
 {
     /* definitions */
@@ -999,7 +999,7 @@ inline std::array<real,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convert_primitive_gradient_to_conservative_gradient (
     const std::array<real,nstate> &/*primitive_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
@@ -1011,7 +1011,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_Calo
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::convert_conservative_gradient_to_primitive_gradient (
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
@@ -1024,7 +1024,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PHiLiP::Physics::Multispecies_Calo
 
 // Algorithm 21 (f_S21): Compute species specific heat ratio
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline std::array<real,nspecies> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_species_specific_heat_ratio () const
 {
     std::array<real,nspecies> gamma;
@@ -1038,7 +1038,7 @@ inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfec
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_gamma ( const std::array<real,nstate> &conservative_soln ) const
 {
     // Uses the definition given in Gouasmi thesis
@@ -1053,7 +1053,7 @@ inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,
 
 // Algorithm 22 (f_S22): Compute species speed of sound
 template <int dim, int nspecies, int nstate, typename real>
-inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline std::array<real,nspecies> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_species_speed_of_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real temperature = compute_temperature(conservative_soln);
@@ -1069,7 +1069,7 @@ inline std::array<real,nspecies> PHiLiP::Physics::Multispecies_CaloricallyPerfec
 
 // Compute sound of the mixture
 template <int dim, int nspecies, int nstate, typename real>
-inline real PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     // This is the appropriate method for deriving mixture
