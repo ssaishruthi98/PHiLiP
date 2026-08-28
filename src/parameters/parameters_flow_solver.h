@@ -146,7 +146,7 @@ public:
         };
     /// Selected DensityInitialConditionType from the input file
     DensityInitialConditionType density_initial_condition_type;
-    /// For TGV, flag to calculate and write numerical entropy
+    /// For TGV and multispecies cases, flag to calculate and write numerical entropy
     bool do_calculate_numerical_entropy;
     /// For TGV, flag to check if non-physical case dependant behaviour is encounted
     bool check_nonphysical_flow_case_behavior;

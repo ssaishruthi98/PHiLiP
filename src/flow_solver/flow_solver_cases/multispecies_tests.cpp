@@ -5,6 +5,7 @@
 #include "mesh/grids/straight_periodic_cube.hpp"
 #include "mesh/grids/positivity_preserving_tests_grid.h"
 #include "mesh/gmsh_reader.hpp"
+#include "physics/physics_factory.h"
 
 namespace PHiLiP {
 
@@ -20,7 +21,10 @@ MultispeciesTests<dim, nspecies, nstate>::MultispeciesTests(const PHiLiP::Parame
         , domain_left(this->all_param.flow_solver_param.grid_left_bound)
         , domain_right(this->all_param.flow_solver_param.grid_right_bound)
         , domain_size(pow(this->domain_right - this->domain_left, dim))
-{ }
+{ 
+    this->ms_euler_physics = std::dynamic_pointer_cast<Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,dim+nspecies+1,double>>(
+            PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&(this->all_param)));
+}
 
 template <int dim, int nspecies, int nstate>
 std::shared_ptr<Triangulation> MultispeciesTests<dim,nspecies,nstate>::generate_grid() const
@@ -82,6 +86,181 @@ template <int dim, int nspecies, int nstate>
 void MultispeciesTests<dim,nspecies,nstate>::display_additional_flow_case_specific_parameters() const
 {
     this->display_grid_parameters();
+}
+
+template<int dim, int nspecies, int nstate>
+void MultispeciesTests<dim, nspecies, nstate>::compute_and_update_integrated_quantities(DGBase<dim, nspecies, double> &dg)
+{
+    std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integral_values;
+    std::fill(integral_values.begin(), integral_values.end(), 0.0);
+    
+    // Initialize the maximum local wave speed to zero; only used for adaptive time step
+    if(this->all_param.flow_solver_param.adaptive_time_step == true || this->all_param.flow_solver_param.error_adaptive_time_step == true) this->maximum_local_wave_speed = 0.0;
+
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 0; // can't overintegrate for entropy calc
+
+    // Set the quadrature of size dim and 1D for sum-factorization.
+    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
+    dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
+
+    const unsigned int n_quad_pts = quad_extra.size();
+    const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
+    const unsigned int poly_degree = dg.max_degree;
+    // Construct the basis functions and mapping shape functions.
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
+    soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
+    soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
+    // Build mapping shape functions operators using the oneD high_ordeR_grid finite element
+    mapping_basis.build_1D_shape_functions_at_grid_nodes(dg.high_order_grid->oneD_fe_system, dg.high_order_grid->oneD_grid_nodes);
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg.high_order_grid->oneD_fe_system, quad_extra_1D, dg.oneD_face_quadrature);
+    // Construct and build projection operator
+    OPERATOR::vol_projection_operator<dim,2*dim> soln_basis_projection_oper(1, poly_degree, grid_degree);
+    soln_basis_projection_oper.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
+    const std::vector<double> &quad_weights = quad_extra.get_weights();
+    // If in the future we need the physical quadrature node location, turn these flags to true and the constructor will
+    // automatically compute it for you. Currently set to false as to not compute extra unused terms.
+    bool store_vol_flux_nodes = false;//currently doesn't need the volume physical nodal position
+    const bool store_surf_flux_nodes = false;//currently doesn't need the surface physical nodal position
+
+    const unsigned int n_dofs = dg.fe_collection[poly_degree].n_dofs_per_cell();
+    const unsigned int n_shape_fns = n_dofs / nstate;
+    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs);
+    auto metric_cell = dg.high_order_grid->dof_handler_grid.begin_active();
+    // Changed for loop to update metric_cell.
+    for (auto cell = dg.dof_handler.begin_active(); cell!= dg.dof_handler.end(); ++cell, ++metric_cell) {
+        if (!cell->is_locally_owned()) continue;
+        cell->get_dof_indices (dofs_indices);
+
+        // We first need to extract the mapping support points (grid nodes) from high_order_grid.
+        const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+        const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dof_indices);
+        std::array<std::vector<double>,dim> mapping_support_points;
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_grid_nodes);
+        }
+        // Get the mapping support points (physical grid nodes) from high_order_grid.
+        // Store it in such a way we can use sum-factorization on it with the mapping basis functions.
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const double val = (dg.high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points[istate][igrid_node] = val; 
+        }
+        // Construct the metric operators.
+        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
+        // Build the metric terms to compute the gradient and volume node positions.
+        // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
+        // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
+        metric_oper.build_volume_metric_operators(
+            n_quad_pts, n_grid_nodes,
+            mapping_support_points,
+            mapping_basis,
+            dg.all_parameters->use_invariant_curl_form);
+
+        // Fetch the modal soln coefficients
+        // We immediately separate them by state as to be able to use sum-factorization
+        // in the interpolation operator. If we left it by n_dofs_cell, then the matrix-vector
+        // mult would sum the states at the quadrature point.
+        // That is why the basis functions are based off the 1state oneD fe_collection.
+        std::array<std::vector<double>,nstate> soln_coeff;
+        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
+            const unsigned int istate = dg.fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg.fe_collection[poly_degree].system_to_component_index(idof).second;
+            if(ishape == 0){
+                soln_coeff[istate].resize(n_shape_fns);
+            }
+         
+            soln_coeff[istate][ishape] = dg.solution(dofs_indices[idof]);
+        }
+        // Interpolate each state to the quadrature points using sum-factorization
+        // with the basis functions in each reference direction.
+        std::array<std::vector<double>,nstate> soln_at_q_vect;
+        for(int istate=0; istate<nstate; istate++){
+            soln_at_q_vect[istate].resize(n_quad_pts);
+            // Interpolate soln coeff to volume cubature nodes.
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q_vect[istate],
+                                             soln_basis.oneD_vol_operator);
+        }
+
+        // Loop over quadrature nodes, compute quantities to be integrated, and integrate them.
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+            std::array<double,nstate> soln_at_q;
+            // Extract solution in a way that the physics can use them.
+            for(int istate=0; istate<nstate; istate++){
+                soln_at_q[istate] = soln_at_q_vect[istate][iquad];
+                // Verify positivity of densities and energy
+                if (istate == 0 && (soln_at_q_vect[istate][iquad] < 0 || soln_at_q_vect[istate][iquad] != soln_at_q_vect[istate][iquad])) {
+                    std::cout << "Flow Solver Error: Total density is a nonphysical value - Aborting... " << std::endl << std::flush;
+                    std::abort();
+                }
+                if (istate == dim+1 && (soln_at_q_vect[istate][iquad] < 0 || soln_at_q_vect[istate][iquad] != soln_at_q_vect[istate][iquad])) {
+                    std::cout << "Flow Solver Error: Total energy is a nonphysical value - Aborting... " << std::endl << std::flush;
+                    std::abort();
+                }
+                if (istate > dim+1 && (soln_at_q_vect[istate][iquad] < 0 || soln_at_q_vect[istate][iquad] != soln_at_q_vect[istate][iquad])) {
+                    std::cout << "Flow Solver Error: density of species #" << istate-dim-1 <<" is a nonphysical value - Aborting... " << std::endl << std::flush;
+                    std::abort();
+                }
+            }
+
+            std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrand_values;
+            std::fill(integrand_values.begin(), integrand_values.end(), 0.0);
+            integrand_values[IntegratedQuantitiesEnum::kinetic_energy] = this->ms_euler_physics->compute_kinetic_energy_from_conservative_solution(soln_at_q);
+            integrand_values[IntegratedQuantitiesEnum::entropy] = this->ms_euler_physics->compute_numerical_entropy_function(soln_at_q);
+            for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
+                integral_values[i_quantity] += integrand_values[i_quantity] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
+            }
+
+            // Update the maximum local wave speed (i.e. convective eigenvalue) if using an adaptive time step
+            if(this->all_param.flow_solver_param.adaptive_time_step == true || this->all_param.flow_solver_param.error_adaptive_time_step == true) {
+                const double local_wave_speed = this->ms_euler_physics->max_convective_eigenvalue(soln_at_q);
+                if(local_wave_speed > this->maximum_local_wave_speed) this->maximum_local_wave_speed = local_wave_speed;
+            }
+        }
+    }
+    if(this->all_param.flow_solver_param.adaptive_time_step == true) {
+        this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
+    }
+    // update integrated quantities
+    for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
+        this->integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
+    }
+}
+
+template<int dim, int nspecies, int nstate>
+double MultispeciesTests<dim, nspecies, nstate>::get_integrated_kinetic_energy() const
+{
+    const double integrated_kinetic_energy = this->integrated_quantities[IntegratedQuantitiesEnum::kinetic_energy];
+    // // Abort if energy is nan
+    // if(std::isnan(integrated_kinetic_energy)) {
+    //     this->pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
+    //     this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
+    //     std::abort();
+    // }
+    return integrated_kinetic_energy;
+}
+
+template<int dim, int nspecies, int nstate>
+double MultispeciesTests<dim, nspecies, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const
+{
+    const double integrated_entropy = this->integrated_quantities[IntegratedQuantitiesEnum::entropy];
+    // Abort if energy is nan
+    if(std::isnan(integrated_entropy)) {
+        this->pcout << " ERROR: Entropy at time " << this->current_time << " is nan." << std::endl;
+        this->pcout << "        This is likely due to a chemical species having a mass fraction of zero." << std::endl;
+        this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
+        std::abort();
+    }
+    return integrated_entropy;
 }
 
 template <int dim, int nspecies, int nstate>
@@ -146,13 +325,40 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
 {
     //unpack current iteration and current time from ode solver
     const unsigned int current_iteration = ode_solver->current_iteration;
-    const double current_time = ode_solver->current_time;
+    this->current_time = ode_solver->current_time;
+
+    // Compute and update integrated quantities
+    this->compute_and_update_integrated_quantities(*dg);
+
+    double current_numerical_entropy = 0.0;
+    if (this->all_param.flow_solver_param.do_calculate_numerical_entropy) {
+        current_numerical_entropy = this->get_numerical_entropy(dg); // no overintegration
+        if (std::isnan(current_numerical_entropy)){
+            this->pcout << "Entropy is nan. Aborting flow simulation..." << std::endl << std::flush;
+            std::abort();
+        }
+        if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
+    }
+
+    double current_kinetic_energy = 0.0;
+    current_kinetic_energy = this->get_integrated_kinetic_energy(); // no overintegration
+    if (current_iteration == 0)  initial_kinetic_energy = current_kinetic_energy;
 
     if (this->mpi_rank == 0) {
 
         unsteady_data_table->add_value("iteration", current_iteration);
-        // Add values to data table
+         // Add values to data table
         this->add_value_to_data_table(current_time, "time", unsteady_data_table);
+        if (this->all_param.flow_solver_param.do_calculate_numerical_entropy) {
+            this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
+            unsteady_data_table->set_scientific("current_numerical_entropy", false);
+            this->add_value_to_data_table(current_numerical_entropy-initial_entropy,"U-Uo",unsteady_data_table);
+            unsteady_data_table->set_scientific("U-Uo", false);
+        }
+        this->add_value_to_data_table(current_kinetic_energy,"current_kinetic_energy",unsteady_data_table);
+        unsteady_data_table->set_scientific("current_kinetic_energy", false);
+        this->add_value_to_data_table(current_kinetic_energy-initial_kinetic_energy,"KE-KE_0",unsteady_data_table);
+        unsteady_data_table->set_scientific("KE-KE_0", false);
         // Write to file
         if(do_write_unsteady_data_table_file){
             std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
@@ -162,9 +368,14 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
 
     if (current_iteration % this->all_param.ode_solver_param.print_iteration_modulo == 0) {
         // Print to console
-        this->pcout << "    Iter: " << current_iteration
-                    << "    Time: " << std::setprecision(16) << current_time;
-
+        this->pcout << "Iter: " << current_iteration
+                    << "    Time: " << std::setprecision(13) << current_time;
+        if(this->all_param.flow_solver_param.do_calculate_numerical_entropy) {
+        this->pcout << "    Current Numerical Entropy:  " << current_numerical_entropy
+                    << "    U-Uo: " << current_numerical_entropy-initial_entropy;
+        }
+        this->pcout << "    Current Volume Work:  " << current_kinetic_energy
+                    << "    KE-KE_0:  " << current_kinetic_energy-initial_kinetic_energy;
         this->pcout << std::endl;
     }
 

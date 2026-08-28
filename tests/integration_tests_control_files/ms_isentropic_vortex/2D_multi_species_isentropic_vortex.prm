@@ -48,6 +48,7 @@ subsection flow_solver
   set output_restart_files = true
   set restart_files_directory_name = restart_files
   set output_restart_files_every_dt_time_intervals = 1.0
+  set do_calculate_numerical_entropy = false
   subsection grid
     set grid_left_bound = -10.0
     set grid_right_bound = 10.0

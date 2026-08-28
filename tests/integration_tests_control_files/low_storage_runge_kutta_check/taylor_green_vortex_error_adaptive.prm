@@ -54,13 +54,13 @@ subsection flow_solver
   set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table
   set error_adaptive_time_step = true
+  set do_calculate_numerical_entropy = false
   subsection grid
     set grid_left_bound = -3.1415926535897932
     set grid_right_bound = 3.1415926535897932
     set number_of_grid_elements_per_dimension = 4
   end
   subsection taylor_green_vortex
-    set do_calculate_numerical_entropy = false
     set density_initial_condition_type = isothermal
     set check_nonphysical_flow_case_behavior = false
   end

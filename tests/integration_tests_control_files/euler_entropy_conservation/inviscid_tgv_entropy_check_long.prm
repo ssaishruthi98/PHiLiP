@@ -54,13 +54,13 @@ subsection flow_solver
   set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table
   set adaptive_time_step = true
   set end_exactly_at_final_time = false
+  set do_calculate_numerical_entropy = true
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200
     set number_of_grid_elements_per_dimension = 8
   end
   subsection taylor_green_vortex
-    set do_calculate_numerical_entropy = true
     set density_initial_condition_type = isothermal
   end
 end
