@@ -45,11 +45,11 @@ endif()
 
 # Multispecies Tests
 if(${NUMBER_OF_SPECIES} EQUAL 2)
-add_subdirectory(ms_vortex_advection)
+add_subdirectory(ms_density_pulse)
 add_subdirectory(ms_sod_shock_tube)
 add_subdirectory(ms_isentropic_vortex)
 add_subdirectory(ms_tgv)
 endif()
 if(${NUMBER_OF_SPECIES} EQUAL 3)
-add_subdirectory(ms_vortex_advection)
+add_subdirectory(ms_density_pulse)
 endif()

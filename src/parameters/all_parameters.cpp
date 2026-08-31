@@ -220,8 +220,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
                       " low_density | "
-                      " multi_species_vortex_advection | "
-                      " multispecies_calorically_perfect_euler_split_taylor_green"),
+                      " ms_density_pulse | "
+                      " ms_cpg_euler_split_taylor_green | "
+                      " ms_euler_entropy_conserving_split_forms_check"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -277,8 +278,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
                       "  low_density | " 
-                      "  multi_species_vortex_advection | "
-                      "  multispecies_calorically_perfect_euler_split_taylor_green>.");
+                      "  ms_density_pulse | "
+                      "  ms_cpg_euler_split_taylor_green | "
+                      "  ms_euler_entropy_conserving_split_forms_check>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -494,8 +496,9 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "halton_sampling_run")                      { test_type = halton_sampling_run; }
     else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
-    else if (test_string == "multi_species_vortex_advection")           { test_type = multi_species_vortex_advection; }
-    else if (test_string == "multispecies_calorically_perfect_euler_split_taylor_green")              { test_type = multispecies_calorically_perfect_euler_split_taylor_green; }
+    else if (test_string == "ms_density_pulse")                         { test_type = ms_density_pulse; }
+    else if (test_string == "ms_cpg_euler_split_taylor_green")                { test_type = ms_cpg_euler_split_taylor_green; }
+    else if (test_string == "ms_euler_entropy_conserving_split_forms_check")  { test_type = ms_euler_entropy_conserving_split_forms_check; }
     
     // WARNING: Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");

@@ -72,7 +72,7 @@ std::array<double,2> InviscidTaylorGreen<dim, nspecies, nstate>::compute_change_
                 entropy_var_at_q[istate][iquad] = entropy_var_state[istate];
             }
         }
-        //project the enrtopy and KE var to modal coefficients
+        //project the entropy and KE var to modal coefficients
         //then write it into a global vector
         for(int istate=0; istate<nstate; istate++){
             //Projected vector of entropy variables.
@@ -609,8 +609,6 @@ int InviscidTaylorGreen<dim, nspecies, nstate>::run_test() const
 
     pcout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
     pcout << "preparing to advance solution in time" << std::endl;
-    if(nspecies > 1)
-        pcout << "WARNING: entropy change is not calculated for multi-species since EC fluxes have not been implemented yet..." << std::endl;
 
     ode_solver->current_iteration = 0;
     ode_solver->allocate_ode_system();
@@ -621,7 +619,7 @@ int InviscidTaylorGreen<dim, nspecies, nstate>::run_test() const
     if(nspecies == 1)
         initial_entropy = compute_entropy(dg, poly_degree);
     const double initial_entropy_mpi = (dealii::Utilities::MPI::sum(initial_entropy, mpi_communicator));
-    //create a file to wirte entorpy and energy results to
+    //create a file to wirte entropy and energy results to
     std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
     myfile << "time change_in_entropy KE_volume_work" << std::endl;
     //loop over time
@@ -651,7 +649,7 @@ int InviscidTaylorGreen<dim, nspecies, nstate>::run_test() const
             pcout << "M plus K norm Change in Entropy at time " << ode_solver->current_time << " is " << current_change_entropy_mpi<< std::endl;
         pcout << "M plus K norm Change in Kinetic Energy at time " << ode_solver->current_time << " is " << current_change_energy_mpi<< std::endl;
         //check if change in entropy is conserved at machine precision
-        if(abs(current_change_entropy[0]) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::IR || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::CH || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::Ra)){
+        if(nspecies==1 && abs(current_change_entropy[0]) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::IR || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::CH || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::Ra)){
           pcout << " Change in entropy was not monotonically conserved." << std::endl;
           return 1;
         }

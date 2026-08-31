@@ -1,5 +1,5 @@
-#ifndef __MULTISPECIES_VORTEX_ADVECTION__
-#define __MULTISPECIES_VORTEX_ADVECTION__
+#ifndef __MULTISPECIES_DENSITY_PULSE__
+#define __MULTISPECIES_DENSITY_PULSE__
 
 #include "tests.h"
 #include "dg/dg_base.hpp"
@@ -14,11 +14,11 @@ namespace Tests {
 * Cases include: 1D Multispecies Vortex Advection - Low Temp and High Temp
 *************************************************************/
 template <int dim, int nspecies, int nstate>
-class MultispeciesVortexAdvection : public TestsBase
+class MultispeciesDensityPulse : public TestsBase
 {
 public:
     /// Constructor.
-    explicit MultispeciesVortexAdvection(const Parameters::AllParameters* const parameters_input,
+    explicit MultispeciesDensityPulse(const Parameters::AllParameters* const parameters_input,
         const dealii::ParameterHandler& parameter_handler_input);
 
     /// Parameter handler for storing the .prm file being ran
@@ -43,7 +43,7 @@ private:
     double get_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const; 
 
     /// Real Gas physics pointer for computing physical quantities.
-    std::shared_ptr < PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double > > multispecies_calorically_perfect_euler_physics;
+    std::shared_ptr < Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double > > multispecies_calorically_perfect_physics;
 };
 
 } // End of Tests namespace

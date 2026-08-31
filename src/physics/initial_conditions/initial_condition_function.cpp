@@ -1257,15 +1257,15 @@ real InitialConditionFunction_SVSW<dim, nspecies, nstate, real>
 // Multispecies Vortex advection  (Multispecies) -- Initial Condition 
 // ========================================================
 template <int dim, int nspecies, int nstate, typename real>
-InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,real>
-::InitialConditionFunction_Multispecies_VortexAdvection(
+InitialConditionFunction_Multispecies_DensityPulse<dim,nspecies,nstate,real>
+::InitialConditionFunction_Multispecies_DensityPulse(
       Parameters::AllParameters const *const param, bool high_temperature)
     : InitialConditionFunction_MultispeciesEulerBase<dim,nspecies,nstate,real>(param)
     , use_high_temp_ic(high_temperature)
 {}
 
 template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,real>
+real InitialConditionFunction_Multispecies_DensityPulse<dim,nspecies,nstate,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     // Note: This is in non-dimensional form (free-stream values as reference)
@@ -1545,7 +1545,7 @@ real InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate
 
     // species density, O2
     if(this->smooth_interface)
-        value = 0.5 + (1.0/16.0)*(cos(x)+1)*(cos(y)+1)*(cos(z)+1);
+        value = 0.5;// + (1.0/16.0)*(cos(x)+1)*(cos(y)+1)*(cos(z)+1);
     else
         value = 0.5 + (1.0/4.0)*tanh(1000.0*(x-pi))*tanh(1000.0*(y-pi))*tanh(1000.0*(z-pi));
 
@@ -1702,10 +1702,10 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nspecies, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
         if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim, nspecies, nstate, real> >();
-    } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) {
-        if constexpr ((nspecies==2||nspecies==3) && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,real> >(param,false);
-    } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection_high_temp) {
-        if constexpr ((nspecies==2||nspecies==3) && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,real> >(param,true);
+    } else if (flow_type == FlowCaseEnum::ms_density_pulse) {
+        if constexpr ((nspecies==2||nspecies==3) && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_DensityPulse<dim,nspecies,nstate,real> >(param,false);
+    } else if (flow_type == FlowCaseEnum::ms_density_pulse_high_temp) {
+        if constexpr ((nspecies==2||nspecies==3) && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_DensityPulse<dim,nspecies,nstate,real> >(param,true);
     } else if (flow_type == FlowCaseEnum::multi_species_sod_shock_tube) {
         if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::multi_species_isentropic_vortex) {
@@ -1790,7 +1790,7 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     template class InitialConditionFunction_MultispeciesEulerBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1,double>;
     template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
-    template class InitialConditionFunction_Multispecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    template class InitialConditionFunction_Multispecies_DensityPulse <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #if PHILIP_DIM==1
     template class InitialConditionFunction_Multispecies_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #elif PHILIP_DIM==2

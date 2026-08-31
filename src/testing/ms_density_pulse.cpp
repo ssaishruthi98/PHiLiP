@@ -4,7 +4,7 @@
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/fe/fe_values.h>
 
-#include "multispecies_vortex_advection.h"
+#include "ms_density_pulse.h"
 #include "physics/initial_conditions/initial_condition_function.h"
 #include "flow_solver/flow_solver_factory.h"
 
@@ -12,7 +12,7 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nspecies, int nstate>
-MultispeciesVortexAdvection<dim, nspecies, nstate>::MultispeciesVortexAdvection(
+MultispeciesDensityPulse<dim, nspecies, nstate>::MultispeciesDensityPulse(
     const PHiLiP::Parameters::AllParameters* const parameters_input,
     const dealii::ParameterHandler& parameter_handler_input)
     :
@@ -20,21 +20,21 @@ MultispeciesVortexAdvection<dim, nspecies, nstate>::MultispeciesVortexAdvection(
     , parameter_handler(parameter_handler_input)
 {
     //create the Physics object
-    this->multispecies_calorically_perfect_euler_physics = std::dynamic_pointer_cast<PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,dim+nspecies+1,double>>(
+    this->multispecies_calorically_perfect_physics = std::dynamic_pointer_cast<Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,dim+nspecies+1,double>>(
             PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));
 
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = parameters_input->flow_solver_param.flow_case_type;
 
-    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::multi_species_vortex_advection) {    
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::ms_density_pulse) {    
         this->high_temp = false;
-    } else if (flow_case == Parameters::FlowSolverParam::FlowCaseType::multi_species_vortex_advection_high_temp) {    
+    } else if (flow_case == Parameters::FlowSolverParam::FlowCaseType::ms_density_pulse_high_temp) {    
         this->high_temp = true;
     }
 }
 
 template <int dim, int nspecies, int nstate>
-double MultispeciesVortexAdvection<dim, nspecies, nstate>::get_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
+double MultispeciesDensityPulse<dim, nspecies, nstate>::get_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
@@ -65,7 +65,7 @@ double MultispeciesVortexAdvection<dim, nspecies, nstate>::get_time_step(std::sh
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                 soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
             }
-            double local_wave_speed = this->multispecies_calorically_perfect_euler_physics->max_convective_eigenvalue(soln_at_q);
+            double local_wave_speed = this->multispecies_calorically_perfect_physics->max_convective_eigenvalue(soln_at_q);
             if(local_wave_speed > maximum_local_wave_speed) maximum_local_wave_speed = local_wave_speed;
         }
     }
@@ -79,14 +79,14 @@ double MultispeciesVortexAdvection<dim, nspecies, nstate>::get_time_step(std::sh
 }
 
 template <int dim, int nspecies, int nstate>
-std::array<std::array<double,3>,nstate+1> MultispeciesVortexAdvection<dim, nspecies, nstate>::calculate_l_n_error(
+std::array<std::array<double,3>,nstate+1> MultispeciesDensityPulse<dim, nspecies, nstate>::calculate_l_n_error(
     std::shared_ptr<DGBase<dim, nspecies, double>> dg,
     const int poly_degree,
     const double /*final_time*/,
     std::shared_ptr<FlowSolver::FlowSolver<dim, nspecies, nstate>> flow_solver) const
 {
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
+    int overintegrate = 0;
     dealii::QGauss<dim> quad_extra(poly_degree + 1 + overintegrate);
     dealii::FEValues<dim, dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra,
         dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -114,18 +114,18 @@ std::array<std::array<double,3>,nstate+1> MultispeciesVortexAdvection<dim, nspec
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                 soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
             }
-            double temperature_at_q = this->multispecies_calorically_perfect_euler_physics->compute_temperature(soln_at_q);
+            double temperature_at_q = this->multispecies_calorically_perfect_physics->compute_temperature(soln_at_q);
 
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
             std::array<double, nstate> soln_exact;
             for(int istate = 0; istate < nstate; istate++)
                 soln_exact[istate] = flow_solver->flow_solver_case->initial_condition_function->value(qpoint,istate);
-            soln_exact_primitive = this->multispecies_calorically_perfect_euler_physics->convert_conservative_to_primitive(soln_exact);
-            double temperature_exact = this->multispecies_calorically_perfect_euler_physics->compute_temperature(soln_exact);
+            soln_exact_primitive = this->multispecies_calorically_perfect_physics->convert_conservative_to_primitive(soln_exact);
+            double temperature_exact = this->multispecies_calorically_perfect_physics->compute_temperature(soln_exact);
             
             for(int istate = 0; istate < nstate; ++istate) {
-                std::array<double, nstate> soln_at_q_primitive = this->multispecies_calorically_perfect_euler_physics->convert_conservative_to_primitive(soln_at_q);
+                std::array<double, nstate> soln_at_q_primitive = this->multispecies_calorically_perfect_physics->convert_conservative_to_primitive(soln_at_q);
                 lerror_primitive[istate][0] += pow(abs(soln_at_q_primitive[istate] - soln_exact_primitive[istate]), 1.0) * fe_values_extra.JxW(iquad);
                 lerror_primitive[istate][1] += pow(abs(soln_at_q_primitive[istate] - soln_exact_primitive[istate]), 2.0) * fe_values_extra.JxW(iquad);
                 //L-infinity norm
@@ -152,7 +152,7 @@ std::array<std::array<double,3>,nstate+1> MultispeciesVortexAdvection<dim, nspec
 }
 
 template <int dim, int nspecies, int nstate>
-int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
+int MultispeciesDensityPulse<dim, nspecies, nstate>::run_test() const
 {
     pcout << " Running Multispecies Vortex Advection test. " << std::endl;
     pcout << dim << "    " << nstate << std::endl;
@@ -288,7 +288,7 @@ int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
 }
 
 #if PHILIP_SPECIES>1
-template class MultispeciesVortexAdvection<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1>;
+template class MultispeciesDensityPulse<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

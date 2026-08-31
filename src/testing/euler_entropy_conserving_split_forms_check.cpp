@@ -1,6 +1,7 @@
 #include "euler_entropy_conserving_split_forms_check.h"
 #include "flow_solver/flow_solver_factory.h"
 #include "flow_solver/flow_solver_cases/periodic_turbulence.h"
+#include "flow_solver/flow_solver_cases/multispecies_tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -21,7 +22,9 @@ int EulerSplitEntropyCheck<dim, nspecies, nstate>::run_test() const
 
     using TwoPtFluxEnum = Parameters::AllParameters::TwoPointNumericalFlux;
     const std::array<TwoPtFluxEnum, n_fluxes> two_point_fluxes{{TwoPtFluxEnum::IR, TwoPtFluxEnum::CH, TwoPtFluxEnum::Ra, TwoPtFluxEnum::KG}};
-    const std::array<double, n_fluxes> tols{{5E-15, 5E-15, 5E-15, 1E-10}};
+    std::array<double, n_fluxes> tols{{5E-15, 5E-15, 5E-15, 1E-10}};
+    if (nspecies > 1)
+        tols = {{2E-6,2E-6,2E-6,2E-6}};
     const std::array<std::string, n_fluxes> flux_names{{"Ismail-Roe", "Chandrashekar", "Ranocha", "Kennedy-Gruber"}};
 
     for (unsigned int i = 0; i < n_fluxes; ++i){
@@ -40,9 +43,14 @@ int EulerSplitEntropyCheck<dim, nspecies, nstate>::run_test() const
         std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&parameters, parameter_handler);
 
         // Compute  initial and final entropy
-        std::shared_ptr<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>>(flow_solver->flow_solver_case);
+        #if PHILIP_SPECIES == 1
+            std::shared_ptr<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>>(flow_solver->flow_solver_case);
+        #else
+            std::shared_ptr<FlowSolver::MultispeciesTests<dim, nspecies, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::MultispeciesTests<dim, nspecies, nstate>>(flow_solver->flow_solver_case);
+        #endif
         flow_solver_case->compute_and_update_integrated_quantities(*flow_solver->dg);
         const double initial_KE = flow_solver_case->get_integrated_kinetic_energy();
+        const double initial_entropy = flow_solver_case->get_numerical_entropy(flow_solver->dg);
 
         static_cast<void>(flow_solver->run());
         const double final_entropy = flow_solver_case->get_numerical_entropy(flow_solver->dg); 
@@ -50,15 +58,20 @@ int EulerSplitEntropyCheck<dim, nspecies, nstate>::run_test() const
         const double final_KE = flow_solver_case->get_integrated_kinetic_energy();
 
         //Compare initial and final entropy to confirm entropy preservation
-        
-        pcout << "Final numerical entropy: " << final_entropy << std::endl;
+        if (nspecies == 1)
+            pcout << "Final numerical entropy: " << final_entropy << std::endl;
+        else
+            pcout << "Change in numerical entropy: " << abs(final_entropy-initial_entropy) << std::endl;
         pcout << "Initial kinetic energy: " << std::setprecision(16) << initial_KE << std::endl
               << "Final:                  " << final_KE << std::endl
               << "Scaled difference:      " << abs((initial_KE-final_KE)/initial_KE)
               << std::endl << std::endl;
 
 
-        if (abs(final_entropy) > tol){
+        if (nspecies==1 && abs(final_entropy) > tol){
+            pcout << "Entropy change is not within allowable tolerance. Test failing." << std::endl;
+            testfail = 1;
+        } else if (nspecies > 1 && abs(final_entropy-initial_entropy) > tol){
             pcout << "Entropy change is not within allowable tolerance. Test failing." << std::endl;
             testfail = 1;
         } else pcout << "Entropy change is allowable." << std::endl;
@@ -67,8 +80,8 @@ int EulerSplitEntropyCheck<dim, nspecies, nstate>::run_test() const
     return testfail;
 }
 
-#if PHILIP_DIM==3 && PHILIP_SPECIES==1
-    template class EulerSplitEntropyCheck<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
+#if PHILIP_DIM==3
+    template class EulerSplitEntropyCheck<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

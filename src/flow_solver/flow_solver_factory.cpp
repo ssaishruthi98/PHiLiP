@@ -162,12 +162,12 @@ FlowSolverFactory<dim,nspecies,nstate>
         } 
     }
     else if (nspecies > 1 && nstate==dim+nspecies+1) {
-        if (flow_type == FlowCaseEnum::multi_species_vortex_advection){
+        if (flow_type == FlowCaseEnum::ms_density_pulse){
             if constexpr ((nspecies==2||nspecies==3)){
                 std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
                 return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
             }
-        } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection_high_temp){
+        } else if (flow_type == FlowCaseEnum::ms_density_pulse_high_temp){
             if constexpr ((nspecies==2||nspecies==3)){
                 std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
                 return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
@@ -179,6 +179,11 @@ FlowSolverFactory<dim,nspecies,nstate>
             }
         } else if (flow_type == FlowCaseEnum::multi_species_isentropic_vortex){
             if constexpr (dim==2 && nspecies==2){
+                std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
+                return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            }
+        } else if (flow_type == FlowCaseEnum::multi_species_taylor_green_vortex_smooth){
+            if constexpr (dim==3 && nspecies==2){
                 std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
                 return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
             }
