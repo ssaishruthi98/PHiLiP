@@ -78,6 +78,20 @@ public:
     /// Allows user to modify DG object during flow solver routines
     virtual void modify_dg_object(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
     
+    /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
+     *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
+     * */
+    virtual void compute_and_update_integrated_quantities(DGBase<dim, nspecies, double> &dg);
+
+    /// Retrieves integrated numerical entropy
+    virtual double get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const;
+
+    /// Retrieves integrated kinetic energy 
+    virtual double get_integrated_kinetic_energy() const;
+
+    /// Retrieves integrated kinetic energy 
+    virtual double get_volume_term() const;
+
 protected:
     const Parameters::AllParameters all_param; ///< All parameters
     const MPI_Comm mpi_communicator; ///< MPI communicator.

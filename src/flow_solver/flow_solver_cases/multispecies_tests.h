@@ -28,18 +28,18 @@ public:
     std::shared_ptr<Triangulation> generate_grid() const override;
 
     /// Retrieves integrated numerical entropy
-    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const;
+    virtual double get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const;
 
     /// Retrieves integrated kinetic energy 
-    double get_integrated_kinetic_energy() const;
+    virtual double get_integrated_kinetic_energy() const;
 
     /// Retrieves integrated kinetic energy 
-    double get_volume_term() const;
+    virtual double get_volume_term() const;
 
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */
-    void compute_and_update_integrated_quantities(DGBase<dim, nspecies, double> &dg);
+    virtual void compute_and_update_integrated_quantities(DGBase<dim, nspecies, double> &dg);
     
 protected:
     /// List of possible integrated quantities over the domain

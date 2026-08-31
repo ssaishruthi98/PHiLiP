@@ -242,6 +242,39 @@ void FlowSolverCaseBase<dim, nspecies, nstate>::modify_dg_object(std::shared_ptr
     // Do nothing by default
 }
 
+template<int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim, nspecies, nstate>::compute_and_update_integrated_quantities(DGBase<dim, nspecies, double> &/*dg*/)
+{
+    // Do nothing by default
+}
+
+template<int dim, int nspecies, int nstate>
+double FlowSolverCaseBase<dim, nspecies, nstate>::get_integrated_kinetic_energy() const
+{
+    const double integrated_kinetic_energy = 0.0;
+    std::cout << "get_integrated_kinetic_energy() has not been implemented for this Flow Solver case...Aborting." << std::endl;
+    std::abort();
+    return integrated_kinetic_energy;
+}
+
+template<int dim, int nspecies, int nstate>
+double FlowSolverCaseBase<dim, nspecies, nstate>::get_volume_term() const
+{
+    const double integrated_volume_term = 0.0;
+    std::cout << "get_volume_term() has not been implemented for this Flow Solver case...Aborting." << std::endl;
+    std::abort();
+    return integrated_volume_term;
+}
+
+template<int dim, int nspecies, int nstate>
+double FlowSolverCaseBase<dim, nspecies, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const
+{
+    const double integrated_entropy = 0.0;
+    std::cout << "get_numerical_entropy() has not been implemented for this Flow Solver case...Aborting." << std::endl;
+    std::abort();
+    return integrated_entropy;
+}
+
 template <int dim, int nspecies, int nstate>
 void FlowSolverCaseBase<dim, nspecies, nstate>::set_time_step(
     const double time_step_input)
