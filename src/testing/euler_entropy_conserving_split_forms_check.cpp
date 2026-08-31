@@ -84,7 +84,7 @@ int EulerSplitEntropyCheck<dim, nspecies, nstate>::run_test() const
         if (nspecies > 1 && abs(final_volume_term - initial_volume_term) > volume_term_tol) {
             pcout << "Volume term change is not within allowable tolerance. Test failing." << std::endl;
             testfail = 1;
-        }
+        } else if (nspecies > 1) pcout << "Volume term change is allowable." << std::endl;
     }
 
     return testfail;
