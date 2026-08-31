@@ -383,6 +383,28 @@ inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
     return mixture_specific_total_energy;
 }
 
+// Compute kinetic energy when provided conservative solution
+template <int dim, int nspecies, int nstate, typename real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const std::array<real,nstate> primitive_soln = convert_conservative_to_primitive(conservative_soln);
+    const real kinetic_energy = compute_kinetic_energy_from_primitive_solution(primitive_soln);
+    return kinetic_energy;
+}
+
+// Compute kinetic energy when provided primitive solution
+template <int dim, int nspecies, int nstate, typename real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const
+{
+    const real density = primitive_soln[0];
+    const dealii::Tensor<1,dim,real> velocities = extract_velocities_from_primitive(primitive_soln);
+    const real vel2 = compute_velocity_squared(velocities);
+    const real kinetic_energy = 0.5*density*vel2;
+    return kinetic_energy;
+}
+
 // Algorithm 6 (f_M6): Compute species densities
 template <int dim, int nspecies, int nstate, typename real>
 inline std::array<real,nspecies> Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
@@ -542,6 +564,19 @@ inline real Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, real>
     }
 
     return entropy;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real Multispecies_CaloricallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_numerical_entropy_function ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real density = conservative_soln[0];
+
+    const real entropy = compute_entropy(conservative_soln);
+
+    const real numerical_entropy_function = - density * entropy;
+
+    return numerical_entropy_function;
 }
 
 // Compute Gibbs' energy of species using species entropy and species Cp

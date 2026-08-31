@@ -16,14 +16,41 @@ using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 template <int dim, int nspecies, int nstate>
 class MultispeciesTests : public CubeFlow_UniformGrid<dim,nspecies,nstate>
 {
+    /** Number of different computed quantities
+     *  Corresponds to the number of items in IntegratedQuantitiesEnum
+     * */
+    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 3;
 public:
     /// Constructor.
     explicit MultispeciesTests(const Parameters::AllParameters *const parameters_input);
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
+    
+    /// Retrieves integrated numerical entropy
+    virtual double get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const;
+
+    /// Retrieves integrated kinetic energy 
+    virtual double get_integrated_kinetic_energy() const;
+
+    /// Retrieves integrated kinetic energy 
+    virtual double get_volume_term() const;
+
+    /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
+     *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
+     * */
+    virtual void compute_and_update_integrated_quantities(DGBase<dim, nspecies, double> &dg);
 
 protected:
+    /// List of possible integrated quantities over the domain
+    enum IntegratedQuantitiesEnum {
+        kinetic_energy,
+        entropy,
+        volume_term
+    };
+    /// Array for storing the integrated quantities; done for computational efficiency
+    std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;
+
     /// Function to compute the adaptive time step
     using CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step;
 
@@ -59,8 +86,23 @@ protected:
     void display_grid_parameters() const;
     
 private:
+    /// Current time
+    double current_time = 0.0;
+    
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
+
+     /// Storing entropy at first step
+    double initial_entropy;
+
+    /// Storing kinetic energy at first step
+    double initial_kinetic_energy;
+
+    /// Storing kinetic energy at first step
+    double initial_volume_term;
+
+    // MS Euler physics pointer for computing physical quantities.
+    std::shared_ptr < Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double > > ms_euler_physics;
 };
 
 } // FlowSolver namespace

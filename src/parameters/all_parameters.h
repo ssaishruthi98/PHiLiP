@@ -221,7 +221,8 @@ public:
         halton_sampling_run,
         low_density,
         multi_species_vortex_advection,
-        multispecies_calorically_perfect_euler_split_taylor_green
+        multispecies_calorically_perfect_euler_split_taylor_green,
+        ms_euler_entropy_conserving_split_forms_check
     };
     /// Store selected TestType from the input file.
     TestType test_type;

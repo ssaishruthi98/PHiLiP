@@ -180,7 +180,12 @@ protected:
     // Algorithm 5 (f_M5): Compute mixture specific total energy from conservative_soln
     real compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Given primitive variables, returns kinetic energy
+    real compute_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const;
+
 public:
+    /// Given conservative variables, returns kinetic energy
+    real compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
     // Algorithm 6 (f_M6): Compute species densities from conservative_soln 
     std::array<real,nspecies> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -221,6 +226,9 @@ public:
     // Compute mixture entropy
     real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
     
+    /// Compute numerical entropy function -rho s 
+    real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
+
     // Algorithm 15 (f_M15): Compute temperature from conservative_soln
     virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
 

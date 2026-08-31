@@ -168,6 +168,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                   dealii::Patterns::Double(0.0, 10.0),
                   "For convergence tests related to limiters, expected order of accuracy for final run.");
 
+        // Currently used for TGV and multispecies cases
+        prm.declare_entry("do_calculate_numerical_entropy", "false",
+                    dealii::Patterns::Bool(),
+                    "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
+
         prm.enter_subsection("grid");
         {
             prm.declare_entry("input_mesh_filename", "",
@@ -324,10 +329,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
-            
-            prm.declare_entry("do_calculate_numerical_entropy", "false",
-                              dealii::Patterns::Bool(),
-                              "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
 
             prm.declare_entry("check_nonphysical_flow_case_behavior", "true",
                               dealii::Patterns::Bool(),
@@ -593,6 +594,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
         write_unsteady_data_table_file_every_dt_time_intervals = prm.get_double("write_unsteady_data_table_file_every_dt_time_intervals");
         expected_order_at_final_time = prm.get_double("expected_order_at_final_time");
+        do_calculate_numerical_entropy = prm.get_bool("do_calculate_numerical_entropy");
 
         prm.enter_subsection("grid");
         {
@@ -654,7 +656,6 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             const std::string density_initial_condition_type_string = prm.get("density_initial_condition_type");
             if      (density_initial_condition_type_string == "uniform")    {density_initial_condition_type = uniform;}
             else if (density_initial_condition_type_string == "isothermal") {density_initial_condition_type = isothermal;}
-            do_calculate_numerical_entropy = prm.get_bool("do_calculate_numerical_entropy");
             check_nonphysical_flow_case_behavior = prm.get_bool("check_nonphysical_flow_case_behavior");
         }
         prm.leave_subsection();

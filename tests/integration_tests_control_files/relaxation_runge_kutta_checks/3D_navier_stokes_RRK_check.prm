@@ -55,12 +55,10 @@ subsection flow_solver
   set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = turbulent_quantities
   set end_exactly_at_final_time = false
+  set do_calculate_numerical_entropy = true
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200
     set number_of_grid_elements_per_dimension = 4
-  end
-  subsection taylor_green_vortex
-    set do_calculate_numerical_entropy = true
   end
 end
