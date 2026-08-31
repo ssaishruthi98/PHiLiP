@@ -12,7 +12,7 @@ set number_of_species = 2
 
 # Test set up
 set pde_type = multispecies_calorically_perfect_euler
-set test_type = ms_euler_entropy_conserving_split_forms_check
+set test_type = ms_inviscid_tgv_entropy_conserving_split_forms_check
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 
 # DG formulation

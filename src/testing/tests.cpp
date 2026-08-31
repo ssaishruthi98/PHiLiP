@@ -357,12 +357,12 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         if constexpr (dim<3 && nstate==dim+2 && nspecies==1)  return std::make_unique<BoundPreservingLimiterTests<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::naca0012_unsteady_check_quick){
         if constexpr (dim==2 && nstate==dim+2 && nspecies==1)  return std::make_unique<NACA0012UnsteadyCheckQuick<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::multi_species_vortex_advection){
+    } else if(test_type == Test_enum::ms_density_pulse){
         if constexpr ((nspecies==2 || nspecies==3) && nstate==dim+nspecies+1) 
             return std::make_unique<MultispeciesVortexAdvection<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::multispecies_calorically_perfect_euler_split_taylor_green) {
+    } else if(test_type == Test_enum::ms_inviscid_tgv) {
         if constexpr (dim==3 && nstate == dim+nspecies+1) return std::make_unique<InviscidTaylorGreen<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::ms_euler_entropy_conserving_split_forms_check) {
+    } else if(test_type == Test_enum::ms_inviscid_tgv_entropy_conserving_split_forms_check) {
         if constexpr (dim==3 && nstate==dim+1+nspecies && nspecies==2)  return std::make_unique<EulerSplitEntropyCheck<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;

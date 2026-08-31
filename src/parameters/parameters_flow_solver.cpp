@@ -47,8 +47,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
                           " turbulent_airfoil_3D |"
-                          " multi_species_vortex_advection |"
-                          " multi_species_vortex_advection_high_temp | "
+                          " ms_density_pulse |"
+                          " ms_density_pulse_high_temp | "
                           " multi_species_sod_shock_tube |"
                           " multi_species_isentropic_vortex |"
                           " multi_species_taylor_green_vortex_smooth |"
@@ -82,8 +82,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
                           " turbulent_airfoil_3D | "
-                          " multi_species_vortex_advection | "
-                          " multi_species_vortex_advection_high_temp "
+                          " ms_density_pulse | "
+                          " ms_density_pulse_high_temp "
                           " multi_species_sod_shock_tube | " 
                           " multi_species_isentropic_vortex | "
                           " multi_species_taylor_green_vortex_smooth | "
@@ -555,8 +555,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
         else if (flow_case_type_string == "strong_vortex_shock_wave")   {flow_case_type = strong_vortex_shock_wave;}
         // Multispecies Tests
-        else if (flow_case_type_string == "multi_species_vortex_advection")            {flow_case_type = multi_species_vortex_advection;}
-        else if (flow_case_type_string == "multi_species_vortex_advection_high_temp")  {flow_case_type = multi_species_vortex_advection_high_temp;}
+        else if (flow_case_type_string == "ms_density_pulse")            {flow_case_type = ms_density_pulse;}
+        else if (flow_case_type_string == "ms_density_pulse_high_temp")  {flow_case_type = ms_density_pulse_high_temp;}
         else if (flow_case_type_string == "multi_species_sod_shock_tube")              {flow_case_type = multi_species_sod_shock_tube;}
         else if (flow_case_type_string == "multi_species_isentropic_vortex")           {flow_case_type = multi_species_isentropic_vortex;}
         else if (flow_case_type_string == "multi_species_taylor_green_vortex_smooth")  {flow_case_type = multi_species_taylor_green_vortex_smooth;}

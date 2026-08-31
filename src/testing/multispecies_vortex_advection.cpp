@@ -26,9 +26,9 @@ MultispeciesVortexAdvection<dim, nspecies, nstate>::MultispeciesVortexAdvection(
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = parameters_input->flow_solver_param.flow_case_type;
 
-    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::multi_species_vortex_advection) {    
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::ms_density_pulse) {    
         this->high_temp = false;
-    } else if (flow_case == Parameters::FlowSolverParam::FlowCaseType::multi_species_vortex_advection_high_temp) {    
+    } else if (flow_case == Parameters::FlowSolverParam::FlowCaseType::ms_density_pulse_high_temp) {    
         this->high_temp = true;
     }
 }

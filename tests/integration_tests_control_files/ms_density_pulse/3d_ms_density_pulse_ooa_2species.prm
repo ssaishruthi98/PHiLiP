@@ -9,10 +9,10 @@
 set dimension = 3
 
 # Chemical species
-set number_of_species = 3
-set test_type = multi_species_vortex_advection
+set number_of_species = 2
+set test_type = ms_density_pulse
 set pde_type = multispecies_calorically_perfect_euler
-set chemistry_input_file = ../../chemistry_files/H2_O2_N2.kinetics
+set chemistry_input_file = ../../chemistry_files/H2_O2.kinetics
 
 # DG formulation
 set use_weak_form = false
@@ -48,7 +48,7 @@ subsection euler
 end
 
 subsection flow_solver
-  set flow_case_type = multi_species_vortex_advection
+  set flow_case_type = ms_density_pulse
   set poly_degree = 2
   # 34.614724700315755 is 1 second in physical time. It takes 0.1 second (physical time) to run the case for one cycle.
   set final_time = 28.760076701316 # It is 0.1 second or 1 cycle
@@ -56,7 +56,7 @@ subsection flow_solver
   #set constant_time_step = 0.00129807 #34.614724700315755e-6 # It is 1*10^(-6) second in physical time
   set adaptive_time_step = true
   set courant_friedrichs_lewy_number = 0.1
-  set unsteady_data_table_filename = ms_vortex_advection
+  set unsteady_data_table_filename = ms_density_pulse
   # reaches p+1 if ran for finer grids 
   # restricted to lower expected order and grid to keep ctest short 
   set expected_order_at_final_time = 2.9
