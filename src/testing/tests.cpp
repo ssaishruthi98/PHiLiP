@@ -362,6 +362,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
             return std::make_unique<MultispeciesVortexAdvection<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::multispecies_calorically_perfect_euler_split_taylor_green) {
         if constexpr (dim==3 && nstate == dim+nspecies+1) return std::make_unique<InviscidTaylorGreen<dim,nspecies,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::ms_euler_entropy_conserving_split_forms_check) {
+        if constexpr (dim==3 && nstate==dim+1+nspecies && nspecies==2)  return std::make_unique<EulerSplitEntropyCheck<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();
