@@ -85,8 +85,6 @@ protected:
     /// Display grid parameters
     void display_grid_parameters() const;
     
-    double compute_volume_term(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const;
-
 private:
     /// Current time
     double current_time = 0.0;
