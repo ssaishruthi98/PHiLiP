@@ -682,10 +682,10 @@ public:
  * Computers & Fluids, 181, 364-382.
  */
 template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Multispecies_VortexAdvection: public InitialConditionFunction_MultispeciesEulerBase<dim,nspecies,nstate,real>
+class InitialConditionFunction_Multispecies_DensityPulse: public InitialConditionFunction_MultispeciesEulerBase<dim,nspecies,nstate,real>
 {
 public:
-    InitialConditionFunction_Multispecies_VortexAdvection (
+    InitialConditionFunction_Multispecies_DensityPulse (
             Parameters::AllParameters const *const param,
             bool high_temperature);
 protected:
