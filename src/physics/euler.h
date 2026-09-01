@@ -320,7 +320,9 @@ public:
     /// Given primitive variables, returns NON-DIMENSIONALIZED temperature using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */
     template<typename real2>
-    real2 compute_temperature ( const std::array<real2,nstate> &primitive_soln ) const;
+    real2 compute_temperature_templated ( const std::array<real2,nstate> &primitive_soln ) const;
+
+    real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Given pressure and temperature, returns NON-DIMENSIONALIZED density using free-stream non-dimensionalization
     /** See the book I do like CFD, sec 4.14.2 */

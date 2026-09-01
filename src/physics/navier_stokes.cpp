@@ -64,7 +64,7 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nspecies,nstate,real>
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
 {
     const real2 density = primitive_soln[0];
-    const real2 temperature = this->template compute_temperature<real2>(primitive_soln); // from Euler
+    const real2 temperature = this->template compute_temperature_templated<real2>(primitive_soln); // from Euler
 
     dealii::Tensor<1,dim,real2> temperature_gradient;
     for (int d=0; d<dim; d++) {
@@ -280,7 +280,7 @@ inline real2 NavierStokes<dim,nspecies,nstate,real>
      * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
      */
      
-    const real2 temperature = this->template compute_temperature<real2>(primitive_soln); // from Euler
+    const real2 temperature = this->template compute_temperature_templated<real2>(primitive_soln); // from Euler
 
     const real2 viscosity_coefficient = compute_viscosity_coefficient_sutherlands_law_from_temperature<real2>(temperature);
     
@@ -1177,7 +1177,7 @@ inline real NavierStokes<dim,nspecies,nstate,real>
     const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(conservative_soln); // from Euler
     
     // Step 2: Compute temperature
-    real temperature = this->template compute_temperature<real>(primitive_soln); // from Euler
+    real temperature = this->template compute_temperature_templated<real>(primitive_soln); // from Euler
 
     // Initialize AD objects
     adtype AD_temperature(1, 0, getValue<real>(temperature));
@@ -1433,7 +1433,7 @@ void NavierStokes<dim,nspecies,nstate,real>
         // Step 1: Primitive solutions
         const std::array<real,nstate> primitive_soln_int = this->template convert_conservative_to_primitive_templated<real>(soln_int); // from Euler
         std::array<real,nstate> primitive_soln_ext = this->template convert_conservative_to_primitive_templated<real>(soln_bc); // from Euler
-        const real temperature_int = this->template compute_temperature<real>(primitive_soln_int);
+        const real temperature_int = this->template compute_temperature_templated<real>(primitive_soln_int);
         const real temperature_ext = 2.0*this->isothermal_wall_temperature - temperature_int;
         // override the pressure based on the temperature
         primitive_soln_ext[nstate-1] = this->compute_pressure_from_density_temperature(primitive_soln_ext[0],temperature_ext);
@@ -1511,7 +1511,7 @@ dealii::Vector<double> NavierStokes<dim,nspecies,nstate,real>::post_compute_deri
         // Pressure coefficient
         computed_quantities(++current_data_index) = (primitive_soln[nstate-1] - this->pressure_inf) / this->dynamic_pressure_inf;
         // Temperature
-        computed_quantities(++current_data_index) = this->template compute_temperature<real>(primitive_soln);
+        computed_quantities(++current_data_index) = this->template compute_temperature_templated<real>(primitive_soln);
         // Entropy generation
         computed_quantities(++current_data_index) = this->compute_entropy_measure(conservative_soln) - this->entropy_inf;
         // Mach Number

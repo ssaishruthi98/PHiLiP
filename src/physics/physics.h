@@ -85,6 +85,9 @@ public:
     /// Compute gamma from conservative solution
     virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
 
+    // Compute temperature from conservative_soln
+    virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// Compute kinetic energy variables from conservative solution
     virtual std::array<real,nstate> compute_kinetic_energy_variables ( const std::array<real,nstate> &conservative_soln ) const;
 
