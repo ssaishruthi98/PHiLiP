@@ -58,7 +58,7 @@
 #include "HROM_error_post_sampling.h"
 #include "hyper_adaptive_sampling_new_error.h"
 #include "halton_sampling_run.h"
-#include "multispecies_vortex_advection.h"
+#include "multispecies_density_pulse.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -359,7 +359,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         if constexpr (dim==2 && nstate==dim+2 && nspecies==1)  return std::make_unique<NACA0012UnsteadyCheckQuick<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::ms_density_pulse){
         if constexpr ((nspecies==2 || nspecies==3) && nstate==dim+nspecies+1) 
-            return std::make_unique<MultispeciesVortexAdvection<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
+            return std::make_unique<MultispeciesDensityPulse<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::ms_inviscid_tgv) {
         if constexpr (dim==3 && nstate == dim+nspecies+1) return std::make_unique<InviscidTaylorGreen<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::ms_inviscid_tgv_entropy_conserving_split_forms_check) {
