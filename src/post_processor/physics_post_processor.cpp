@@ -22,6 +22,9 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim,nspec
     if (pde_type == PDE_enum::multispecies_calorically_perfect_euler) {
             return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+nspecies+1> >(parameters_input);
     }
+    if (pde_type == PDE_enum::multispecies_thermally_perfect_euler) {
+            return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+nspecies+1> >(parameters_input);
+    }
 #if PHILIP_SPECIES==1
     if (pde_type == PDE_enum::advection && nspecies == 1) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,1> >(parameters_input);
