@@ -243,7 +243,8 @@ public:
         navier_stokes_channel_flow_constant_source_term_wall_model,
         physics_model,
         physics_model_filtered,
-        multispecies_calorically_perfect_euler
+        multispecies_calorically_perfect_euler,
+        multispecies_thermally_perfect_euler
     };
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
@@ -332,6 +333,9 @@ public:
     double matching_surface_jac_det_tolerance;
 
     std::string chemistry_input_file; ///< Name of file containing NASA CAP data for species
+
+    /// Flag for displaying warnings for multi-species temperature calculations
+    bool display_multispecies_temperature_warnings = true;
 
     /// Flag for using wall model (initialized as false)
     bool using_wall_model = false;

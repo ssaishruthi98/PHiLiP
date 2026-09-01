@@ -47,7 +47,10 @@ DGFactory<dim,nspecies,real,MeshType>
             } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
                 return std::make_shared< DGWeak<dim,nspecies,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
             } else if(pde_type == PDE_enum::multispecies_calorically_perfect_euler) {
-                std::cout << "Real Gas PDE only supports 2 or more species... Aborting." << std::endl;
+                std::cout << "Multi-species PDE only supports 2 or more species... Aborting." << std::endl;
+                std::abort();
+            } else if(pde_type == PDE_enum::multispecies_thermally_perfect_euler) {
+                std::cout << "Multi-species PDE only supports 2 or more species... Aborting." << std::endl;
                 std::abort();
             }
 #if PHILIP_DIM==3
@@ -57,6 +60,10 @@ DGFactory<dim,nspecies,real,MeshType>
 #endif
         }
         else if (pde_type == PDE_enum::multispecies_calorically_perfect_euler) {
+        // nspecies > 1
+            return std::make_shared< DGWeak<dim,nspecies,dim+nspecies+1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        }
+        else if (pde_type == PDE_enum::multispecies_thermally_perfect_euler) {
         // nspecies > 1
             return std::make_shared< DGWeak<dim,nspecies,dim+nspecies+1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } 
@@ -86,6 +93,12 @@ DGFactory<dim,nspecies,real,MeshType>
                 return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
             } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
                 return std::make_shared< DGStrong<dim,nspecies,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if(pde_type == PDE_enum::multispecies_calorically_perfect_euler) {
+                std::cout << "Multi-species PDE only supports 2 or more species... Aborting." << std::endl;
+                std::abort();
+            } else if(pde_type == PDE_enum::multispecies_thermally_perfect_euler) {
+                std::cout << "Multi-species PDE only supports 2 or more species... Aborting." << std::endl;
+                std::abort();
             }
 #if PHILIP_DIM==3
             else if ((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && (model_type == Model_enum::large_eddy_simulation || model_type == Model_enum::navier_stokes_model)) {
@@ -108,6 +121,10 @@ DGFactory<dim,nspecies,real,MeshType>
 #endif
         }
         else if (pde_type == PDE_enum::multispecies_calorically_perfect_euler) {
+        // nspecies > 1
+            return std::make_shared< DGStrong<dim,nspecies,dim+nspecies+1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        } 
+        else if (pde_type == PDE_enum::multispecies_thermally_perfect_euler) {
         // nspecies > 1
             return std::make_shared< DGStrong<dim,nspecies,dim+nspecies+1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } 

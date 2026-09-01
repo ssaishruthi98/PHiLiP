@@ -88,6 +88,9 @@ public:
     /// Compute kinetic energy variables from conservative solution
     virtual std::array<real,nstate> compute_kinetic_energy_variables ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Compute species gas constants - only used by multispecies classes
+    virtual std::array<real,nspecies> compute_Rs () const;
+    
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
     convert_conservative_gradient_to_primitive_gradient (

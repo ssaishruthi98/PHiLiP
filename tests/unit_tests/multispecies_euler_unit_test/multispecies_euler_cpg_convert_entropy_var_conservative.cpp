@@ -29,8 +29,9 @@ int main (int argc, char * argv[])
 
     using ManufacturedSolutionEnum = PHiLiP::Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
     all_parameters.manufactured_convergence_study_param.manufactured_solution_param.manufactured_solution_type = ManufacturedSolutionEnum::atan_solution;
-    PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double> multispecies_calorically_perfect_euler_physics = PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double>(&all_parameters);
-
+    PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double> multispecies_calorically_perfect_euler_physics = 
+            PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double>(&all_parameters, all_parameters.euler_param.gamma_gas, all_parameters.euler_param.mach_inf);
+    
     const double min = 0.0;
     const double max = 1.0;
     const int nx = 11;

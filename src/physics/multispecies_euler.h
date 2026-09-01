@@ -33,7 +33,10 @@ public:
     /// Constructor
     Multispecies_CaloricallyPerfect_Euler ( 
         const Parameters::AllParameters *const                    parameters_input,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
         std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type_input = two_point_num_flux_enum::KG,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
@@ -52,7 +55,6 @@ public:
     const double temperature_ref; ///< reference temperature [K]
     const double u_ref; ///< reference velocity [m/s]
     const double u_ref_sqr; ///< reference velocity squared[m/s]^2
-    const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
     const double density_ref; ///< reference mixture density: [kg/m^3]
 
 public:
@@ -298,7 +300,7 @@ public:
 
 protected:
     // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
-    virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( ) const;
+    virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Compute gamma from conservative_soln
     virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
@@ -342,6 +344,86 @@ public:
     std::array<std::array<double, 6>, nspecies> Cp_poly_coeffs; // Coefficients of Cp polynomial (refitted function using NASA CAP data)
     std::array<std::array<double, 2>, nspecies> NASACAPTemperatureLimits; // Upper and lower temperature bound for the NASA CAP data
 };
+
+/// Multispecies_ThermallyPerfect_Euler equations. Derived from Multispecies_CaloricallyPerfect_Euler
+template <int dim, int nspecies, int nstate, typename real>
+class Multispecies_ThermallyPerfect_Euler : public Multispecies_CaloricallyPerfect_Euler <dim, nspecies, nstate, real>
+{
+public:
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
+    /// Constructor
+    Multispecies_ThermallyPerfect_Euler ( 
+        const Parameters::AllParameters *const                    parameters_input,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type_input = two_point_num_flux_enum::KG,
+        const bool                                                has_nonzero_diffusion = false,
+        const bool                                                has_nonzero_physical_source = false);
+
+    /// Destructor
+    ~Multispecies_ThermallyPerfect_Euler() {};
+
+    const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
+    const bool display_warning;
+
+protected:
+    // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
+    // Modified by Shruthi: This function now uses a nondimensional polynomial that is a refit of the NASA9 model
+    std::array<real,nspecies> compute_species_specific_Cp ( const real temperature ) const;
+
+    // Algorithm 12 (f_M12): Compute species specific heat at constant volume from temperature
+    std::array<real,nspecies>compute_species_specific_Cv ( const real temperature ) const;
+
+    // Algorithm 13 (f_M13): Compute species specific enthalpy from temperature
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
+    // Modified by Shruthi
+    std::array<real,nspecies> compute_species_specific_enthalpy ( const real temperature ) const;   
+
+    // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
+    std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
+    
+    // Compute Cv integral component of the species entropy equation
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
+    std::array<real,nspecies> compute_species_entropy_cv_integral ( const real temperature ) const; 
+public:
+    // Compute species entropy from temperature and species density
+    std::array<real,nspecies> compute_species_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Compute species Gibbs' energy using species entropy and species Cp
+    std::array<real,nspecies> compute_species_gibbs_energy ( const std::array<real,nstate> &conservative_soln ) const;
+
+public:
+    /// Computes the entropy variables.
+    std::array<real,nstate> compute_entropy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
+
+    /// Computes the conservative variables from the entropy variables.
+    std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
+                const std::array<real,nstate> &entropy_var) const;
+
+    // Algorithm 15 (f_M15): Compute temperature from conservative_soln
+    virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Algorithm 17 (f_M17): Compute mixture pressure from conservative_soln
+    real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Algorithm 20 (f_S20): Convert primitive to conservative 
+    virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const; 
+
+    // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
+    virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Compute gamma from conservative_soln
+    virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
+
+    ///  Evaluates convective flux based on the chosen split form.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const override;
+};
+
 } // Physics namespace
 } // PHiLiP namespace
 

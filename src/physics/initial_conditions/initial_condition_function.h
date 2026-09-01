@@ -189,7 +189,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
 
     // Real Gas physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double > > multispecies_calorically_perfect_euler_physics;
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > multispecies_euler_physics;
 };
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
@@ -692,6 +692,8 @@ protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
     bool use_high_temp_ic;
+    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
+    const double mach_inf; ///< Farfield Mach number.
 };
 
 /// 1D Initial Condition Function: Multispecies_SodShockTube

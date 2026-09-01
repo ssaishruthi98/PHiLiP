@@ -43,7 +43,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("number_of_species", "1",
                       dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
                       "Number of species. "
-                      "Default number of species is 1. For number_of_species > 1, only multispecies_calorically_perfect_euler pde_type can be used.");
+                      "Default number of species is 1. For number_of_species > 1, only multi-species PDE types can be used.");
 
     prm.declare_entry("run_type", "integration_test",
                       dealii::Patterns::Selection(
@@ -298,7 +298,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " navier_stokes_channel_flow_constant_source_term_wall_model | "
                       " physics_model_filtered |"
                       " physics_model |"
-                      " multispecies_calorically_perfect_euler"),
+                      " multispecies_calorically_perfect_euler |"
+                      " multispecies_thermally_perfect_euler"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -315,7 +316,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  navier_stokes_channel_flow_constant_source_term_wall_model | "
                       "  physics_model_filtered |"
                       "  physics_model |"
-                      "  multispecies_calorically_perfect_euler>.");
+                      "  multispecies_calorically_perfect_euler |"
+                      "  multispecies_thermally_perfect_euler>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
@@ -396,6 +398,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("chemistry_input_file", "",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Filename of the chemistry data file that contains the properties of the species used in simulation. (ex. H2_O2.kinetics");
+
+    prm.declare_entry("display_multispecies_temperature_warnings", "true",
+                      dealii::Patterns::Bool(),
+                      "Flag for whether a warning should be displayed for multi-species flow when the temperature is more than 20% outside the range of the NASA9 polynomial model.");
 
     prm.declare_entry("wall_model_input_from_second_element", "true",
                       dealii::Patterns::Bool(),
@@ -560,6 +566,9 @@ const std::string test_string = prm.get("test_type");
     } else if (pde_string == "multispecies_calorically_perfect_euler") {
         pde_type = multispecies_calorically_perfect_euler;
         nstate = dimension+number_of_species+1;
+    }  else if (pde_string == "multispecies_thermally_perfect_euler") {
+        pde_type = multispecies_thermally_perfect_euler;
+        nstate = dimension+number_of_species+1;
     }
     
     overintegration = prm.get_integer("overintegration");
@@ -668,6 +677,7 @@ const std::string test_string = prm.get("test_type");
     wall_model_input_from_second_element = prm.get_bool("wall_model_input_from_second_element");
 
     chemistry_input_file = prm.get("chemistry_input_file");
+    display_multispecies_temperature_warnings = prm.get_bool("display_multispecies_temperature_warnings");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);
