@@ -69,14 +69,14 @@ if(${NUMBER_OF_SPECIES} EQUAL 3)
 	  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_ms_density_pulse_pde_test_ooa_3species.prm
 	  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 	)
-	set_tests_labels(1D_MULTISPECIES_DENSITY_PULSE_3_SPECIES_OOA MULTISPECIES_DENSITY_PULSE
-																	1D
-																	SERIAL
-																	MULTISPECIES
-																	3SPECIES
-																	STRONG-SPLIT
-																	COLLOCATED
-																	OOA)
+	set_tests_labels(1D_MULTISPECIES_DENSITY_PULSE_3_SPECIES_OOA_PDE_TEST   MULTISPECIES_DENSITY_PULSE
+																			1D
+																			SERIAL
+																			MULTISPECIES
+																			3SPECIES
+																			STRONG-SPLIT
+																			COLLOCATED
+																			OOA)
 
 	# configure_file(1d_ms_density_pulse_ooa_3species.prm 1d_ms_density_pulse_ooa_3species.prm COPYONLY)
 	# add_test(
