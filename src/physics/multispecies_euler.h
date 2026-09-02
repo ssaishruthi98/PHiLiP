@@ -422,6 +422,20 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const override;
+    
+    /** Entropy conserving split form flux of Chandrashekar.
+     *  Refer to Gouasmi's thesis, Eq. 4.28  
+     *  Derivation details will be included in Shruthi's future paper/thesis*/
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /** Entropy conserving split form flux of Chandrashekar with Ranocha's fix for KEP.
+     *  Refer to Gouasmi's thesis, Eq. 4.28 for Chandrashekar flux 
+     *  Derivation details for the KEP fix will be included in Shruthi's future paper/thesis*/
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
 };
 
 } // Physics namespace
