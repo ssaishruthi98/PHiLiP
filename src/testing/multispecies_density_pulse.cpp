@@ -4,7 +4,7 @@
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/fe/fe_values.h>
 
-#include "multispecies_vortex_advection.h"
+#include "multispecies_density_pulse.h"
 #include "physics/initial_conditions/initial_condition_function.h"
 #include "flow_solver/flow_solver_factory.h"
 
@@ -12,7 +12,7 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nspecies, int nstate>
-MultispeciesVortexAdvection<dim, nspecies, nstate>::MultispeciesVortexAdvection(
+MultispeciesDensityPulse<dim, nspecies, nstate>::MultispeciesDensityPulse(
     const PHiLiP::Parameters::AllParameters* const parameters_input,
     const dealii::ParameterHandler& parameter_handler_input)
     :
@@ -34,7 +34,7 @@ MultispeciesVortexAdvection<dim, nspecies, nstate>::MultispeciesVortexAdvection(
 }
 
 template <int dim, int nspecies, int nstate>
-double MultispeciesVortexAdvection<dim, nspecies, nstate>::get_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
+double MultispeciesDensityPulse<dim, nspecies, nstate>::get_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
@@ -79,7 +79,7 @@ double MultispeciesVortexAdvection<dim, nspecies, nstate>::get_time_step(std::sh
 }
 
 template <int dim, int nspecies, int nstate>
-std::array<std::array<double,3>,nstate+1> MultispeciesVortexAdvection<dim, nspecies, nstate>::calculate_l_n_error(
+std::array<std::array<double,3>,nstate+1> MultispeciesDensityPulse<dim, nspecies, nstate>::calculate_l_n_error(
     std::shared_ptr<DGBase<dim, nspecies, double>> dg,
     const int poly_degree,
     const double /*final_time*/,
@@ -152,7 +152,7 @@ std::array<std::array<double,3>,nstate+1> MultispeciesVortexAdvection<dim, nspec
 }
 
 template <int dim, int nspecies, int nstate>
-int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
+int MultispeciesDensityPulse<dim, nspecies, nstate>::run_test() const
 {
     pcout << " Running Multispecies Vortex Advection test. " << std::endl;
     pcout << dim << "    " << nstate << std::endl;
@@ -288,7 +288,7 @@ int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
 }
 
 #if PHILIP_SPECIES>1
-template class MultispeciesVortexAdvection<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1>;
+template class MultispeciesDensityPulse<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace
