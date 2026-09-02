@@ -221,6 +221,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " khi_robustness | "
                       " low_density | "
                       " ms_density_pulse | "
+                      " ms_density_pulse_pde_ooa_test | "
                       " ms_inviscid_tgv | "
                       " ms_inviscid_tgv_entropy_conserving_split_forms_check"),
                       "The type of test we want to solve. "
@@ -279,6 +280,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  khi_robustness | "
                       "  low_density | " 
                       "  ms_density_pulse | "
+                      "  ms_density_pulse_pde_ooa_test | "
                       "  ms_inviscid_tgv |" 
                       "  ms_inviscid_tgv_entropy_conserving_split_forms_check>.");
 
@@ -502,7 +504,8 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "halton_sampling_run")                      { test_type = halton_sampling_run; }
     else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
-    else if (test_string == "ms_density_pulse")           { test_type = ms_density_pulse; }
+    else if (test_string == "ms_density_pulse")                         { test_type = ms_density_pulse; }
+    else if (test_string == "ms_density_pulse_pde_ooa_test")            { test_type = ms_density_pulse_pde_ooa_test; }
     else if (test_string == "ms_inviscid_tgv")  { test_type = ms_inviscid_tgv; }
     else if (test_string == "ms_inviscid_tgv_entropy_conserving_split_forms_check")              { test_type = ms_inviscid_tgv_entropy_conserving_split_forms_check; }
     

@@ -6,13 +6,13 @@
 
 
 # Number of dimensions
-set dimension = 2
+set dimension = 1
 
 # Chemical species
-set number_of_species = 3
-set test_type = ms_density_pulse
-set pde_type = multispecies_calorically_perfect_euler
-set chemistry_input_file = ../../chemistry_files/H2_O2_N2.kinetics
+set number_of_species = 2
+set test_type = ms_density_pulse_pde_ooa_test
+set pde_type = multispecies_thermally_perfect_euler
+set chemistry_input_file = ../../chemistry_files/H2_O2.kinetics
 
 # DG formulation
 set use_weak_form = false
@@ -22,12 +22,11 @@ set check_same_coords_in_weak_dg = false
 
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
-set flux_nodes_type = GLL
 
 # numerical fluxes
 #set conv_num_flux = lax_friedrichs
 set use_split_form = true
-set two_point_num_flux_type = IR
+set two_point_num_flux_type = KG
 set conv_num_flux = two_point_flux
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
@@ -44,22 +43,19 @@ end
 
 # freestream Mach number
 subsection euler
-  set mach_infinity = 0.8308625
+  set mach_infinity = 0.8308625 #this nondims pressure to 1 for the low temp advection. for high temp, pressure will be 5
 end
 
 subsection flow_solver
   set flow_case_type = ms_density_pulse
-  set poly_degree = 2
-  # 34.614724700315755 is 1 second in physical time. It takes 0.1 second (physical time) to run the case for one cycle.
-  set final_time = 28.760076701316 # It is 0.1 second or 1 cycle
-  #set adaptive_time_step = false
-  #set constant_time_step = 0.00129807 #34.614724700315755e-6 # It is 1*10^(-6) second in physical time
+  set poly_degree = 5
+  # 34.614724700315755 is 1 second in physical time for m_inf = 0.1
+  # Final time is set to 34.614724700315755 * m_inf for one full cycle 
+  # ie. final solution = initial condition
+  set final_time =  28.760076701316 # 1 full cycle
   set adaptive_time_step = true
-  set courant_friedrichs_lewy_number = 0.1
+  set courant_friedrichs_lewy_number = 0.25
   set unsteady_data_table_filename = ms_density_pulse
-  # reaches p+1 if ran for finer grids 
-  # restricted to lower expected order and grid to keep ctest short 
-  set expected_order_at_final_time = 2.9
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 10.0
@@ -78,8 +74,8 @@ subsection manufactured solution convergence study
   set grid_progression_add  = 0
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 3
+  set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 7
+  set number_of_grids   = 4
 end

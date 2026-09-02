@@ -214,6 +214,24 @@ std::array<real,nstate> PhysicsBase<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
+inline real PhysicsBase<dim,nspecies,nstate,real>
+::compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &/*conservative_soln*/ ) const
+{
+    std::cout << "The compute_kinetic_energy_from_conservative_solution function has not been implemented for this PDE...Aborting." << std::endl;
+    std::abort();
+    return 0;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real PhysicsBase<dim,nspecies,nstate,real>
+::compute_numerical_entropy_function ( const std::array<real,nstate> &/*conservative_soln*/ ) const
+{
+    std::cout << "The compute_numerical_entropy_function function has not been implemented for this PDE...Aborting." << std::endl;
+    std::abort();
+    return 0;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> PhysicsBase<dim,nspecies,nstate,real>
 ::compute_Rs ( ) const
 {

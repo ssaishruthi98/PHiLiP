@@ -42,8 +42,8 @@ private:
     /// Function to compute the initial adaptive time step
     double get_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const; 
 
-    /// Real Gas physics pointer for computing physical quantities.
-    std::shared_ptr < PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double > > multispecies_calorically_perfect_euler_physics;
+    // Real Gas physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > multispecies_euler_physics;
 };
 
 } // End of Tests namespace

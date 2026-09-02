@@ -101,8 +101,8 @@ private:
     /// Storing kinetic energy at first step
     double initial_volume_term;
 
-    // MS Euler physics pointer for computing physical quantities.
-    std::shared_ptr < Physics::Multispecies_CaloricallyPerfect_Euler<dim, nspecies, nstate, double > > ms_euler_physics;
+    // Real Gas physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > multispecies_euler_physics;
 };
 
 } // FlowSolver namespace

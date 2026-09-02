@@ -81,5 +81,5 @@ subsection manufactured solution convergence study
   set initial_grid_size = 3
 
   # Number of grids in grid study
-  set number_of_grids   = 5
+  set number_of_grids   = 7
 end

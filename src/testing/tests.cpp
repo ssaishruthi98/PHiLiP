@@ -357,7 +357,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         if constexpr (dim<3 && nstate==dim+2 && nspecies==1)  return std::make_unique<BoundPreservingLimiterTests<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::naca0012_unsteady_check_quick){
         if constexpr (dim==2 && nstate==dim+2 && nspecies==1)  return std::make_unique<NACA0012UnsteadyCheckQuick<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::ms_density_pulse){
+    } else if(test_type == Test_enum::ms_density_pulse || test_type == Test_enum::ms_density_pulse_pde_ooa_test){
         if constexpr ((nspecies==2 || nspecies==3) && nstate==dim+nspecies+1) 
             return std::make_unique<MultispeciesDensityPulse<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::ms_inviscid_tgv) {

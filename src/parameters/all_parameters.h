@@ -221,6 +221,7 @@ public:
         halton_sampling_run,
         low_density,
         ms_density_pulse,
+        ms_density_pulse_pde_ooa_test,
         ms_inviscid_tgv,
         ms_inviscid_tgv_entropy_conserving_split_forms_check
     };

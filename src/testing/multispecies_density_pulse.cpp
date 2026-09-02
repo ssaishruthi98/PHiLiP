@@ -19,9 +19,18 @@ MultispeciesDensityPulse<dim, nspecies, nstate>::MultispeciesDensityPulse(
     TestsBase::TestsBase(parameters_input)
     , parameter_handler(parameter_handler_input)
 {
-    //create the Physics object
-    this->multispecies_calorically_perfect_euler_physics = std::dynamic_pointer_cast<PHiLiP::Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,dim+nspecies+1,double>>(
-            PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));
+    // Real Gas object; create using dynamic_pointer_cast and the create_Physics factory
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    PHiLiP::Parameters::AllParameters ms_param = *parameters_input;
+  
+    PDE_enum pde_type = ms_param.pde_type;
+    if (pde_type == PDE_enum::multispecies_calorically_perfect_euler || pde_type == PDE_enum::multispecies_thermally_perfect_euler) {
+        this->multispecies_euler_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nspecies,nstate,double>>(
+                                                Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&ms_param));
+    } else {
+        std::cout << "Cannot run multi-species test case for single species PDE type...Aborting." << std::endl;
+        std::abort();
+    }
 
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = parameters_input->flow_solver_param.flow_case_type;
@@ -65,7 +74,7 @@ double MultispeciesDensityPulse<dim, nspecies, nstate>::get_time_step(std::share
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                 soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
             }
-            double local_wave_speed = this->multispecies_calorically_perfect_euler_physics->max_convective_eigenvalue(soln_at_q);
+            double local_wave_speed = this->multispecies_euler_physics->max_convective_eigenvalue(soln_at_q);
             if(local_wave_speed > maximum_local_wave_speed) maximum_local_wave_speed = local_wave_speed;
         }
     }
@@ -114,18 +123,18 @@ std::array<std::array<double,3>,nstate+1> MultispeciesDensityPulse<dim, nspecies
                 const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                 soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
             }
-            double temperature_at_q = this->multispecies_calorically_perfect_euler_physics->compute_temperature(soln_at_q);
+            double temperature_at_q = this->multispecies_euler_physics->compute_temperature(soln_at_q);
 
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
             std::array<double, nstate> soln_exact;
             for(int istate = 0; istate < nstate; istate++)
                 soln_exact[istate] = flow_solver->flow_solver_case->initial_condition_function->value(qpoint,istate);
-            soln_exact_primitive = this->multispecies_calorically_perfect_euler_physics->convert_conservative_to_primitive(soln_exact);
-            double temperature_exact = this->multispecies_calorically_perfect_euler_physics->compute_temperature(soln_exact);
+            soln_exact_primitive = this->multispecies_euler_physics->convert_conservative_to_primitive(soln_exact);
+            double temperature_exact = this->multispecies_euler_physics->compute_temperature(soln_exact);
             
             for(int istate = 0; istate < nstate; ++istate) {
-                std::array<double, nstate> soln_at_q_primitive = this->multispecies_calorically_perfect_euler_physics->convert_conservative_to_primitive(soln_at_q);
+                std::array<double, nstate> soln_at_q_primitive = this->multispecies_euler_physics->convert_conservative_to_primitive(soln_at_q);
                 lerror_primitive[istate][0] += pow(abs(soln_at_q_primitive[istate] - soln_exact_primitive[istate]), 1.0) * fe_values_extra.JxW(iquad);
                 lerror_primitive[istate][1] += pow(abs(soln_at_q_primitive[istate] - soln_exact_primitive[istate]), 2.0) * fe_values_extra.JxW(iquad);
                 //L-infinity norm
@@ -158,9 +167,27 @@ int MultispeciesDensityPulse<dim, nspecies, nstate>::run_test() const
     pcout << dim << "    " << nstate << std::endl;
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
 
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    std::vector<PDE_enum> pde_types;
+    
+    using Test_enum = Parameters::AllParameters::TestType;
+    const Test_enum test_type = all_parameters_new.test_type;
+
+    int n_pde = 0.0;
+    if (test_type == Test_enum::ms_density_pulse) {
+        pde_types.push_back(all_parameters_new.pde_type);
+        n_pde = 1;
+    }
+    if (test_type == Test_enum::ms_density_pulse_pde_ooa_test) {
+        pde_types.push_back(PDE_enum::multispecies_calorically_perfect_euler);
+        pde_types.push_back(PDE_enum::multispecies_thermally_perfect_euler);
+        n_pde = 2;
+    }
+
     PHiLiP::Parameters::ManufacturedConvergenceStudyParam manu_grid_conv_param = all_parameters_new.manufactured_convergence_study_param;
 
     const unsigned int n_grids = manu_grid_conv_param.number_of_grids;
+    const unsigned int init_grid = manu_grid_conv_param.initial_grid_size;
     dealii::ConvergenceTable convergence_table;
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error_l2(n_grids);
@@ -168,123 +195,135 @@ int MultispeciesDensityPulse<dim, nspecies, nstate>::run_test() const
     double expected_order = all_parameters_new.flow_solver_param.expected_order_at_final_time;
     if(expected_order==0.0)
         expected_order = all_parameters_new.flow_solver_param.poly_degree + 1.0;
-
-    for (unsigned int igrid = 2; igrid < n_grids; igrid++) {
+    
+    int testfail = 0;
+    for (int i_pde = 0; i_pde < n_pde; i_pde++) {
 
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 
         Parameters::AllParameters param = *(TestsBase::all_parameters);
-        param.flow_solver_param.grid_degree = param.flow_solver_param.poly_degree + 1;
-        param.flow_solver_param.number_of_grid_elements_per_dimension = pow(2.0,igrid);
-        int grid_elem = param.flow_solver_param.number_of_grid_elements_per_dimension;
-        param.flow_solver_param.number_of_grid_elements_x = grid_elem;
-        
-        // Create flow solver to access DG object which is needed to calculate time step
-        std::shared_ptr<FlowSolver::FlowSolver<dim, nspecies, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
+        param.pde_type = pde_types[i_pde];
+        for (unsigned int igrid = init_grid; igrid < n_grids; igrid++) {
 
-        const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
-        const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
-        flow_solver->run();
-        const double final_time_actual = flow_solver->ode_solver->current_time;
+            param.flow_solver_param.grid_degree = param.flow_solver_param.poly_degree + 1;
+            param.flow_solver_param.number_of_grid_elements_per_dimension = pow(2.0,igrid);
+            int grid_elem = param.flow_solver_param.number_of_grid_elements_per_dimension;
+            param.flow_solver_param.number_of_grid_elements_x = grid_elem;
+            
+            // Create flow solver to access DG object which is needed to calculate time step
+            std::shared_ptr<FlowSolver::FlowSolver<dim, nspecies, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
 
-        // output results
-        const unsigned int n_dofs = flow_solver->dg->dof_handler.n_dofs();
-        this->pcout << "Dimension: " << dim
-        << "\t Polynomial degree p: " << poly_degree
-        << std::endl
-        << "Grid number: " << igrid + 1 << "/" << n_grids
-        << ". Number of active cells: " << n_global_active_cells
-        << ". Number of degrees of freedom: " << n_dofs
-        << std::endl;
+            const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
+            const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
+            flow_solver->run();
+            const double final_time_actual = flow_solver->ode_solver->current_time;
 
-        const std::array<std::array<double,3>,nstate+1> lerror_mpi_sum = calculate_l_n_error(flow_solver->dg, poly_degree, final_time_actual, flow_solver);
-
-        // Convergence table
-        const double dx = 10.0 / pow(n_dofs, (1.0 / dim));
-        grid_size[igrid] = dx;
-        soln_error_l2[igrid] = lerror_mpi_sum[0][1];
-
-        convergence_table.add_value("p", poly_degree);
-        convergence_table.add_value("cells", n_global_active_cells);
-        convergence_table.add_value("DoFs", n_dofs);
-        convergence_table.add_value("dx", dx);
-        convergence_table.add_value("density_L1", lerror_mpi_sum[0][0]);
-        convergence_table.add_value("density_L2", lerror_mpi_sum[0][1]);
-        convergence_table.add_value("density_Linf", lerror_mpi_sum[0][2]);
-        convergence_table.add_value("pressure_L1", lerror_mpi_sum[dim+1][0]);
-        convergence_table.add_value("pressure_L2", lerror_mpi_sum[dim+1][1]);
-        convergence_table.add_value("pressure_Linf", lerror_mpi_sum[dim+1][2]);
-        convergence_table.add_value("Y_H2_L1", lerror_mpi_sum[dim+2][0]);
-        convergence_table.add_value("Y_H2_L2", lerror_mpi_sum[dim+2][1]);
-        convergence_table.add_value("Y_H2_Linf", lerror_mpi_sum[dim+2][2]);
-
-        this->pcout << " Grid size h: " << dx
-            << " Density L1-soln_error: " << lerror_mpi_sum[0][0]
-            << " Density L2-soln_error: " << lerror_mpi_sum[0][1]
-            << " Density Linf-soln_error: " << lerror_mpi_sum[0][2]
-            << " Residual: " << flow_solver->ode_solver->residual_norm
+            // output results
+            const unsigned int n_dofs = flow_solver->dg->dof_handler.n_dofs();
+            this->pcout << "Dimension: " << dim
+            << "\t Polynomial degree p: " << poly_degree
+            << std::endl
+            << "Grid number: " << igrid + 1 << "/" << n_grids
+            << ". Number of active cells: " << n_global_active_cells
+            << ". Number of degrees of freedom: " << n_dofs
             << std::endl;
 
-        if (igrid > 0) {
-            const double slope_soln_err = log(soln_error_l2[igrid] / soln_error_l2[igrid - 1])
-                / log(grid_size[igrid] / grid_size[igrid - 1]);
+            const std::array<std::array<double,3>,nstate+1> lerror_mpi_sum = calculate_l_n_error(flow_solver->dg, poly_degree, final_time_actual, flow_solver);
 
-            if (igrid == n_grids - 1)
-                final_order = slope_soln_err;
+            // Convergence table
+            const double dx = 10.0 / pow(n_dofs, (1.0 / dim));
+            grid_size[igrid] = dx;
+            soln_error_l2[igrid] = lerror_mpi_sum[0][1];
 
-            this->pcout << "From grid " << igrid - 1
-                << "  to grid " << igrid
-                << "  dimension: " << dim
-                << "  polynomial degree p: " << poly_degree
-                << std::endl
-                << "  solution_error1 " << soln_error_l2[igrid - 1]
-                << "  solution_error2 " << soln_error_l2[igrid]
-                << "  slope " << slope_soln_err
+            convergence_table.add_value("p", poly_degree);
+            convergence_table.add_value("cells", n_global_active_cells);
+            convergence_table.add_value("DoFs", n_dofs);
+            convergence_table.add_value("dx", dx);
+            convergence_table.add_value("density_L1", lerror_mpi_sum[0][0]);
+            convergence_table.add_value("density_L2", lerror_mpi_sum[0][1]);
+            convergence_table.add_value("density_Linf", lerror_mpi_sum[0][2]);
+            convergence_table.add_value("pressure_L1", lerror_mpi_sum[dim+1][0]);
+            convergence_table.add_value("pressure_L2", lerror_mpi_sum[dim+1][1]);
+            convergence_table.add_value("pressure_Linf", lerror_mpi_sum[dim+1][2]);
+            convergence_table.add_value("Y_H2_L1", lerror_mpi_sum[dim+2][0]);
+            convergence_table.add_value("Y_H2_L2", lerror_mpi_sum[dim+2][1]);
+            convergence_table.add_value("Y_H2_Linf", lerror_mpi_sum[dim+2][2]);
+
+            this->pcout << " Grid size h: " << dx
+                << " Density L1-soln_error: " << lerror_mpi_sum[0][0]
+                << " Density L2-soln_error: " << lerror_mpi_sum[0][1]
+                << " Density Linf-soln_error: " << lerror_mpi_sum[0][2]
+                << " Residual: " << flow_solver->ode_solver->residual_norm
                 << std::endl;
+
+            if (igrid > 0) {
+                const double slope_soln_err = log(soln_error_l2[igrid] / soln_error_l2[igrid - 1])
+                    / log(grid_size[igrid] / grid_size[igrid - 1]);
+
+                if (igrid == n_grids - 1)
+                    final_order = slope_soln_err;
+
+                this->pcout << "From grid " << igrid - 1
+                    << "  to grid " << igrid
+                    << "  dimension: " << dim
+                    << "  polynomial degree p: " << poly_degree
+                    << std::endl
+                    << "  solution_error1 " << soln_error_l2[igrid - 1]
+                    << "  solution_error2 " << soln_error_l2[igrid]
+                    << "  slope " << slope_soln_err
+                    << std::endl;
+            }
+
+            this->pcout << " ********************************************"
+                << std::endl
+                << " Convergence rates for p = " << poly_degree
+                << std::endl
+                << " ********************************************"
+                << std::endl;
+            convergence_table.evaluate_convergence_rates("density_L1", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.evaluate_convergence_rates("density_L2", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.evaluate_convergence_rates("density_Linf", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.evaluate_convergence_rates("pressure_L1", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.evaluate_convergence_rates("pressure_L2", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.evaluate_convergence_rates("pressure_Linf", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.evaluate_convergence_rates("Y_H2_L1", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.evaluate_convergence_rates("Y_H2_L2", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.evaluate_convergence_rates("Y_H2_Linf", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+            convergence_table.set_scientific("dx", true);
+            convergence_table.set_scientific("density_L1", true);
+            convergence_table.set_scientific("density_L2", true);
+            convergence_table.set_scientific("density_Linf", true);
+            convergence_table.set_scientific("pressure_L1", true);
+            convergence_table.set_scientific("pressure_L2", true);
+            convergence_table.set_scientific("pressure_Linf", true);
+            convergence_table.set_scientific("Y_H2_L1", true);
+            convergence_table.set_scientific("Y_H2_L2", true);
+            convergence_table.set_scientific("Y_H2_Linf", true);
+            if (this->pcout.is_active()) convergence_table.write_text(this->pcout.get_stream());
+
+            std::ofstream table_file("convergence_rates.txt");
+            convergence_table.write_text(table_file);
+
+            
+        }//end of grid loop
+        if (final_order > expected_order - 0.1) {
+            std::cout << "Expected order is reached!" << std::endl;
         }
-
-        this->pcout << " ********************************************"
-            << std::endl
-            << " Convergence rates for p = " << poly_degree
-            << std::endl
-            << " ********************************************"
-            << std::endl;
-        convergence_table.evaluate_convergence_rates("density_L1", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("density_L2", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("density_Linf", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("pressure_L1", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("pressure_L2", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("pressure_Linf", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("Y_H2_L1", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("Y_H2_L2", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.evaluate_convergence_rates("Y_H2_Linf", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.set_scientific("dx", true);
-        convergence_table.set_scientific("density_L1", true);
-        convergence_table.set_scientific("density_L2", true);
-        convergence_table.set_scientific("density_Linf", true);
-        convergence_table.set_scientific("pressure_L1", true);
-        convergence_table.set_scientific("pressure_L2", true);
-        convergence_table.set_scientific("pressure_Linf", true);
-        convergence_table.set_scientific("Y_H2_L1", true);
-        convergence_table.set_scientific("Y_H2_L2", true);
-        convergence_table.set_scientific("Y_H2_Linf", true);
-        if (this->pcout.is_active()) convergence_table.write_text(this->pcout.get_stream());
-
-        std::ofstream table_file("convergence_rates.txt");
-        convergence_table.write_text(table_file);
-
-        
-    }//end of grid loop
-
-    if(final_order > expected_order - 0.1) {
-        std::cout << "Expected order is reached!" << std::endl;
-        return 0;
+        else {
+            std::cout << "Expected order of " << expected_order <<  " is not reached!" << std::endl;
+            std::cout << "Final order is " << final_order << std::endl;
+            testfail = 1;
+        }
+        convergence_table.clear();
+    } // end of PDE loop
+    if(testfail==0) {
+        std::cout << std::endl << "Expected order is reached for all PDE types!" << std::endl;
     }
     else {
-        std::cout << "Expected order of " << expected_order <<  " is not reached!" << std::endl;
-        std::cout << "Final order is " << final_order << std::endl;
-        return 1;
+        std::cout << "Expected order is not reached for some/all PDE types!" << std::endl;
     }
+
+    return testfail;
 }
 
 #if PHILIP_SPECIES>1

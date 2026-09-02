@@ -91,6 +91,12 @@ public:
     /// Compute kinetic energy variables from conservative solution
     virtual std::array<real,nstate> compute_kinetic_energy_variables ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Given conservative variables, returns kinetic energy
+    virtual real compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Compute numerical entropy function -rho s 
+    virtual real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
+
     /// Compute species gas constants - only used by multispecies classes
     virtual std::array<real,nspecies> compute_Rs () const;
     

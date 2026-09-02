@@ -22,8 +22,18 @@ MultispeciesTests<dim, nspecies, nstate>::MultispeciesTests(const PHiLiP::Parame
         , domain_right(this->all_param.flow_solver_param.grid_right_bound)
         , domain_size(pow(this->domain_right - this->domain_left, dim))
 { 
-    this->ms_euler_physics = std::dynamic_pointer_cast<Physics::Multispecies_CaloricallyPerfect_Euler<dim,nspecies,dim+nspecies+1,double>>(
-            PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&(this->all_param)));
+    // Real Gas object; create using dynamic_pointer_cast and the create_Physics factory
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    PHiLiP::Parameters::AllParameters ms_param = *parameters_input;
+  
+    PDE_enum pde_type = ms_param.pde_type;
+    if (pde_type == PDE_enum::multispecies_calorically_perfect_euler || pde_type == PDE_enum::multispecies_thermally_perfect_euler) {
+        this->multispecies_euler_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nspecies,nstate,double>>(
+                                                Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&ms_param));
+    } else {
+        std::cout << "Cannot run multi-species test case for single species PDE type...Aborting." << std::endl;
+        std::abort();
+    }
 }
 
 template <int dim, int nspecies, int nstate>
@@ -229,7 +239,7 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_and_update_integrated_qua
             }
 
             std::array<double,nstate> energy_var;
-            energy_var = ms_euler_physics->compute_kinetic_energy_variables(soln_state);
+            energy_var = multispecies_euler_physics->compute_kinetic_energy_variables(soln_state);
             for(int istate=0; istate<nstate; istate++){
                 if(iquad==0){
                     energy_var_vol_int[istate].resize(n_quad_pts);
@@ -275,11 +285,11 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_and_update_integrated_qua
                     soln_state_flux_basis[istate] = soln_at_q[istate][flux_basis_quad];
                 }
                 //Compute the physical flux
-                conv_phys_flux_2pt = ms_euler_physics->convective_numerical_split_flux(soln_state, soln_state_flux_basis);
+                conv_phys_flux_2pt = multispecies_euler_physics->convective_numerical_split_flux(soln_state, soln_state_flux_basis);
 
                 //Need to subtract off the pressure average term
-                const double pressure_int = ms_euler_physics->compute_pressure(soln_state);
-                const double pressure_ext = ms_euler_physics->compute_pressure(soln_state_flux_basis);
+                const double pressure_int = multispecies_euler_physics->compute_pressure(soln_state);
+                const double pressure_ext = multispecies_euler_physics->compute_pressure(soln_state_flux_basis);
                 for(int idim=0; idim<dim; idim++){
                     conv_phys_flux_2pt[1+idim][idim] -= 0.5*(pressure_int + pressure_ext);
                 }
@@ -315,15 +325,15 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_and_update_integrated_qua
 
             std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrand_values;
             std::fill(integrand_values.begin(), integrand_values.end(), 0.0);
-            integrand_values[IntegratedQuantitiesEnum::kinetic_energy] = this->ms_euler_physics->compute_kinetic_energy_from_conservative_solution(soln_state);
-            integrand_values[IntegratedQuantitiesEnum::entropy] = this->ms_euler_physics->compute_numerical_entropy_function(soln_state);
+            integrand_values[IntegratedQuantitiesEnum::kinetic_energy] = this->multispecies_euler_physics->compute_kinetic_energy_from_conservative_solution(soln_state);
+            integrand_values[IntegratedQuantitiesEnum::entropy] = this->multispecies_euler_physics->compute_numerical_entropy_function(soln_state);
             for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
                 integral_values[i_quantity] += integrand_values[i_quantity] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             }
 
             // Update the maximum local wave speed (i.e. convective eigenvalue) if using an adaptive time step
             if(this->all_param.flow_solver_param.adaptive_time_step == true || this->all_param.flow_solver_param.error_adaptive_time_step == true) {
-                const double local_wave_speed = this->ms_euler_physics->max_convective_eigenvalue(soln_state);
+                const double local_wave_speed = this->multispecies_euler_physics->max_convective_eigenvalue(soln_state);
                 if(local_wave_speed > this->maximum_local_wave_speed) this->maximum_local_wave_speed = local_wave_speed;
             }
         }

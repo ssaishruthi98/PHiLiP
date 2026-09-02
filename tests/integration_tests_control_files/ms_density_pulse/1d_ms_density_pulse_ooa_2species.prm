@@ -11,7 +11,7 @@ set dimension = 1
 # Chemical species
 set number_of_species = 2
 set test_type = ms_density_pulse
-set pde_type = multispecies_calorically_perfect_euler
+set pde_type = multispecies_thermally_perfect_euler
 set chemistry_input_file = ../../chemistry_files/H2_O2.kinetics
 
 # DG formulation
@@ -26,7 +26,7 @@ set do_renumber_dofs = false
 # numerical fluxes
 #set conv_num_flux = lax_friedrichs
 set use_split_form = true
-set two_point_num_flux_type = CH
+set two_point_num_flux_type = KG
 set conv_num_flux = two_point_flux
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
@@ -77,5 +77,5 @@ subsection manufactured solution convergence study
   set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 4
+  set number_of_grids   = 8
 end
