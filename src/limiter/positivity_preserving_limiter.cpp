@@ -171,11 +171,18 @@ real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_density_scali
     const double    mixture_avg,
     const double    mixture_quad)
 {
-    real theta = 1.0; // Value used to linearly scale density 
-    real denominator = (species_avg*mixture_quad)-(species_quad*mixture_avg);
+    real theta = 0.0; // Value used to linearly scale density 
+    if (species_quad < mixture_quad) {
+        real denominator = (species_avg*mixture_quad)-(species_quad*mixture_avg);
 
-    if (denominator > 1e-13)
-        theta = (-1.0*species_quad*mixture_avg) / denominator;
+        if (abs(denominator) > 0)
+            theta = (-1.0*species_quad*mixture_avg) / denominator;
+    } else {
+        real denominator = (species_avg*mixture_quad)-(species_quad*mixture_avg);
+
+        if (abs(denominator) > 0)
+            theta = (mixture_avg*(mixture_quad-species_quad))/denominator;
+    }
 
     return theta;
 }
@@ -529,14 +536,21 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                 for(unsigned int ispecies = 0; ispecies < (nspecies - 1); ++ispecies) {
                     int index = dim + 2 + ispecies;
                     theta_species_quad = 0.0;
-                
                     if (species_densities[ispecies]<0)
                         theta_species_quad = get_density_scaling_value_species(soln_cell_avg[index],species_densities[ispecies],soln_cell_avg[0],soln_coeff[0][iquad]);
-
-                    if (theta_species_quad > theta_species)
+                    if (theta_species_quad > theta_species) {
+                        std::cout << " positivity limiting " << std::endl;
                         theta_species = theta_species_quad;
-                }
+                    }
 
+                    theta_species_quad = 0.0;
+                    if (species_densities[ispecies]>soln_coeff[0][iquad])
+                        theta_species_quad = get_density_scaling_value_species(soln_cell_avg[index],species_densities[ispecies],soln_cell_avg[0],soln_coeff[0][iquad]);
+                    if (theta_species_quad > theta_species) {
+                        std::cout << " maximum principle limiting " << std::endl;
+                        theta_species = theta_species_quad;
+                    }
+                }
                 theta_species_quad = 0.0;
                 if (species_densities[nspecies - 1]<0)
                         theta_species_quad = get_density_scaling_value_species(nth_species_avg,species_densities[nspecies - 1],soln_cell_avg[0],soln_coeff[0][iquad]);
