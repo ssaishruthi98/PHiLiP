@@ -418,6 +418,9 @@ public:
     // Compute gamma from conservative_soln
     virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
 
+    // Compute dP/dT_V and dP/dV_T from conservative_soln
+    virtual std::array<real,2> compute_pressure_derivatives ( const std::array<real,nstate> &conservative_soln ) const;
+
     ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
@@ -434,6 +437,12 @@ public:
      *  Refer to Gouasmi's thesis, Eq. 4.28 for Chandrashekar flux 
      *  Derivation details for the KEP fix will be included in Shruthi's future paper/thesis*/
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
+
+    /** Approximate pressure equilibrium conserving split form flux of Chan.
+     *  Refer to Chan's paper, "Nodal discontinuous Galerkin methods for non-ideal equations..."*/ 
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chan (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
 };
