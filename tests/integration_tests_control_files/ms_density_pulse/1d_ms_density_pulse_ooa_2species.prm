@@ -26,7 +26,7 @@ set do_renumber_dofs = false
 # numerical fluxes
 #set conv_num_flux = lax_friedrichs
 set use_split_form = true
-set two_point_num_flux_type = KG
+set two_point_num_flux_type = Chan
 set conv_num_flux = two_point_flux
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true

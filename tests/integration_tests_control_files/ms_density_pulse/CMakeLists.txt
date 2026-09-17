@@ -16,20 +16,20 @@ if(${NUMBER_OF_SPECIES} EQUAL 2)
 																			COLLOCATED
 																			OOA)
 																	
-	# configure_file(1d_ms_density_pulse_ooa_2species.prm 1d_ms_density_pulse_ooa_2species.prm COPYONLY)
-	# add_test(
-	#   NAME 1D_MULTISPECIES_DENSITY_PULSE_2_SPECIES_OOA
-	#   COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_ms_density_pulse_ooa_2species.prm
-	#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-	# )
-	# set_tests_labels(1D_MULTISPECIES_DENSITY_PULSE_2_SPECIES_OOA MULTISPECIES_DENSITY_PULSE
-	# 																1D
-	# 																SERIAL
-	# 																MULTISPECIES
-	# 																2SPECIES
-	# 																WEAK
-	# 																COLLOCATED
-	# 																OOA)
+	configure_file(1d_ms_density_pulse_ooa_2species.prm 1d_ms_density_pulse_ooa_2species.prm COPYONLY)
+	add_test(
+	  NAME 1D_MULTISPECIES_DENSITY_PULSE_2_SPECIES_OOA
+	  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_ms_density_pulse_ooa_2species.prm
+	  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+	)
+	set_tests_labels(1D_MULTISPECIES_DENSITY_PULSE_2_SPECIES_OOA MULTISPECIES_DENSITY_PULSE
+																	1D
+																	SERIAL
+																	MULTISPECIES
+																	2SPECIES
+																	WEAK
+																	COLLOCATED
+																	OOA)
 																	
 	# configure_file(2d_ms_density_pulse_ooa_2species.prm 2d_ms_density_pulse_ooa_2species.prm COPYONLY)
 	# add_test(

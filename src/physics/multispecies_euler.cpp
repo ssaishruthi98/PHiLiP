@@ -922,6 +922,9 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_CaloricallyPerfect_Eu
         conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
     } else if(two_point_num_flux_type == two_point_num_flux_enum::Ra) {
         conv_num_split_flux = convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
+    } else if(this->two_point_num_flux_type == two_point_num_flux_enum::Chan) {
+        std::cout << "The Jesse Chan APEC two-point flux has not been implemented for multispecies calorically perfect gas...Aborting." << std::endl;
+        std::abort();
     }
 
     return conv_num_split_flux;
@@ -2041,8 +2044,10 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Eule
         conv_num_split_flux = this->convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
     } else if(this->two_point_num_flux_type == two_point_num_flux_enum::Ra) {
         conv_num_split_flux = this->convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
+    } else if(this->two_point_num_flux_type == two_point_num_flux_enum::Chan) {
+        std::cout << "The Jesse Chan APEC two-point flux has not been implemented for multispecies thermally perfect gas...Aborting." << std::endl;
+        std::abort();
     }
-
     return conv_num_split_flux;
 }
 
