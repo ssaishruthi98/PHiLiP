@@ -2062,8 +2062,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Eule
     } else if(this->two_point_num_flux_type == two_point_num_flux_enum::Ra) {
         conv_num_split_flux = this->convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
     } else if(this->two_point_num_flux_type == two_point_num_flux_enum::Chan) {
-        std::cout << "The Jesse Chan APEC two-point flux has not been implemented for multispecies thermally perfect gas...Aborting." << std::endl;
-        std::abort();
+        conv_num_split_flux = this->convective_numerical_split_flux_chan(conservative_soln1, conservative_soln2);
     }
     return conv_num_split_flux;
 }
@@ -2325,8 +2324,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Eule
 
     const real d_rho_e_d_rho_constP1 = -rho1*mixture_Cv1*(1.0/pressure_derivatives1[0])*pressure_derivatives1[1]*(-vol1/rho1) + d_rho_e_d_rho_constT1;
     const real d_rho_e_d_rho_constP2 = -rho1*mixture_Cv2*(1.0/pressure_derivatives2[0])*pressure_derivatives2[1]*(-vol2/rho2) + d_rho_e_d_rho_constT2;
-    std::cout << "d_rho_e_d_rho_constP1 " << d_rho_e_d_rho_constP1 << std::endl;
-    std::cout << "d_rho_e_d_rho_constP2 " << d_rho_e_d_rho_constP2 << std::endl;
+    // std::cout << "d_rho_e_d_rho_constP1 " << d_rho_e_d_rho_constP1 << std::endl;
+    // std::cout << "d_rho_e_d_rho_constP2 " << d_rho_e_d_rho_constP2 << std::endl;
 
     const real d_rho_e_d_rho_constP_avg = this->compute_average(d_rho_e_d_rho_constP1,d_rho_e_d_rho_constP2);
     const real d_rho_e_d_rho_constP_rho_avg = this->compute_average(d_rho_e_d_rho_constP1*rho1,d_rho_e_d_rho_constP2*rho2);
@@ -2363,6 +2362,21 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Eule
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
             conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[velocity_dim];
         }
+        // compute additional terms from pressure fix
+        real pressure_fix = 0.25*(P1-P2)*(vel1[flux_dim]-vel2[flux_dim]);
+
+        // Energy equation
+        conv_num_split_flux[dim+1][flux_dim] -= pressure_fix;
+    }
+
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux_ra = this->convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
+
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim) {
+        for (int istate = 0; istate < nstate; ++istate) {
+            std::cout << "ranocha state " << istate << " " << conv_num_split_flux_ra[istate][flux_dim] << std::endl;
+            std::cout << "chan state " << istate << " " << conv_num_split_flux[istate][flux_dim] << std::endl;
+        }
+        std::cout << std::endl;
     }
 
     return conv_num_split_flux;
