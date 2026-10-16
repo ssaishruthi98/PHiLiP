@@ -84,6 +84,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, split the fluxes.");
 
+    prm.declare_entry("use_double_flux", "false",
+                      dealii::Patterns::Bool(),
+                      "If true, use the nonconservative double flux method to ensure pressure equilibrium preservation.");
+
     prm.declare_entry("two_point_num_flux_type", "KG",
                       dealii::Patterns::Selection(
                       "KG | IR | CH | Ra"),
@@ -585,6 +589,8 @@ const std::string test_string = prm.get("test_type");
     use_collocated_nodes = (flux_nodes_type==FluxNodes::GLL) && (overintegration==0);
 
     use_split_form = prm.get_bool("use_split_form");
+
+    use_double_flux = prm.get_bool("use_double_flux");
 
     const std::string two_point_num_flux_string = prm.get("two_point_num_flux_type");
     if (two_point_num_flux_string == "KG") { two_point_num_flux_type = TwoPointNumericalFlux::KG; }

@@ -2025,6 +2025,21 @@ inline real Multispecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
     return gamma;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+inline real Multispecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_gamma_from_temperature_and_mass_fractions ( const std::array<real,nspecies> &mass_fractions, const real temperature) const
+{
+    // Uses the definition given in Gouasmi thesis
+    const std::array<real,nspecies> Cp = compute_species_specific_Cp(temperature);
+    const std::array<real,nspecies> Cv = compute_species_specific_Cv(temperature);
+
+    real mixture_Cp = this->compute_mixture_from_species(mass_fractions,Cp);
+    real mixture_Cv = this->compute_mixture_from_species(mass_fractions,Cv);
+
+    real gamma = mixture_Cp/mixture_Cv;
+    return gamma;
+}
+
 ///  Evaluates convective flux based on the chosen split form.
 template <int dim, int nspecies, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
@@ -2244,6 +2259,111 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Eule
         conv_num_split_flux[dim+1][flux_dim] -= pressure_fix;
     }
 
+    return conv_num_split_flux;
+}
+
+// Algorithm 16 (f_M16): Compute mixture gas constant
+template <int dim, int nspecies, int nstate, typename real>
+inline real Multispecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_mixture_gas_constant_from_mass_fractions ( const std::array<real,nspecies> &mass_fractions ) const
+{
+    const real mixture_gas_constant = this->compute_mixture_from_species(mass_fractions,this->Rs);
+    return mixture_gas_constant;
+}
+
+///  Evaluates convective flux based on the chosen split form.
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
+::convective_numerical_split_double_flux(const std::array<real,nstate> &conservative_soln1,
+                                         const std::array<real,nstate> &conservative_soln2,
+                                         const std::array<real,nspecies> &frozen_mass_fractions,
+                                         const real frozen_temperature) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    if(this->two_point_num_flux_type == two_point_num_flux_enum::KG) {
+        std::cout << "The Kennedy-Gruber two-point flux has not been implemented with the Double Flux method for multispecies thermally perfect gas...Aborting." << std::endl;
+        std::abort();
+    } else if(this->two_point_num_flux_type == two_point_num_flux_enum::IR) {
+        std::cout << "The Ismail-Roe two-point flux has not been implemented with the Double Flux method for multispecies thermally perfect gas...Aborting." << std::endl;
+        std::abort();
+    } else if(this->two_point_num_flux_type == two_point_num_flux_enum::CH) {
+        conv_num_split_flux = this->convective_numerical_split_flux_chandrashekar_double_flux(conservative_soln1, conservative_soln2, frozen_mass_fractions, frozen_temperature);
+    } else if(this->two_point_num_flux_type == two_point_num_flux_enum::Ra) {
+        std::cout << "The Ranocha two-point flux has not been implemented with the Double Flux method for multispecies thermally perfect gas...Aborting." << std::endl;
+        std::abort();
+    }
+
+    return conv_num_split_flux;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
+::convective_numerical_split_flux_chandrashekar_double_flux(const std::array<real,nstate> &conservative_soln1,
+                                                const std::array<real,nstate> &conservative_soln2,
+                                                const std::array<real,nspecies> &frozen_mass_fractions,
+                                                const real frozen_temperature) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+
+    const real temp1 = compute_temperature(conservative_soln1);
+    const real temp2 = compute_temperature(conservative_soln2);
+    const real inv_temp_avg = this->compute_average(1.0/temp1,1.0/temp2);
+
+    const dealii::Tensor<1,dim,real> vel1 = this->compute_velocities(conservative_soln1);
+    const dealii::Tensor<1,dim,real> vel2 = this->compute_velocities(conservative_soln2);
+    dealii::Tensor<1,dim,real> vel_avg;
+    real vel_sqr_avg = 0.0;
+
+    for (int d=0; d<dim; ++d) {
+        vel_avg[d] = 0.5*(vel1[d]+vel2[d]);
+        vel_sqr_avg += 0.5*(vel1[d]*vel1[d] + vel2[d]*vel2[d]);
+    }
+
+    const real density_log_mean = this->compute_ismail_roe_logarithmic_mean(conservative_soln1[0],conservative_soln2[0]);
+    const real density_average = this->compute_average(conservative_soln1[0],conservative_soln2[0]);
+    const real R_mix = this->compute_mixture_gas_constant_from_mass_fractions(frozen_mass_fractions);
+    const real gamma = compute_gamma_from_temperature_and_mass_fractions(frozen_mass_fractions,frozen_temperature);
+    const real beta_log_mean = this->compute_ismail_roe_logarithmic_mean(temp1/R_mix, temp2/R_mix);
+    const real beta_average = this->compute_average(temp1/R_mix, temp2/R_mix);
+
+    real pressure_diagonal = density_average/beta_average;
+    pressure_diagonal /= inv_temp_avg;
+    pressure_diagonal /= (this->gam_ref*this->mach_ref_sqr);
+
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    {
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = density_log_mean * vel_avg[flux_dim];
+
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = density_log_mean*vel_avg[flux_dim]*vel_avg[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_diagonal; // Add diagonal of pressure
+        
+        // Species density equation
+        for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
+            const int index = dim+2+ispecies;
+            conv_num_split_flux[index][flux_dim] = density_log_mean*frozen_mass_fractions[ispecies] * vel_avg[flux_dim];
+        }
+        // Add last species contribution to energy flux
+        conv_num_split_flux[dim+1][flux_dim] = (1.0/((gamma-1.0)*beta_log_mean))*(this->u_ref_sqr/(this->R_ref*this->temperature_ref))*conv_num_split_flux[0][flux_dim];
+
+        // Energy equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[velocity_dim];
+        }
+    }
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux_ra = convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim){
+        for (int istate = 0; istate < nstate; ++istate) {
+            std::cout << " RA State " << istate << " " << conv_num_split_flux_ra[istate][flux_dim] << std::endl;
+            std::cout << " Hasse State " << istate << " " << conv_num_split_flux[istate][flux_dim] << std::endl;
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+    // sleep(5);
     return conv_num_split_flux;
 }
 

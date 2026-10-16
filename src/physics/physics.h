@@ -88,6 +88,9 @@ public:
     // Compute temperature from conservative_soln
     virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Compute mass fractions from conservative solution
+    virtual std::array<real,nspecies> compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// Compute kinetic energy variables from conservative solution
     virtual std::array<real,nstate> compute_kinetic_energy_variables ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -120,6 +123,13 @@ public:
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
+
+    /// Convective Numerical Split Flux for split form
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_double_flux (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2,
+        const std::array<real,nspecies> &frozen_mass_fractions,
+        const real frozen_temperature) const;
 
     /// Computes the entropy variables.
     virtual std::array<real,nstate> compute_entropy_variables (

@@ -74,6 +74,19 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nspecies,nstate,re
 }
 
 template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nspecies,nstate,real>::convective_numerical_split_double_flux (
+    const std::array<real,nstate> &/*conservative_soln1*/,
+    const std::array<real,nstate> &/*conservative_soln2*/,
+    const std::array<real,nspecies> &/*frozen_mass_fractions*/,
+    const real /*frozen_temperature*/) const
+{
+    pcout << "ERROR: convective_numerical_split_double_flux() has not yet been implemented for (overridden by) the selected PDE. Aborting..." <<std::flush;
+    std::abort();
+    std::array<dealii::Tensor<1,dim,real>,nstate> dummy;
+    return dummy;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
 real PhysicsBase<dim,nspecies,nstate,real>
 ::max_convective_normal_eigenvalue (
     const std::array<real,nstate> &conservative_soln,
@@ -198,6 +211,19 @@ inline real PhysicsBase<dim,nspecies,nstate,real>
     std::cout << "The compute_temperature function has not been implemented for this PDE...Aborting." << std::endl;
     std::abort();
     return 0;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> PhysicsBase<dim,nspecies,nstate,real>
+::compute_mass_fractions ( const std::array<real,nstate> &/*conservative_soln*/ ) const
+{
+    std::cout << "The compute_mass_fractions function has not been implemented for this PDE...Aborting." << std::endl;
+    std::abort();
+
+    std::array<real,nspecies> mass_fractions;
+    std::fill(mass_fractions.begin(), mass_fractions.end(), 0.0);
+
+    return mass_fractions;
 }
 
 template <int dim, int nspecies, int nstate, typename real>

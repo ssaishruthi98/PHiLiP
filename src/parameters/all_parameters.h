@@ -111,6 +111,9 @@ public:
     /// Flag to use split form.
     bool use_split_form;
 
+    /// Flag to use double flux.
+    bool use_double_flux;
+
     /// Two point numerical flux type for split form
     enum TwoPointNumericalFlux { KG, IR, CH, Ra };
     /// Store selected TwoPointNumericalFlux from the input file

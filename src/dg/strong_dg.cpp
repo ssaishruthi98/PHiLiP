@@ -45,6 +45,7 @@ DGStrong<dim,nspecies,nstate,real,MeshType>::DGStrong(
     , using_wall_model(this->all_parameters->using_wall_model)
     , wall_model_input_from_second_element(this->all_parameters->wall_model_input_from_second_element)
     , uncollocated_flux_nodes((this->all_parameters->flux_nodes_type == Parameters::AllParameters::FluxNodes::GL) ? true : false)
+    , double_flux(this->all_parameters->use_double_flux)
 { }
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
@@ -2130,7 +2131,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
                 soln_state_face= pde_physics.compute_conservative_variables_from_entropy_variables (entropy_var_face);
             } else {
                 for(int istate=0; istate<nstate; istate++){
-                    soln_state_face[istate] = soln_at_vol_q[istate][iquad_face];
+                    soln_state_face[istate] = soln_at_surf_q[istate][iquad_face];
                 }
             }
             //only do the n_quad_1D vol points that give non-zero entries from Hadamard product.
@@ -3220,8 +3221,8 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
             }
             else {
                 for(int istate=0; istate<nstate; istate++){
-                    soln_state_face_int[istate] = soln_at_vol_q_int[istate][iquad_face];
-                    soln_state_face_ext[istate] = soln_at_vol_q_ext[istate][iquad_face];
+                    soln_state_face_int[istate] = soln_at_surf_q_int[istate][iquad_face];
+                    soln_state_face_ext[istate] = soln_at_surf_q_ext[istate][iquad_face];
                 }
             }
 
@@ -3263,7 +3264,12 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
 
                 //Compute the physical flux
                 std::array<dealii::Tensor<1,dim,adtype>,nstate> conv_phys_flux_2pt;
-                conv_phys_flux_2pt = pde_physics.convective_numerical_split_flux(soln_state, soln_state_face_int);
+                if (double_flux) {
+                    const adtype frozen_temperature = pde_physics.compute_temperature(soln_state);
+                    const std::array<adtype,nspecies> frozen_mass_fractions = pde_physics.compute_mass_fractions(soln_state);
+                    conv_phys_flux_2pt = pde_physics.convective_numerical_split_double_flux(soln_state, soln_state_face_int, frozen_mass_fractions, frozen_temperature);
+                } else
+                    conv_phys_flux_2pt = pde_physics.convective_numerical_split_flux(soln_state, soln_state_face_int);
                 for(int istate=0; istate<nstate; istate++){
                     dealii::Tensor<1,dim,adtype> conv_ref_flux_2pt;
                     //For each state, transform the physical flux to a reference flux.
@@ -3315,7 +3321,13 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                 }
                 //Compute the physical flux
                 std::array<dealii::Tensor<1,dim,adtype>,nstate> conv_phys_flux_2pt;
-                conv_phys_flux_2pt = pde_physics.convective_numerical_split_flux(soln_state, soln_state_face_ext);
+                if (double_flux) {
+                    const adtype frozen_temperature = pde_physics.compute_temperature(soln_state);
+                    const std::array<adtype,nspecies> frozen_mass_fractions = pde_physics.compute_mass_fractions(soln_state);
+                    conv_phys_flux_2pt = pde_physics.convective_numerical_split_double_flux(soln_state, soln_state_face_ext, frozen_mass_fractions, frozen_temperature);
+                    sleep(5);
+                } else
+                    conv_phys_flux_2pt = pde_physics.convective_numerical_split_flux(soln_state, soln_state_face_ext);
                 for(int istate=0; istate<nstate; istate++){
                     dealii::Tensor<1,dim,adtype> conv_ref_flux_2pt;
                     //For each state, transform the physical flux to a reference flux.

@@ -418,6 +418,8 @@ public:
     // Compute gamma from conservative_soln
     virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
 
+    virtual real compute_gamma_from_temperature_and_mass_fractions ( const std::array<real,nspecies> &mass_fractions, const real temperature ) const;
+
     ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
         const std::array<real,nstate> &conservative_soln1,
@@ -436,6 +438,24 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_ranocha (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
+
+    real compute_mixture_gas_constant_from_mass_fractions ( const std::array<real,nspecies> &mass_fractions ) const;
+
+    ///  Evaluates convective flux based on the chosen split form.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_double_flux (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2,
+        const std::array<real,nspecies> &frozen_mass_fractions,
+        const real frozen_temperature) const override;
+    
+    /** Entropy conserving split form flux of Chandrashekar.
+     *  Refer to Gouasmi's thesis, Eq. 4.28  
+     *  Derivation details will be included in Shruthi's future paper/thesis*/
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chandrashekar_double_flux (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2,
+        const std::array<real,nspecies> &frozen_mass_fractions,
+        const real frozen_temperature) const;
 };
 
 } // Physics namespace
