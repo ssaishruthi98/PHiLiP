@@ -2276,6 +2276,13 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Eule
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     conv_num_split_flux = this->convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
 
+    const real temp1 = compute_temperature(conservative_soln1);
+    const real temp2 = compute_temperature(conservative_soln2);
+
+    const real pressure1 = compute_mixture_pressure(conservative_soln1);
+    const real pressure2 = compute_mixture_pressure(conservative_soln2);
+    const real pressure_avg = this->compute_average(pressure1, pressure2);
+
     const dealii::Tensor<1,dim,real> vel1 = this->compute_velocities(conservative_soln1);
     const dealii::Tensor<1,dim,real> vel2 = this->compute_velocities(conservative_soln2);
     dealii::Tensor<1,dim,real> vel_avg;
@@ -2286,99 +2293,71 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Eule
         vel_sqr_avg += 0.5*(vel1[d]*vel1[d] + vel2[d]*vel2[d]);
     }
 
-    const real rho1 = conservative_soln1[0];
-    const real rho2 = conservative_soln2[0];
-    real rho_avg = this->compute_average(rho1,rho2);
+    const real rho_e_1 = conservative_soln1[0]*this->compute_mixture_internal_energy(conservative_soln1);
+    const real rho_e_2 = conservative_soln2[0]*this->compute_mixture_internal_energy(conservative_soln2);
+    const real rho_e_avg = this->compute_average(rho_e_1, rho_e_2);
 
-    const real vol1 = 1.0/rho1;
-    const real vol2 = 1.0/rho2;
+    const std::array<real,nspecies> species_internal_energy1 = compute_species_specific_internal_energy(temp1);
+    const std::array<real,nspecies> species_internal_energy2 = compute_species_specific_internal_energy(temp2);
+    std::array<real,nspecies> species_internal_energy_avg;
+    std::array<real,nspecies> species_rho_e_avg;
+    real total_rho_e_avg = 0.0;
 
-    const std::array<real,nspecies> mass_fractions1 = this->compute_mass_fractions(conservative_soln1);
-    const std::array<real,nspecies> mass_fractions2 = this->compute_mass_fractions(conservative_soln2);
-    std::array<real,nspecies> mass_fractions_avg;
+    const std::array<real,nspecies> species_densities1 = this->compute_species_densities(conservative_soln1);
+    const std::array<real,nspecies> species_densities2 = this->compute_species_densities(conservative_soln2);
+    std::array<real,nspecies> species_densities_avg;
+    real total_rho_avg = 0.0;
     for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
-        mass_fractions_avg[ispecies] = this->compute_average(mass_fractions1[ispecies],mass_fractions2[ispecies]);
+        species_densities_avg[ispecies] = this->compute_average(species_densities1[ispecies],species_densities2[ispecies]);
+        species_internal_energy_avg[ispecies] = this->compute_average(species_internal_energy1[ispecies],species_internal_energy2[ispecies]);
+        species_rho_e_avg[ispecies] = this->compute_average(species_densities1[ispecies]*species_internal_energy1[ispecies],species_densities2[ispecies]*species_internal_energy2[ispecies]);
+        total_rho_avg += species_densities_avg[ispecies];
+        total_rho_e_avg += species_rho_e_avg[ispecies];
     }
 
-    const real e1 = this->compute_mixture_internal_energy(conservative_soln1);
-    const real e2 = this->compute_mixture_internal_energy(conservative_soln2);
-    const real rho_e_avg = this->compute_average(rho1*e1, rho2*e2);
-
-    const real P1 = compute_mixture_pressure(conservative_soln1);
-    const real P2 = compute_mixture_pressure(conservative_soln2);
-    const real P_avg = this->compute_average(P1,P2);
-
-    const std::array<real,2> pressure_derivatives1 = compute_pressure_derivatives(conservative_soln1);
-    const std::array<real,2> pressure_derivatives2 = compute_pressure_derivatives(conservative_soln2);
-
-    const real d_rho_e_d_rho_constT1 = e1 + rho1*(pressure_derivatives1[0]-P1)*(-vol1);
-    const real d_rho_e_d_rho_constT2 = e2 + rho2*(pressure_derivatives2[0]-P2)*(-vol2);
-    const real d_rho_e_d_rho_constT_jump = d_rho_e_d_rho_constT1-d_rho_e_d_rho_constT2;
-
-    const real T1 = compute_temperature(conservative_soln1);
-    const real T2 = compute_temperature(conservative_soln2);
-    const std::array<real,nspecies> species_Cv1 = compute_species_specific_Cv(T1);
-    const std::array<real,nspecies> species_Cv2 = compute_species_specific_Cv(T2);
-    const real mixture_Cv1 = this->compute_mixture_from_species(mass_fractions1,species_Cv1);
-    const real mixture_Cv2 = this->compute_mixture_from_species(mass_fractions2,species_Cv2);
-
-    const real d_rho_e_d_rho_constP1 = -rho1*mixture_Cv1*(1.0/pressure_derivatives1[0])*pressure_derivatives1[1]*(-vol1/rho1) + d_rho_e_d_rho_constT1;
-    const real d_rho_e_d_rho_constP2 = -rho1*mixture_Cv2*(1.0/pressure_derivatives2[0])*pressure_derivatives2[1]*(-vol2/rho2) + d_rho_e_d_rho_constT2;
-    // std::cout << "d_rho_e_d_rho_constP1 " << d_rho_e_d_rho_constP1 << std::endl;
-    // std::cout << "d_rho_e_d_rho_constP2 " << d_rho_e_d_rho_constP2 << std::endl;
-
-    const real d_rho_e_d_rho_constP_avg = this->compute_average(d_rho_e_d_rho_constP1,d_rho_e_d_rho_constP2);
-    const real d_rho_e_d_rho_constP_rho_avg = this->compute_average(d_rho_e_d_rho_constP1*rho1,d_rho_e_d_rho_constP2*rho2);
-
-    const real rho_e_corrected_avg = rho_e_avg+d_rho_e_d_rho_constP_avg*rho_avg-d_rho_e_d_rho_constP_rho_avg;
-
-    if (d_rho_e_d_rho_constT_jump > 1e-13) {
-
-        real numerator = (rho1*e1-rho2*e2) - d_rho_e_d_rho_constP_avg*(rho1-rho2) - d_rho_e_d_rho_constP_avg*(P1-P2);
-
-        rho_avg -= numerator/d_rho_e_d_rho_constT_jump;
-    }
-    
+    std::cout << "Checkpoint 1:  Is the sum of (rho_k e_k)_avg = (rho e)_avg  -> sum = " << total_rho_e_avg << " the total = " << rho_e_avg << std::endl << std::endl; 
     for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
     {
         // Density equation
-        conv_num_split_flux[0][flux_dim] = rho_avg * vel_avg[flux_dim];
+        conv_num_split_flux[0][flux_dim] = total_rho_avg * vel_avg[flux_dim];
 
         // Momentum equation
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
             conv_num_split_flux[1+velocity_dim][flux_dim] = conv_num_split_flux[0][flux_dim]*vel_avg[velocity_dim];
         }
-        conv_num_split_flux[1+flux_dim][flux_dim] += P_avg; // Add diagonal of pressure
+        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_avg; // Add diagonal of pressure
         
         // Species density equation
         for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
             const int index = dim+2+ispecies;
-            conv_num_split_flux[index][flux_dim] = rho_avg * mass_fractions_avg[ispecies] * vel_avg[flux_dim];
+            conv_num_split_flux[index][flux_dim] = species_densities_avg[ispecies] * vel_avg[flux_dim];
+            conv_num_split_flux[dim+1][flux_dim] += conv_num_split_flux[index][flux_dim] * species_internal_energy_avg[ispecies];
         }
         // Add last species contribution to energy flux
-        conv_num_split_flux[dim+1][flux_dim] += rho_e_corrected_avg - 0.5*vel_sqr_avg*conv_num_split_flux[0][flux_dim];
+        conv_num_split_flux[dim+1][flux_dim] += species_densities_avg[nspecies-1] * vel_avg[flux_dim] * species_internal_energy_avg[nspecies-1];
+        conv_num_split_flux[dim+1][flux_dim] += pressure_avg*vel_avg[flux_dim];
 
         // Energy equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[velocity_dim];
-        }
+        // for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+        //     conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[velocity_dim];
+        // }
         // compute additional terms from pressure fix
-        real pressure_fix = 0.25*(P1-P2)*(vel1[flux_dim]-vel2[flux_dim]);
+        // real pressure_fix = 0.25*(P1-P2)*(vel1[flux_dim]-vel2[flux_dim]);
 
         // Energy equation
-        conv_num_split_flux[dim+1][flux_dim] -= pressure_fix;
+        // conv_num_split_flux[dim+1][flux_dim] -= pressure_fix;
     }
 
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux_ra = this->convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
 
     for (int flux_dim = 0; flux_dim < dim; ++flux_dim) {
         for (int istate = 0; istate < nstate; ++istate) {
-            std::cout << "ranocha state " << istate << " " << conv_num_split_flux_ra[istate][flux_dim] << std::endl;
-            std::cout << "chan state " << istate << " " << conv_num_split_flux[istate][flux_dim] << std::endl;
+            std::cout << "ranocha state " << istate << " -----> " << conv_num_split_flux_ra[istate][flux_dim] << std::endl;
+            std::cout << "chan state " << istate << " --------> " << conv_num_split_flux[istate][flux_dim] << std::endl << std::endl;
         }
         std::cout << std::endl;
     }
-
+    sleep(5);
     return conv_num_split_flux;
 }
 
