@@ -418,8 +418,11 @@ public:
     // Compute gamma from conservative_soln
     virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
 
-    // Compute dP/dT_V and dP/dV_T from conservative_soln
-    virtual std::array<real,2> compute_pressure_derivatives ( const std::array<real,nstate> &conservative_soln ) const;
+    // Compute dP/dT with const rho_k from using temperature (dP/dT_(rho_k) = R_k T)
+    std::array<real,nspecies> compute_dP_drho_k ( const real temperature ) const;
+
+    // Compute d(rho e)/d(rho_k) with const rho_j \neq k
+    std::array<real,nspecies> compute_drho_e_drho_k_at_const_p ( const std::array<real,nspecies> &species_densities, const real density, const real temperature ) const;
 
     ///  Evaluates convective flux based on the chosen split form.
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (

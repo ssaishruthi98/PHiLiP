@@ -1,0 +1,61 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 1
+# Chemical species
+set number_of_species = 2
+set pde_type = multispecies_thermally_perfect_euler
+set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
+set run_type = flow_simulation
+
+# DG formulation
+set use_weak_form = false
+set flux_nodes_type = GLL
+set non_physical_behavior = abort_run
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
+
+# degree of freedom renumbering not necessary for explicit time advancement cases
+set do_renumber_dofs = false
+
+# numerical fluxes
+#set conv_num_flux = lax_friedrichs
+set use_split_form = true
+set two_point_num_flux_type = Chan
+set conv_num_flux = two_point_flux
+set flux_reconstruction = cDG
+set use_inverse_mass_on_the_fly = true
+
+
+# ODE solver
+subsection ODE solver
+  set ode_output = quiet
+  set ode_solver_type = runge_kutta
+  set initial_time_step = 0.0000000001
+  #set output_solution_every_x_steps = 100
+  set output_solution_every_dt_time_intervals = 0.04
+  set runge_kutta_method = ssprk3_ex 
+end
+
+# freestream Mach number
+subsection euler
+  set mach_infinity = 0.8
+end
+
+subsection flow_solver
+  set flow_case_type = multi_species_smooth_interface
+  set poly_degree = 3
+  set final_time = 8.0
+  set courant_friedrichs_lewy_number = 0.75
+  set adaptive_time_step = true
+  set unsteady_data_table_filename = sod_shock_energy
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 1.0
+    set number_of_grid_elements_per_dimension = 400
+    subsection grid_rectangle
+      set number_of_grid_elements_x = 400
+    end
+  end
+end

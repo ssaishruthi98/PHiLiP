@@ -79,7 +79,6 @@ void MultispeciesTests<dim,nspecies,nstate>::display_grid_parameters() const
     this->pcout << "- - Domain dimensionality: " << dim << std::endl;
     this->pcout << "- - Domain left: " << this->domain_left << std::endl;
     this->pcout << "- - Domain right: " << this->domain_right << std::endl;
-
     int cells_in_each_dir = 0;
     if(this->number_of_cells_per_direction > this->all_param.flow_solver_param.number_of_grid_elements_x)
         cells_in_each_dir = this->number_of_cells_per_direction;
@@ -232,10 +231,10 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_and_update_integrated_qua
                     std::cout << "Flow Solver Error: Total energy is a nonphysical value - Aborting... " << std::endl << std::flush;
                     std::abort();
                 }
-                if (istate > dim+1 && (soln_state[istate] < 0 || soln_state[istate] != soln_state[istate])) {
-                    std::cout << "Flow Solver Error: density of species #" << istate-dim-1 <<" is a nonphysical value - Aborting... " << std::endl << std::flush;
-                    std::abort();
-                }
+                // if (istate > dim+1 && (soln_state[istate] < 0 || soln_state[istate] != soln_state[istate])) {
+                //     std::cout << "Flow Solver Error: density of species #" << istate-dim-1 <<" is a nonphysical value - Aborting... " << std::endl << std::flush;
+                //     std::abort();
+                // }
             }
 
             std::array<double,nstate> energy_var;

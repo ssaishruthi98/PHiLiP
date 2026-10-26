@@ -1367,6 +1367,46 @@ real InitialConditionFunction_Multispecies_DensityPulse<dim,nspecies,nstate,real
     return value;
 }
 
+// ========================================================
+// 1D Smooth Interface Advection -- Initial Condition
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Multispecies_SmoothInterface<dim,nspecies,nstate,real>
+::InitialConditionFunction_Multispecies_SmoothInterface (
+        Parameters::AllParameters const* const param)
+        : InitialConditionFunction_MultispeciesEulerBase<dim,nspecies,nstate,real>(param)
+{}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Multispecies_SmoothInterface<dim, nspecies, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.0;
+    if constexpr(dim==1) {
+        const real x = point[0];
+        const real r = abs(x - 0.5);
+        const real rho_1 = (0.6/2.0)*(1.0-tanh(15*(r-0.25)));
+        const real rho_2 = (0.2/2.0)*(1.0+tanh(15*(r-0.25)));
+        if(istate == 0) {
+            //density
+            value = rho_1 + rho_2;
+        }
+        else if (istate == 1) {
+            //velocity
+            value = 1.0;
+        }
+        else if (istate == 2) {
+            //pressure
+            value = 0.9;
+        }
+        else if (istate == 3) {
+            //Y_O2
+            value = rho_1;
+        }
+    }
+    return value;
+}
 
 // ========================================================
 // 1D Multispecies Sod Shock tube -- Initial Condition
@@ -1724,6 +1764,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr ((nspecies==2||nspecies==3) && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_DensityPulse<dim,nspecies,nstate,real> >(param,true);
     } else if (flow_type == FlowCaseEnum::multi_species_sod_shock_tube) {
         if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_smooth_interface) {
+        if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_SmoothInterface<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::multi_species_isentropic_vortex) {
         if constexpr (dim==2 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::multi_species_taylor_green_vortex_smooth) {
@@ -1809,6 +1851,7 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction_Multispecies_DensityPulse <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #if PHILIP_DIM==1
     template class InitialConditionFunction_Multispecies_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    template class InitialConditionFunction_Multispecies_SmoothInterface <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #elif PHILIP_DIM==2
     template class InitialConditionFunction_Multispecies_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #elif PHILIP_DIM==3

@@ -45,6 +45,7 @@ public:
         ms_density_pulse,
         ms_density_pulse_high_temp,
         multi_species_sod_shock_tube,
+        multi_species_smooth_interface,
         multi_species_isentropic_vortex,
         multi_species_taylor_green_vortex_smooth,
         multi_species_taylor_green_vortex_sharp

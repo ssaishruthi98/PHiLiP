@@ -16,6 +16,7 @@ set chemistry_input_file = ../../chemistry_files/H2_O2.kinetics
 
 # DG formulation
 set use_weak_form = false
+set flux_nodes_type = GLL
 set non_physical_behavior = abort_run
 set all_boundaries_are_periodic = true
 set check_same_coords_in_weak_dg = false

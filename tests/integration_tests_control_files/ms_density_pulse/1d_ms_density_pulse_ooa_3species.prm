@@ -10,6 +10,7 @@ set dimension = 1
 
 # Chemical species
 set number_of_species = 3
+set flux_nodes_type = GLL
 set test_type = ms_density_pulse
 set pde_type = multispecies_calorically_perfect_euler
 set chemistry_input_file = ../../chemistry_files/H2_O2_N2.kinetics
