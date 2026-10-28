@@ -6,7 +6,7 @@ set dimension = 1
 # Chemical species
 set number_of_species = 2
 set pde_type = multispecies_thermally_perfect_euler
-set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
+set chemistry_input_file = ../../chemistry_files/CH4_N2.kinetics
 set run_type = flow_simulation
 
 # DG formulation
@@ -50,6 +50,7 @@ subsection flow_solver
   set courant_friedrichs_lewy_number = 0.75
   set adaptive_time_step = true
   set unsteady_data_table_filename = sod_shock_energy
+  set do_calculate_numerical_entropy = true
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 1.0

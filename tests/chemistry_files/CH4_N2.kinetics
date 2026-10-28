@@ -1,0 +1,44 @@
+Number of Species
+2
+
+Species Name
+CH4
+
+Species Weight
+16.04246
+
+Specific Heat at Constant Pressure
+2.22
+
+Species Enthalpy Offset
+7.2951782242804075
+
+Species Entropy Offset
+40.471190614831855
+
+Polynomial Temp Range
+200.000 6000.000
+
+Coefficients
+4.41865733e-06 -6.86075089e-04 3.04091621e-02 -5.76725992e-01 5.60298884e+00 2.55683686e+00
+
+Species Name
+N2
+
+Species Weight
+28.0134000
+
+Specific Heat at Constant Pressure
+1.041
+
+Species Enthalpy Offset
+3.616281930706419
+
+Species Entropy Offset
+23.82818476323043
+
+Polynomial Temp Range
+200.000 20000.000
+
+Coefficients
+8.58214476167291e-08 -1.7196780102296e-05 0.0011740830947807653 -0.031822531838225976 0.36837431143180227 3.1472819279528017 

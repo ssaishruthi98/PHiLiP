@@ -2300,7 +2300,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Eule
                                                  const std::array<real,nstate> &conservative_soln2) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    conv_num_split_flux = this->convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
 
     const real rho1 = conservative_soln1[0];
     const real rho2 = conservative_soln2[0];
@@ -2337,6 +2336,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Eule
     std::array<real,nspecies> species_densities_avg;
     real total_rho_avg = 0.0;
     for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        // species_densities_avg[ispecies] = this->compute_ismail_roe_logarithmic_mean(species_densities1[ispecies],species_densities2[ispecies]);
         species_densities_avg[ispecies] = this->compute_average(species_densities1[ispecies],species_densities2[ispecies]);
         species_internal_energy_avg[ispecies] = this->compute_average(species_internal_energy1[ispecies],species_internal_energy2[ispecies]);
         species_rho_e_avg[ispecies] = this->compute_average(species_densities1[ispecies]*species_internal_energy1[ispecies],species_densities2[ispecies]*species_internal_energy2[ispecies]);

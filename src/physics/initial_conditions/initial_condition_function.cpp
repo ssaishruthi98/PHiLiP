@@ -1386,8 +1386,8 @@ real InitialConditionFunction_Multispecies_SmoothInterface<dim, nspecies, nstate
     if constexpr(dim==1) {
         const real x = point[0];
         const real r = abs(x - 0.5);
-        const real rho_1 = (0.6/2.0)*(1.0-tanh(15*(r-0.25)));
-        const real rho_2 = (0.2/2.0)*(1.0+tanh(15*(r-0.25)));
+        const real rho_1 = (0.6/2.0)*(1.0-tanh(15*(r-0.25))) + 0.01;
+        const real rho_2 = (0.2/2.0)*(1.0+tanh(15*(r-0.25))) + 0.01;
         if(istate == 0) {
             //density
             value = rho_1 + rho_2;
