@@ -26,8 +26,8 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
     if (nstate == dim + nspecies + 1) {
         using limiter_enum = Parameters::LimiterParam::LimiterType;
         limiter_enum limiter_type = parameters_input->limiter_param.bound_preserving_limiter;
-        if(pde_type == PDE_enum::multispecies_thermally_perfect_euler)
-            use_internal_energy_limiter = true;
+        // if(pde_type == PDE_enum::multispecies_thermally_perfect_euler)
+        //     use_internal_energy_limiter = true;
 
         if((pde_type == PDE_enum::multispecies_calorically_perfect_euler || pde_type == PDE_enum::multispecies_thermally_perfect_euler) && limiter_type == limiter_enum::positivity_preservingZhang2010) {
             std::cout << "Error: Zhang 2010 limiting has not been implemented for multispecies flow" << std::endl;

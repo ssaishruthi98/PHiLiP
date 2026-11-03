@@ -601,6 +601,9 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nspecies, nstate, real>
         conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
     } else if(two_point_num_flux_type == two_point_num_flux_enum::Ra) {
         conv_num_split_flux = convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::Chan) {
+        std::cout << " The Chan flux has not been implemented for this physics class....Aborting..." << std::endl;
+        std::abort();
     }
 
     return conv_num_split_flux;

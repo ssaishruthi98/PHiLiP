@@ -10,7 +10,7 @@ set dimension = 3
 # Number of chemical species
 set number_of_species = 2
 set run_type = flow_simulation
-set pde_type = multispecies_calorically_perfect_euler
+set pde_type = multispecies_thermally_perfect_euler
 set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 
 # DG formulation
@@ -19,7 +19,7 @@ set flux_nodes_type = GLL
 set do_renumber_dofs = false
 set use_split_form = true
 set conv_num_flux = two_point_flux
-set two_point_num_flux_type = Ra
+set two_point_num_flux_type = Chan
 set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 set use_weight_adjusted_mass = true

@@ -112,7 +112,7 @@ public:
     bool use_split_form;
 
     /// Two point numerical flux type for split form
-    enum TwoPointNumericalFlux { KG, IR, CH, Ra, Re };
+    enum TwoPointNumericalFlux { KG, IR, CH, Ra, Re, Chan };
     /// Store selected TwoPointNumericalFlux from the input file
     TwoPointNumericalFlux two_point_num_flux_type;
 

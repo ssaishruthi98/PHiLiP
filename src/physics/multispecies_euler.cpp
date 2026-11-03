@@ -934,9 +934,12 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_CaloricallyPerfect_Eu
     } else if(two_point_num_flux_type == two_point_num_flux_enum::CH) {
         conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
     } else if(two_point_num_flux_type == two_point_num_flux_enum::Ra) {
-                conv_num_split_flux = convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
+        conv_num_split_flux = convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
     } else if(two_point_num_flux_type == two_point_num_flux_enum::Re) {
-                conv_num_split_flux = convective_numerical_split_flux_renac(conservative_soln1, conservative_soln2);
+        conv_num_split_flux = convective_numerical_split_flux_renac(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::Chan) {
+        std::cout << " The Chan flux has not been implemented for this physics class....Aborting..." << std::endl;
+        std::abort();
     }
 
     return conv_num_split_flux;
@@ -2216,6 +2219,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Eule
         conv_num_split_flux = convective_numerical_split_flux_chandrashekar(conservative_soln1, conservative_soln2);
     } else if(this->two_point_num_flux_type == two_point_num_flux_enum::Ra) {
         conv_num_split_flux = convective_numerical_split_flux_ranocha(conservative_soln1, conservative_soln2);
+    } else if(this->two_point_num_flux_type == two_point_num_flux_enum::Chan) {
+        conv_num_split_flux = convective_numerical_split_flux_chan(conservative_soln1, conservative_soln2);
     }
 
     return conv_num_split_flux;
@@ -2467,6 +2472,159 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Eule
     // std::cout << std::endl;
     // sleep(1);
 
+    return conv_num_split_flux;
+}
+
+// Helper function to evaluate dP/drho for const T - used in the Chan two-point flux
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_dP_drho_k ( const real temperature ) const
+{
+    std::array<real,nspecies> dP_drho_k;
+
+    for (int ispecies = 0; ispecies < nspecies; ispecies++) {
+        real Rs = this->Rs[ispecies];
+
+        dP_drho_k[ispecies] = Rs*temperature; // dP/drho_T
+    }
+
+    return dP_drho_k;
+}
+
+// Helper function to evaluate pressure derivatives for the Chan two-point flux
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> MultiSpecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_drho_e_drho_k_at_const_p ( const std::array<real,nspecies> &species_densities, const real density, const real temperature ) const
+{
+    const std::array<real, nspecies> internal_energy = compute_species_specific_internal_energy(temperature);
+    const std::array<real, nspecies> cv = compute_species_specific_Cv(temperature);
+    std::array<real, nspecies> mass_fractions;
+    for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        mass_fractions[ispecies] = species_densities[ispecies]/density;
+    }
+    const real mixture_cv = this->compute_mixture_from_species(mass_fractions,cv);
+    const real mixture_R = this->compute_mixture_from_species(mass_fractions,this->Rs);
+
+    std::array<real,nspecies> dP_drho_k = compute_dP_drho_k(temperature);
+    std::array<real, nspecies> drho_e_k_drho_k_at_const_p;
+    for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        real density = species_densities[ispecies];
+
+        drho_e_k_drho_k_at_const_p[ispecies] = -((density*mixture_cv)/(density*mixture_R))*dP_drho_k[ispecies] + internal_energy[ispecies];
+        // std::cout << "drho_e_k_drho_k_at_const_p  " << ispecies << "  " << drho_e_k_drho_k_at_const_p[ispecies] << std::endl;  
+    }
+
+    // std::cout << std::endl << std::endl;
+    return drho_e_k_drho_k_at_const_p;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
+::convective_numerical_split_flux_chan(const std::array<real,nstate> &conservative_soln1,
+                                                 const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+
+    const real rho1 = conservative_soln1[0];
+    const real rho2 = conservative_soln2[0];
+    const real temp1 = compute_temperature(conservative_soln1);
+    const real temp2 = compute_temperature(conservative_soln2);
+
+    const real pressure1 = compute_mixture_pressure(conservative_soln1);
+    const real pressure2 = compute_mixture_pressure(conservative_soln2);
+    const real pressure_avg = this->compute_average(pressure1, pressure2);
+
+    const dealii::Tensor<1,dim,real> vel1 = this->compute_velocities(conservative_soln1);
+    const dealii::Tensor<1,dim,real> vel2 = this->compute_velocities(conservative_soln2);
+    dealii::Tensor<1,dim,real> vel_avg;
+    real vel_sqr_avg = 0.0;
+
+    for (int d=0; d<dim; ++d) {
+        vel_avg[d] = 0.5*(vel1[d]+vel2[d]);
+        // vel_sqr_avg += 0.5*(vel1[d]*vel1[d] + vel2[d]*vel2[d]);
+        vel_sqr_avg += 0.5*(vel1[d]*vel2[d]);
+    }
+
+    const real rho_e_1 = rho1*this->compute_mixture_internal_energy(conservative_soln1);
+    const real rho_e_2 = rho2*this->compute_mixture_internal_energy(conservative_soln2);
+    const real rho_e_avg = this->compute_average(rho_e_1, rho_e_2);
+
+    const std::array<real,nspecies> species_internal_energy1 = compute_species_specific_internal_energy(temp1);
+    const std::array<real,nspecies> species_internal_energy2 = compute_species_specific_internal_energy(temp2);
+    std::array<real,nspecies> species_internal_energy_avg;
+    std::array<real,nspecies> species_rho_e_avg;
+    real total_rho_e_avg = 0.0;
+
+    const std::array<real,nspecies> species_densities1 = this->compute_species_densities(conservative_soln1);
+    const std::array<real,nspecies> species_densities2 = this->compute_species_densities(conservative_soln2);
+    std::array<real,nspecies> species_densities_avg;
+    real total_rho_avg = 0.0;
+    for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        species_densities_avg[ispecies] = this->compute_average(species_densities1[ispecies],species_densities2[ispecies]);
+        species_internal_energy_avg[ispecies] = this->compute_average(species_internal_energy1[ispecies],species_internal_energy2[ispecies]);
+        species_rho_e_avg[ispecies] = this->compute_average(species_densities1[ispecies]*species_internal_energy1[ispecies],species_densities2[ispecies]*species_internal_energy2[ispecies]);
+        total_rho_avg += species_densities_avg[ispecies];
+        total_rho_e_avg += species_rho_e_avg[ispecies];
+    }
+
+    // std::cout << "Check 1:  Is the sum of (rho_k e_k)_avg = (rho e)_avg  -> sum = " << total_rho_e_avg << " the total = " << rho_e_avg << std::endl << std::endl; 
+    // std::cout << "Check 2:  What is the total energy for cons_soln1 = " << conservative_soln1[dim+1] << " the total 2 = " << conservative_soln2[dim+1] << std::endl << std::endl; 
+    // std::cout << "Check 3:  What is the kinetic energy for cons_soln1 = " << this->compute_kinetic_energy_from_conservative_solution(conservative_soln1) << " the energy 2 = " << this->compute_kinetic_energy_from_conservative_solution(conservative_soln2) << std::endl << std::endl; 
+
+    // Calculate derivatives
+    const std::array<real, nspecies> drho_e_drho_k_p_1 = compute_drho_e_drho_k_at_const_p(species_densities1,rho1,temp1);
+    const std::array<real, nspecies> drho_e_drho_k_p_2 = compute_drho_e_drho_k_at_const_p(species_densities2,rho2,temp2);
+    real rho_e_corrected_avg = rho_e_avg;
+    // std::cout << " rho_e_corrected_avg " << rho_e_corrected_avg << std::endl;
+    for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        rho_e_corrected_avg -= 0.25*((drho_e_drho_k_p_1[ispecies]-drho_e_drho_k_p_2[ispecies])*(species_densities1[ispecies]-species_densities2[ispecies]));
+        // std::cout << " rho_e_corrected_avg " << rho_e_corrected_avg << std::endl;
+    }
+    // std::cout << std::endl;
+
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    {
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = total_rho_avg * vel_avg[flux_dim];
+
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = conv_num_split_flux[0][flux_dim]*vel_avg[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_avg; // Add diagonal of pressure
+        
+        // Species density equation
+        for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
+            const int index = dim+2+ispecies;
+            conv_num_split_flux[index][flux_dim] = species_densities_avg[ispecies] * vel_avg[flux_dim];
+        }
+        // Add last species contribution to energy flux
+        conv_num_split_flux[dim+1][flux_dim] = (rho_e_corrected_avg + total_rho_avg*vel_sqr_avg) * vel_avg[flux_dim];
+        // conv_num_split_flux[dim+1][flux_dim] += pressure_avg*vel_avg[flux_dim];
+
+        // Energy equation
+        // for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+        //     conv_num_split_flux[dim+1][flux_dim] +=  conv_num_split_flux[1+velocity_dim][flux_dim]*vel_avg[velocity_dim];
+        // }
+        // compute additional terms from pressure fix
+        real pressure_fix = 0.5*(pressure1*vel2[flux_dim]+pressure2*vel1[flux_dim]);
+
+        // Energy equation
+        conv_num_split_flux[dim+1][flux_dim] += pressure_fix;
+        //  conv_num_split_flux[dim+1][flux_dim] *= ((this->R_ref*this->temperature_ref)/(this->u_ref_sqr*this->density_ref));
+    }
+
+    // std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux_ra = this->convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
+
+    // for (int flux_dim = 0; flux_dim < dim; ++flux_dim) {
+    //     std::cout << " rho_e_corrected_avg  " << rho_e_corrected_avg << std::endl << std::endl;
+    //     for (int istate = 0; istate < nstate; ++istate) {
+    //         std::cout << "kg state " << istate << " ----------> " << conv_num_split_flux_ra[istate][flux_dim] << std::endl;
+    //         std::cout << "chan state " << istate << " --------> " << conv_num_split_flux[istate][flux_dim] << std::endl << std::endl;
+    //     }
+    //     std::cout << std::endl;
+    // }
+    // sleep(5);
     return conv_num_split_flux;
 }
 
