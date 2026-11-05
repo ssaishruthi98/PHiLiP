@@ -49,6 +49,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " turbulent_airfoil_3D |"
                           " multi_species_vortex_advection |"
                           " multi_species_vortex_advection_high_temp | "
+                          " multi_species_smooth_interface | "
                           " multi_species_sod_shock_tube |"
                           " multi_species_isentropic_vortex |"
                           " multi_species_taylor_green_vortex_smooth |"
@@ -85,6 +86,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " turbulent_airfoil_3D | "
                           " multi_species_vortex_advection | "
                           " multi_species_vortex_advection_high_temp "
+                          " multi_species_smooth_interface | " 
                           " multi_species_sod_shock_tube | " 
                           " multi_species_isentropic_vortex | "
                           " multi_species_taylor_green_vortex_smooth | "
@@ -559,6 +561,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "multi_species_vortex_advection")            {flow_case_type = multi_species_vortex_advection;}
         else if (flow_case_type_string == "multi_species_vortex_advection_high_temp")  {flow_case_type = multi_species_vortex_advection_high_temp;}
         else if (flow_case_type_string == "multi_species_sod_shock_tube")              {flow_case_type = multi_species_sod_shock_tube;}
+        else if (flow_case_type_string == "multi_species_smooth_interface")            {flow_case_type = multi_species_smooth_interface;}
         else if (flow_case_type_string == "multi_species_isentropic_vortex")           {flow_case_type = multi_species_isentropic_vortex;}
         else if (flow_case_type_string == "multi_species_taylor_green_vortex_smooth")  {flow_case_type = multi_species_taylor_green_vortex_smooth;}
         else if (flow_case_type_string == "multi_species_taylor_green_vortex_sharp")   {flow_case_type = multi_species_taylor_green_vortex_sharp;}

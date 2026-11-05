@@ -723,6 +723,21 @@ protected:
 
 };
 
+/// 1D Initial Condition Function: Multispecies_SmoothInterface
+/** Adapted from Terashima 2025 paper
+ */
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_Multispecies_SmoothInterface: public InitialConditionFunction_MultiSpecies_EulerBase<dim,nspecies,nstate,real>
+{
+public:
+    InitialConditionFunction_Multispecies_SmoothInterface (
+            Parameters::AllParameters const *const param);
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+};
+
+
 /// 1D Initial Condition Function: Multispecies_SodShockTube
 /** See Wang, J. H., Pan, S., Hu, X. Y., & Adams, N. A. (2019). 
  * Partial characteristic decomposition for multi-species Euler equations. 

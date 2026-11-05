@@ -46,6 +46,7 @@ endif()
 # Multispecies Tests
 if(${NUMBER_OF_SPECIES} EQUAL 2)
 add_subdirectory(ms_vortex_advection)
+add_subdirectory(ms_smooth_interface)
 add_subdirectory(ms_sod_shock_tube)
 add_subdirectory(ms_contact_discontinuity)
 add_subdirectory(ms_isentropic_vortex)
