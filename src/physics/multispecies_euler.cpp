@@ -1727,6 +1727,38 @@ std::array<real,nspecies> Multispecies_ThermallyPerfect_Euler<dim, nspecies, nst
     return species_gibbs;
 }
 
+// Compute mixture entropy
+template <int dim, int nspecies, int nstate, typename real>
+inline real Multispecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
+::compute_entropy (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    const std::array<real,nspecies> species_entropy = compute_species_entropy(conservative_soln);
+    const std::array<real,nspecies> mass_fractions = this->compute_mass_fractions(conservative_soln);
+
+    const real entropy = this->compute_mixture_from_species(mass_fractions,species_entropy);
+    if(entropy != entropy) {
+        std::cout << "The calculated entropy is NaN - this is likely due to a species having a mass fraction of zero...Aborting." << std::endl;
+        std::abort();
+    }
+
+    return entropy;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real Multispecies_ThermallyPerfect_Euler<dim,nspecies,nstate,real>
+::compute_numerical_entropy_function ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real density = conservative_soln[0];
+
+    const real entropy = compute_entropy(conservative_soln);
+
+    const real numerical_entropy_function = - density * entropy;
+
+    return numerical_entropy_function;
+}
+
+
 // Compute the entropy variables from conservative solution
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nstate> Multispecies_ThermallyPerfect_Euler<dim, nspecies, nstate, real>
@@ -2339,6 +2371,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Multispecies_ThermallyPerfect_Eule
         // species_densities_avg[ispecies] = this->compute_ismail_roe_logarithmic_mean(species_densities1[ispecies],species_densities2[ispecies]);
         species_densities_avg[ispecies] = this->compute_average(species_densities1[ispecies],species_densities2[ispecies]);
         species_internal_energy_avg[ispecies] = this->compute_average(species_internal_energy1[ispecies],species_internal_energy2[ispecies]);
+        // species_rho_e_avg[ispecies] = this->compute_ismail_roe_logarithmic_mean(species_densities1[ispecies]*species_internal_energy1[ispecies],species_densities2[ispecies]*species_internal_energy2[ispecies]);
         species_rho_e_avg[ispecies] = this->compute_average(species_densities1[ispecies]*species_internal_energy1[ispecies],species_densities2[ispecies]*species_internal_energy2[ispecies]);
         total_rho_avg += species_densities_avg[ispecies];
         total_rho_e_avg += species_rho_e_avg[ispecies];

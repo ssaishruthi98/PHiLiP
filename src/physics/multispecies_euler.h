@@ -388,13 +388,18 @@ protected:
     // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
     std::array<real,nspecies> compute_species_entropy_cv_integral ( const real temperature ) const; 
 public:
+    /// Compute numerical entropy function -rho s 
+    real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
+    
+    // Compute mixture entropy
+    real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
     // Compute species entropy from temperature and species density
     std::array<real,nspecies> compute_species_entropy ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Compute species Gibbs' energy using species entropy and species Cp
     std::array<real,nspecies> compute_species_gibbs_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
-public:
     /// Computes the entropy variables.
     std::array<real,nstate> compute_entropy_variables (
                 const std::array<real,nstate> &conservative_soln) const;

@@ -2130,7 +2130,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
                 soln_state_face= pde_physics.compute_conservative_variables_from_entropy_variables (entropy_var_face);
             } else {
                 for(int istate=0; istate<nstate; istate++){
-                    soln_state_face[istate] = soln_at_vol_q[istate][iquad_face];
+                    soln_state_face[istate] = soln_at_surf_q[istate][iquad_face];
                 }
             }
             //only do the n_quad_1D vol points that give non-zero entries from Hadamard product.
@@ -3220,8 +3220,8 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
             }
             else {
                 for(int istate=0; istate<nstate; istate++){
-                    soln_state_face_int[istate] = soln_at_vol_q_int[istate][iquad_face];
-                    soln_state_face_ext[istate] = soln_at_vol_q_ext[istate][iquad_face];
+                    soln_state_face_int[istate] = soln_at_surf_q_int[istate][iquad_face];
+                    soln_state_face_ext[istate] = soln_at_surf_q_ext[istate][iquad_face];
                 }
             }
 
