@@ -450,7 +450,7 @@ void MultispeciesTests<dim,nspecies,nstate>::modify_dg_object(std::shared_ptr <D
                 soln_coeff[istate][ishape] = dg->solution[current_dofs_indices[idof]];
             }
 
-            // Write limited solution dofs to the global solution vector.
+            // Write modified solution dofs to the global solution vector.
             for (int istate = 0; istate < nstate; istate++) {
                 for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
                     if (istate == 1 || istate == 2)
@@ -462,6 +462,49 @@ void MultispeciesTests<dim,nspecies,nstate>::modify_dg_object(std::shared_ptr <D
         }
         this->pcout << "done." << std::endl;
     }
+}
+
+template <int dim, int nspecies, int nstate>
+double MultispeciesTests<dim, nspecies, nstate>::calculate_pressure_l2_error(
+    std::shared_ptr<DGBase<dim, nspecies, double>> dg,
+    const int poly_degree) const
+{
+    /* ---- USE ONLY FOR THE MULTISPECIES SMOOTH ADVECTION TEST CASE PLEASE ---- */
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 10;
+    dealii::QGauss<dim> quad_extra(poly_degree + 1 + overintegrate);
+    dealii::FEValues<dim, dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[poly_degree], quad_extra,
+        dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+    double exact_pressure = 0.9; // initial value of pressure for multispecies smooth advection case
+    double l2_error = 0.0;
+    std::array<double, nstate> soln_at_q;
+
+
+    // Integrate every cell and compute L2
+    std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
+    for (auto cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
+
+        fe_values_extra.reinit(cell);
+        cell->get_dof_indices(dofs_indices);
+
+        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+            for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
+                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+            }
+            double pressure_at_q = this->multispecies_euler_physics->compute_pressure(soln_at_q);
+
+            l2_error += pow(abs(pressure_at_q - exact_pressure), 2.0) * fe_values_extra.JxW(iquad);
+        }
+    }
+    //MPI sum
+    double l2_error_mpi = dealii::Utilities::MPI::max(l2_error, this->mpi_communicator);
+
+    return l2_error_mpi;
 }
 
 template <int dim, int nspecies, int nstate>
@@ -496,6 +539,7 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
     current_volume_term = this->get_volume_term(); // no overintegration
     if (current_iteration == 0)  initial_volume_term = current_volume_term;
 
+    double pressure_l2_error = calculate_pressure_l2_error(dg, this->all_param.flow_solver_param.poly_degree);
     if (this->mpi_rank == 0) {
 
         unsteady_data_table->add_value("iteration", current_iteration);
@@ -515,6 +559,8 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
         unsteady_data_table->set_scientific("current_volume_term", false);
         this->add_value_to_data_table(current_volume_term-initial_volume_term,"change_in_volume_term",unsteady_data_table);
         unsteady_data_table->set_scientific("change_in_volume_term", false);
+        this->add_value_to_data_table(pressure_l2_error,"pressure_l2_error",unsteady_data_table);
+        unsteady_data_table->set_scientific("pressure_l2_error", false);
         // Write to file
         if(do_write_unsteady_data_table_file){
             std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
@@ -530,11 +576,11 @@ void MultispeciesTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_t
         this->pcout << "    Current Numerical Entropy:  " << current_numerical_entropy
                     << "    U-Uo: " << current_numerical_entropy-initial_entropy;
         }
-        this->pcout << "    Current Kinetic Energy:  " << current_kinetic_energy
-                    << "    KE-KE_0:  " << current_kinetic_energy-initial_kinetic_energy;
-        this->pcout << "    Current Volume Term:  " << current_volume_term
-                    << "    Change in Volume Term:  " << current_volume_term-initial_volume_term;
-
+        // this->pcout << "    Current Kinetic Energy:  " << current_kinetic_energy
+        //             << "    KE-KE_0:  " << current_kinetic_energy-initial_kinetic_energy;
+        // this->pcout << "    Current Volume Term:  " << current_volume_term
+        //             << "    Change in Volume Term:  " << current_volume_term-initial_volume_term;
+        this->pcout << "    Current Pressure L2 Error:  " << pressure_l2_error;
         this->pcout << std::endl;
     }
 

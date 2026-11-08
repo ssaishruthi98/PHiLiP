@@ -103,6 +103,11 @@ private:
 
     // Real Gas physics pointer. Used to convert primitive to conservative.
     std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > multispecies_euler_physics;
+
+    /// Calculate and return the L2 Error
+    double calculate_pressure_l2_error(
+        std::shared_ptr<DGBase<dim, nspecies, double>> flow_solver_dg, 
+        const int poly_degree) const;
 };
 
 } // FlowSolver namespace
