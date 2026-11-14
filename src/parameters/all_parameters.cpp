@@ -86,9 +86,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("two_point_num_flux_type", "KG",
                       dealii::Patterns::Selection(
-                      "KG | IR | CH | Ra | Chan"),
+                      "KG | IR | CH | Ra | Chan | Chan_log_mean"),
                       "Two point flux type. "
-                      "Choices for single species are <KG | IR | CH | Ra | Chan>."
+                      "Choices for single species are <KG | IR | CH | Ra | Chan | Chan_log_mean>."
                       "Multi-species only supports <KG>.");
 
     prm.declare_entry("use_curvilinear_split_form", "false",
@@ -592,6 +592,7 @@ const std::string test_string = prm.get("test_type");
     if (two_point_num_flux_string == "CH") { two_point_num_flux_type = TwoPointNumericalFlux::CH; }
     if (two_point_num_flux_string == "Ra") { two_point_num_flux_type = TwoPointNumericalFlux::Ra; }
     if (two_point_num_flux_string == "Chan") { two_point_num_flux_type = TwoPointNumericalFlux::Chan; }
+    if (two_point_num_flux_string == "Chan_log_mean") { two_point_num_flux_type = TwoPointNumericalFlux::Chan_log_mean; }
 
     use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
     use_curvilinear_grid = prm.get_bool("use_curvilinear_grid");

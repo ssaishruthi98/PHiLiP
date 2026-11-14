@@ -453,6 +453,12 @@ public:
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chan (
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &conservative_soln2) const;
+
+    /** Approximate pressure equilibrium conserving split form flux of Chan with averages replaced by log means
+     *  Refer to Chan's paper, "Nodal discontinuous Galerkin methods for non-ideal equations..."*/ 
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_chan_log_mean (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
 };
 
 } // Physics namespace
